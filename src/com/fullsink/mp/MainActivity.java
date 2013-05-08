@@ -1,19 +1,18 @@
 package com.fullsink.mp;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 import org.java_websocket.WebSocketImpl;
 
-
-//import com.rtrol.gc.Prefs;
+import fi.iki.elonen.SimpleWebServer;
 
 
 import android.app.Activity;
@@ -334,36 +333,40 @@ public class MainActivity extends Activity {
 		switch(id){
 		case R.id.btnShare:
 			
-			Toast.makeText(getBaseContext(), "Sharing", Toast.LENGTH_SHORT).show();
 			String ipadd = getServerIPAddress();
 //			System.out.println("Port : " + Prefs.getPort(this) + "  ID : " + Prefs.getAcountID(this));
-			System.out.println("Port : " + 8080 + "  IPADD : " + ipadd);
+			System.out.println("WebSock Port : " + 8080 + "  IPADD : " + ipadd);
 			startServer(8080,ipadd);
 			((Button) view).setText("ON");
 			return;
-		
+			
 		case R.id.btnConnect:
 			if (WClient == null) {
-				Toast.makeText(getBaseContext(), "Connecting", Toast.LENGTH_SHORT).show();
 				startClient(0, "STUB");
 				((Button) view).setText("DIS CON");
 			} else {
 				WClient.close();
 				WClient = null;
 				((Button) view).setText("CONNECT");
-				Toast.makeText(getBaseContext(), "Dis Connect", Toast.LENGTH_SHORT).show();
 			}
 			return;
-			
+
+		case R.id.btnHttpd:	
+			String webadd = getServerIPAddress();
+			System.out.println("HTTPD  IPADD : " + webadd);
+			startHTTPD(8088,webadd);
+			((Button) view).setText("ON");
+			return;
+		
 		case R.id.btnPlay:
 			synchronized(this){
 				if(isTuning){
-					toClients("PAUSE");
+					toClients("CMD:PAUSE");
 					isTuning = false;
 					btnPlay.setBackgroundResource(R.drawable.play);
 					track.pause();
 				} else{
-					toClients("PLAY");
+					toClients("CMD:PLAY");
 					isTuning = true;
 					btnPlay.setBackgroundResource(R.drawable.pause);
 					playTrack();
@@ -464,58 +467,97 @@ public void startServer(int port, String ipadd) {
     WServ = new WebServer( port, ipadd, MainActivity.this );
     WServ.start();       
 
-    System.out.println( "WebServer started on port: " + WServ.getPort() );
-    textOut("WebServer started on port: " + WServ.getPort());
+    System.out.println( "WebSockServ started on port: " + WServ.getPort() );
+    textOut("WebSockServ started");
+    textOut("Address : " + WServ.getAddress());
    } catch ( Exception ex ) {
-	   System.out.println( "WebServer host not found error");
+	   System.out.println( "WebSockServer host not found error" + ex);
    }
   }
 
 
 public void startClient(int port, String ipadd){
+	WebSocketImpl.DEBUG = false;		//This was true originally
 	try {
 
 		 WClient = new WebClient(port, ipadd, MainActivity.this);
 		 WClient.connect();
 		 
 	} catch ( Exception ex ) {
-		   System.out.println( "WebClient error");
+		   System.out.println( "WebClient error : " + ex);
 	   }
 	}
 
 public void toClients(String mess){
 	
 	if (WServ != null){
-//		Toast.makeText(getBaseContext(), mess, Toast.LENGTH_SHORT).show();
 		WServ.sendToAll(mess);
 	}
 }
 
+public void startHTTPD(int port, String ipadd) {
+    
 
-public void sendTrack(){
 	
-	textOut("In sendTrack");
+   try {
+	   /*
+	HttpdServer xsrv;
+    xsrv = new HttpdServer( ipadd,port );
+    
+*/
+
+    SimpleWebServer xsrv;
+    
+    setFile();
+    
+    xsrv = new SimpleWebServer( ipadd, port, getFilesDir() );
+    
+    xsrv.start();       
+    
+    textOut("HTTPD started");
+    textOut("Address : " + ipadd + "  Port : "+port);
+   } catch ( Exception ex ) {
+	   System.out.println( "HTTPD host not found error" + ex);
+   }
+  }
+
+
+public void setFile() {
+	textOut("In setFile : "+ getFilesDir());    	
+
+	byte [] xbuf = new byte[512];
+	
+	File trkFile = new File(getFilesDir(),"testfile.mp3");
 	try {
-	    BufferedReader reader = new BufferedReader(
-	        new InputStreamReader(getAssets().open("testfile.txt")));
-
-	    // do reading, usually loop until end of file reading  
-	    String mLine = reader.readLine();
-	    while (mLine != null) {
-	    	WServ.sendToAll(mLine);
-	    	textOut("Server sent : " + mLine ); 
-	       mLine = reader.readLine(); 
-	    }
-
-	    reader.close();
-	} catch (IOException e) {
-		System.out.println( "File I/O error " + e);
+		
+	if (trkFile.exists()) {
+		textOut("File exists - remove");
+		trkFile.delete();
 	}
+	
+	trkFile.createNewFile();
 
-}
+	
+	AssetFileDescriptor afd = getAssets().openFd("Track1.mp3");
+    FileInputStream in = afd.createInputStream();
+    
+    OutputStream out = new FileOutputStream(trkFile);
 
+    // Transfer bytes from in to out
 
-
+    int len;
+    while ((len = in.read(xbuf)) > 0) {
+        out.write(xbuf, 0, len);
+    }
+    in.close();
+    out.close();
+    textOut("File sz : "+trkFile.length());
+    
+	} catch (IOException e) {
+		System.out.println( "File write error " + e);
+	}
+	}
+	
 public void textOut(final String xmess){
 
 	runOnUiThread(new Runnable() {

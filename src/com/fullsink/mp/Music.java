@@ -54,7 +54,7 @@ public class Music implements OnCompletionListener{
 			}
 		} catch(IllegalStateException ex){
 			ex.printStackTrace();
-		} catch(IOException ex){
+		} catch(Exception ex){
 			ex.printStackTrace();
 		}
 	}
