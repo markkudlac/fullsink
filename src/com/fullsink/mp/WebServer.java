@@ -1,7 +1,10 @@
 package com.fullsink.mp;
 
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -39,7 +42,7 @@ public class WebServer extends WebSocketServer {
         public void onOpen( WebSocket conn, ClientHandshake handshake ) {
  //               this.sendToAll( "CMD:MESS : new connection: " + handshake.getResourceDescriptor() );
  //               this.sendToAll( "new connection: " );
-                System.out.println( conn.getRemoteSocketAddress().getAddress().getHostAddress() + " entered the room!" );
+                System.out.println( conn.getRemoteSocketAddress().getAddress().getHostAddress() + " : CONNECTED" );
         }
 
         @Override
@@ -54,13 +57,12 @@ public class WebServer extends WebSocketServer {
           System.out.println( "onMessage server : " + conn + ": " + message );
             mnact.textOut( "onMessage server : " + message );
         	if (message.startsWith("CMD:TRACK")) {	
-        		sendTrack();
-//        		this.sendToAll("CMD:PLAY");
+ //       		sendTrack("x");
+        		mnact.toClients("CMD:END");
+        		mnact.toClients("CMD:PLAY:trkfile.mp3");
     		} else {		
 //        		this.sendToAll( message );
     		}
-
-//          this.sendToAll( message );
         }
 
         @Override
@@ -88,53 +90,85 @@ public class WebServer extends WebSocketServer {
                 }
         }
         
-        public void sendTrack(){
+        public void cueTrack(String mfile){
         	
-        	mnact.textOut("In sendTrack");
-        	int i = 0;
+        	mnact.textOut("In cueTrack : " + mfile);
+ 
         	try {
-        		/*
-        	    BufferedReader reader = new BufferedReader(
-        	        new InputStreamReader(getAssets().open("Track1.mp3")), 32000);
-
-        	    // do reading, usually loop until end of file reading  
-        	    String mLine = reader.readLine();
-        	    while (mLine != null && i < 5) {
-        	    	
-        	    	WServ.sendToAll(mLine);
-        	    	textOut("Srv sent : " + i + " Sz : "+ mLine.length()); 
-        	       mLine = reader.readLine(); 
-        	       ++i;
-        	    }
-        */
         		
         		byte [] xbuf = new byte[65536];
-        		int bcnt;
-
-        		AssetFileDescriptor afd = mnact.getAssets().openFd("Track2.mp3");
-        	    FileInputStream reader = afd.createInputStream();
         	    		
-  //      	    mnact.textOut("File off: " + afd.getStartOffset() + "  Len: "+afd.getLength());
+        		File trkFile = new File(mnact.getFilesDir(),"trkfile.mp3");
+        		trkFile.createNewFile();
+     		
+        		AssetFileDescriptor afd = mnact.getAssets().openFd(mfile);
+        	    FileInputStream in = afd.createInputStream();
+        	    
+        	    OutputStream out = new FileOutputStream(trkFile);
 
-        		    bcnt = reader.read(xbuf);
-        		    
-        		    while (bcnt > 0 && i < 98) {
-        		    	
-        		    	mnact.toClients("DATA:"+Base64.encodeToString(xbuf,Base64.DEFAULT));
-        		    	mnact.textOut("Srv sent : " + i + " Sz : "+ bcnt); 
-        		    	bcnt = reader.read(xbuf); 
-        		    	if (i == 5) {
-        		    		mnact.textOut("Send CMD:PLAY");
-        		    		mnact.toClients("CMD:PLAY");
-        		    	}
-        		       ++i;
-        		    }
-        	    reader.close();
+        	    // Transfer bytes from in to out
+
+        	    int len;
+        	    while ((len = in.read(xbuf)) > 0) {
+        	        out.write(xbuf, 0, len);
+        	    }
+        	    in.close();
+        	    out.close();
+        	    
+        	    mnact.textOut("File sz : "+trkFile.length());
+        	    
         	} catch (IOException e) {
         		System.out.println( "File I/O error " + e);
         	}
 
         }
+        
+		/*	Various File writing routines
+		 * 
+       	int i = 0;
+       	
+       	
+       	       		if (trkFile.exists()) {
+        			mnact.textOut("File exists - remove");
+        			trkFile.delete();
+        		}
+       	
+       	
+	    BufferedReader reader = new BufferedReader(
+	        new InputStreamReader(getAssets().open("Track1.mp3")), 32000);
+
+	    // do reading, usually loop until end of file reading  
+	    String mLine = reader.readLine();
+	    while (mLine != null && i < 5) {
+	    	
+	    	WServ.sendToAll(mLine);
+	    	textOut("Srv sent : " + i + " Sz : "+ mLine.length()); 
+	       mLine = reader.readLine(); 
+	       ++i;
+	    }	
+		
+		int bcnt;
+
+		AssetFileDescriptor afd = mnact.getAssets().openFd("Track2.mp3");
+	    FileInputStream reader = afd.createInputStream();
+	    		
+     	    mnact.textOut("File off: " + afd.getStartOffset() + "  Len: "+afd.getLength());
+
+		    bcnt = reader.read(xbuf);
+		    
+		    while (bcnt > 0 && i < 98) {
+		    	
+		    	mnact.toClients("DATA:"+Base64.encodeToString(xbuf,Base64.DEFAULT));
+		    	mnact.textOut("Srv sent : " + i + " Sz : "+ bcnt); 
+		    	bcnt = reader.read(xbuf); 
+		    	if (i == 5) {
+		    		mnact.textOut("Send CMD:PLAY");
+		    		mnact.toClients("CMD:PLAY");
+		    	}
+		       ++i;
+		    }
+	    reader.close();
+	    */
 
 }
 

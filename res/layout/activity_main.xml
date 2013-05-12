@@ -1,65 +1,70 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-	android:id="@+id/screen" android:layout_width="fill_parent" android:layout_height="fill_parent" >
-	<LinearLayout android:orientation="vertical" android:layout_alignParentTop="true" 
-		android:layout_alignParentLeft="true" android:layout_width="fill_parent" android:layout_height="fill_parent" 
-		android:weightSum="7" >
-		<LinearLayout android:layout_weight="6" android:orientation="vertical" android:layout_alignParentTop="true" 
-			android:layout_alignParentLeft="true" android:layout_width="fill_parent" android:layout_height="0dip" >
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context=".MainActivity">
 			
-<LinearLayout android:layout_weight="1" android:orientation="horizontal" android:layout_alignParentTop="true" 
-    		android:id="@+id/netbuts" android:weightSum="5" android:gravity="center" android:background="#FFFFFF" 
-			android:layout_alignParentLeft="true" android:layout_width="fill_parent" android:layout_height="0dip" >		    
+<LinearLayout android:id="@+id/netbuts" style="?android:attr/buttonBarStyle"
+    		android:orientation="horizontal" android:layout_alignParentTop="true" 
+    		 android:gravity="center" android:background="#FFAFAF" 
+			android:layout_width="fill_parent" android:layout_height="wrap_content" >	
+				    
 		<Button
+		    style="?android:attr/buttonBarButtonStyle"
         android:id="@+id/btnShare"
-        android:layout_margin="10dp"
-        android:layout_width="120dp"
-        android:layout_height="60dp"
+        android:layout_margin="10dip"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:background="#BBBBBB"
         android:onClick="click" 
-        android:text="SHARE" />
+        android:text="@string/serverbutOff" />
 			   
 		<Button
+		    style="?android:attr/buttonBarButtonStyle"
         android:id="@+id/btnConnect"
-        android:layout_margin="10dp"
-        android:layout_width="120dp"
-        android:layout_height="60dp"
+        android:layout_margin="10dip"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:background="#BBBBBB"
         android:onClick="click" 
-        android:text="CONNECT" />
-			   			   
-		<Button
-        android:id="@+id/btnHttpd"
-        android:layout_margin="10dp"
-        android:layout_width="120dp"
-        android:layout_height="60dp"
-        android:onClick="click" 
-        android:text="HTTPD" />
+        android:text="@string/clientbutOff" />			
+	</LinearLayout>		
 		
-		</LinearLayout>
-		<ScrollView android:layout_width="fill_parent" android:layout_height="360dp" android:orientation="vertical" >
-<!--  		    
-			<ImageView android:id="@+id/bg" android:layout_width="fill_parent" android:layout_height="360dp" >
-			</ImageView>
--->
-			<TextView android:id="@+id/textout" android:layout_width="fill_parent" android:layout_height="wrap_content" 
-			    android:textSize="35px" android:padding="10dp">
-			</TextView>
-			</ScrollView>
-		</LinearLayout>
-		
-		<LinearLayout android:layout_weight="1" android:id="@+id/buttons" android:orientation="horizontal" android:weightSum="5" 
+	<LinearLayout android:id="@+id/mediabuts" android:orientation="horizontal" android:paddingTop="10dip"
+	    	android:paddingBottom="10dip"
 			android:layout_alignParentBottom="true" android:layout_alignParentLeft="true" android:gravity="center" 
-			android:layout_width="fill_parent" android:layout_height="0dip" android:background="#FFFFFF" >
-			<Button android:id="@+id/btnPrevious" android:layout_width="0dip" android:layout_height="fill_parent" 
-				android:layout_weight="1" android:background="@drawable/previous" android:layout_margin="5dp" 
+			android:layout_width="fill_parent" android:layout_height="wrap_content" android:background="#FFAFAF" >
+			
+			<Button android:id="@+id/btnPrevious" android:layout_width="wrap_content" android:layout_height="wrap_content" 
+				android:background="@drawable/previous" android:layout_marginRight="30dip" 
 				android:onClick="click" />
-			<View android:layout_weight="1" android:layout_width="0dip" android:layout_height="0dip" />
-			<Button android:id="@+id/btnPlay" android:layout_width="0dip" android:layout_height="fill_parent" 
-				android:layout_weight="1" android:background="@drawable/play" android:layout_margin="5dp" 
+			
+
+			<Button android:id="@+id/btnPlay" android:layout_width="wrap_content" android:layout_height="wrap_content" 
+				android:background="@drawable/play" android:layout_marginRight="30dip" 
 				android:onClick="click" />
-			<View android:layout_weight="1" android:layout_width="0dip" android:layout_height="0dip" />
-			<Button android:id="@+id/btnNext" android:layout_width="0dip" android:layout_height="fill_parent" 
-				android:layout_weight="1" android:background="@drawable/next" android:layout_margin="5dp" 
+			
+
+			<Button android:id="@+id/btnNext" android:layout_width="wrap_content" android:layout_height="wrap_content" 
+				android:background="@drawable/next"
 				android:onClick="click" />
-		</LinearLayout>
 	</LinearLayout>
+	
+	<ScrollView android:layout_below="@+id/netbuts" android:layout_above="@+id/mediabuts" 
+	    android:layout_width="fill_parent" android:layout_marginBottom="10dip"
+		    android:orientation="vertical" android:layout_marginTop="10dip" android:layout_height="wrap_content"
+		    android:background="#CFCFFF" android:fillViewport="true">
+
+		<TextView android:id="@+id/textout" android:layout_width="fill_parent" android:layout_height="wrap_content" 
+			    android:textSize="16sp" android:background="#FFFFFF">
+		</TextView>
+	</ScrollView>
+	
 </RelativeLayout>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>   
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <EditTextPreference
+        android:key="@string/pref_acntid"
+        android:title="@string/pref_acntid"
+        android:defaultValue="" />
+    
+    <CheckBoxPreference
+        android:key="@string/pref_shuffle"
+        android:title="@string/pref_shuffle"
+        android:defaultValue="false" />
+    
+        <EditTextPreference
+        android:key="@string/pref_srvadd"
+        android:title="@string/pref_srvadd"
+        android:defaultValue="" />
+    
+    <EditTextPreference
+        android:key="@string/pref_sockport"
+        android:title="@string/pref_sockport"
+        android:defaultValue="@string/default_sockport" />
+    
+        <EditTextPreference
+        android:key="@string/pref_httpdport"
+        android:title="@string/pref_httpdport"
+        android:defaultValue="@string/default_httpdport" />
+</PreferenceScreen>

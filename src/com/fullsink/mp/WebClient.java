@@ -32,7 +32,8 @@ public class WebClient extends WebSocketClient {
 	public WebClient( int port, String ipadd, MainActivity xmnact ) throws URISyntaxException {
 	
         super(
-        		new URI("ws://192.168.1.105:8080")
+//        		new URI("ws://192.168.1.105:8080")
+        		new URI("ws://" + ipadd + ":" + port)
         	);
         
         mnact = xmnact;
@@ -42,9 +43,13 @@ public class WebClient extends WebSocketClient {
     public void onMessage( String message ) {
 //		System.out.println("Client onMess: " + message );
 		
-//		mnact.textOut("Cl Mess: " + message);
+		mnact.textOut("Cl Mess: " + message);
 		if (message.startsWith("CMD:PLAY")) {	
     		outTrack();
+		} else if (message.startsWith("CMD:END")) {	
+    		clMusic.pause();
+		} else if (message.startsWith("CMD:PAUSE")) {	
+    		endTrack();
 		} else if (message.startsWith("DATA:")){
 			mnact.textOut("CL Mess size : " + message.length());
 			rcvTrack(message.substring(5));
@@ -55,8 +60,9 @@ public class WebClient extends WebSocketClient {
     public void onOpen( ServerHandshake handshake ) {
     	System.out.println( "You are connected to WebServer: " + getURI() );
     	
-    	setFile(100);
+//    	setFile(100);
     	send("CMD:TRACK");
+    	mnact.textOut("Sent : CMD:TRACK");
     }
 
     @Override
@@ -71,11 +77,11 @@ public class WebClient extends WebSocketClient {
     
     
     public void setFile(int xsize) {
-    	mnact.textOut("In setFile : "+mnact.getFilesDir());    	
-
+  	
     	byte [] xbuf = new byte[65536];
-		int i;
-		
+
+       	mnact.textOut("In setFile : "+mnact.getFilesDir());  
+       	
     	trkFile = new File(mnact.getFilesDir(),trackFile);
     	try {
     		
@@ -87,6 +93,9 @@ public class WebClient extends WebSocketClient {
     	trkFile.createNewFile();
     	skipFile = 0;
  /*   	
+  * 
+    		int i;
+    		
     	for (i=0; i<65536; i++){
     		xbuf[i] = '0';
     	}
@@ -114,13 +123,11 @@ public class WebClient extends WebSocketClient {
         }
         in.close();
         out.close();
-    	
-    	
+    		
     	    mnact.textOut("Blank file sz : "+trkFile.length());
     	} catch (IOException e) {
     		System.out.println( "File write error " + e);
     	}
-
     }
     
     
@@ -137,44 +144,84 @@ public class WebClient extends WebSocketClient {
     	    writer.seek(skipFile);
     	    writer.write(xbuf);
     	    skipFile = skipFile + xbuf.length;
-//    	    writer.flush();
     	    writer.close();
     	} catch (IOException e) {
     		System.out.println( "File write error " + e);
     	}
     }
 
-
     public void outTrack() {
     	
-    	mnact.textOut("In outTrack size : " + trkFile.length() );
+    	mnact.textOut("In outTrack");
     	
-    	FileInputStream fis = null;
-		try {
-			fis = new FileInputStream(trkFile);
-			clMusic = new Music(fis.getFD());
-			clMusic.play();
-		} catch (IOException e) {
+    	try {
+// This is for streaming
+    		
+    		if (clMusic == null) {
+    			clMusic = new Music("http://" + Prefs.getServerIPAddress(mnact) + ":" +
+    					Prefs.getHttpdPort(mnact) + "/trkfile.mp3", mnact);
+    		} else {
+    			clMusic.play();
+    		}
+
+    	} catch (Exception e) {
     		System.out.println( "I/O outTrack " + e);
     	}
-		
-    	/*
-    	try {
-    	    BufferedReader reader = new BufferedReader(
-    	        new FileReader(trkfile));
-
-    	    // do reading, usually loop until end of file reading  
-    	    String mLine = reader.readLine();
-    	    while (mLine != null) {
-    	    	mnact.textOut(mLine ); 
-    	       mLine = reader.readLine(); 
-    	    }
-
-    	    reader.close();
-    	} catch (IOException e) {
-    		System.out.println( "File I/O error " + e);
-    	}
-    	*/
     }
+
+
+    public void endTrack() {
+    	
+    	mnact.textOut("In endTrack");
+    	
+    	if (clMusic != null){
+    		clMusic.dispose();
+    		clMusic = null;
+    	}
+    }
+
    
 }
+
+/*
+ Various file reading routines
+ */
+
+/*
+try {
+    BufferedReader reader = new BufferedReader(
+        new FileReader(trkfile));
+
+    // do reading, usually loop until end of file reading  
+    String mLine = reader.readLine();
+    while (mLine != null) {
+    	mnact.textOut(mLine ); 
+       mLine = reader.readLine(); 
+    }
+
+    reader.close();
+} catch (IOException e) {
+	System.out.println( "File I/O error " + e);
+}
+
+
+******************
+*
+*
+//    	FileInputStream fis = null;
+    	try {
+//    		fis = new FileInputStream(trkFile);
+//    		clMusic = new Music(fis.getFD());
+    		if (clMusic == null) {
+    			clMusic = new Music("http://" + Prefs.getServerIPAddress(mnact) + ":" + Prefs.getHttpdPort(mnact) + "/trkfile.mp3");
+    		} else {
+    			clMusic.play();
+    		}
+//    		clMusic = new Music(getAssets().openFd("Track3.mp3"));
+//    		clMusic.play();
+    	} catch (Exception e) {
+    		System.out.println( "I/O outTrack " + e);
+    	}
+    	
+
+*/
