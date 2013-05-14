@@ -13,6 +13,7 @@ import java.util.Collection;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
+import static com.fullsink.mp.Const.*;
 
 import android.content.res.AssetFileDescriptor;
 import android.util.Base64;
@@ -24,6 +25,7 @@ import android.util.Base64;
 public class WebServer extends WebSocketServer {
 
 	MainActivity mnact = null;
+	int netlate = BASE_LATENCY;
 	
         public WebServer( int port, String ipadd, MainActivity xmnact ) throws UnknownHostException {
         	
@@ -42,6 +44,7 @@ public class WebServer extends WebSocketServer {
         public void onOpen( WebSocket conn, ClientHandshake handshake ) {
  //               this.sendToAll( "CMD:MESS : new connection: " + handshake.getResourceDescriptor() );
  //               this.sendToAll( "new connection: " );
+        	mnact.toClients(CMD_PING + System.currentTimeMillis());
                 System.out.println( conn.getRemoteSocketAddress().getAddress().getHostAddress() + " : CONNECTED" );
         }
 
@@ -56,10 +59,23 @@ public class WebServer extends WebSocketServer {
         	// Receive messages from controller here
           System.out.println( "onMessage server : " + conn + ": " + message );
             mnact.textOut( "onMessage server : " + message );
-        	if (message.startsWith("CMD:TRACK")) {	
- //       		sendTrack("x");
-        		mnact.toClients("CMD:END");
-        		mnact.toClients("CMD:PLAY:trkfile.mp3");
+            
+            if (message.startsWith(CMD_PING)) {	
+            	mnact.toClients(CMD_PONG + getArg(message));
+            } else if (message.startsWith(CMD_INIT)) {	
+            	mnact.toClients(CMD_PREP + TRKFILE);
+            } else if (message.startsWith(CMD_READY)) {	
+            	
+            		if (mnact.track.isPlaying()) {
+            			mnact.toClients(CMD_PLAY + (mnact.track.getCurrentPosition()));
+            		} else {
+            			mnact.toClients(CMD_SEEK + mnact.track.getCurrentPosition());
+            		}
+            		
+        	} else if (message.startsWith(CMD_PONG)) {	
+    			netlate = calcLatency(Long.parseLong(getArg(message)));
+    		} else if (message.startsWith(CMD_CONNECT)) {
+        		mnact.textOut(getArg(message) + " has connected");
     		} else {		
 //        		this.sendToAll( message );
     		}
@@ -98,7 +114,7 @@ public class WebServer extends WebSocketServer {
         		
         		byte [] xbuf = new byte[65536];
         	    		
-        		File trkFile = new File(mnact.getFilesDir(),"trkfile.mp3");
+        		File trkFile = new File(mnact.getFilesDir(),TRKFILE);
         		trkFile.createNewFile();
      		
         		AssetFileDescriptor afd = mnact.getAssets().openFd(mfile);
@@ -122,7 +138,26 @@ public class WebServer extends WebSocketServer {
         	}
 
         }
+      
+        public static String getArg(String xstr){
+        	
+        	return(xstr.substring(xstr.indexOf(':')+1));
+        }
         
+        
+       public static int calcLatency(long starttm){
+        	
+    	   int lag;
+    	   
+    	   lag = (int) (System.currentTimeMillis() - starttm);
+    	   lag = lag / 2;
+    	   
+    	   System.out.println("Lag is : "+lag);
+    	   	if (lag < BASE_LATENCY) lag = BASE_LATENCY;
+    	   	
+        	return(lag);
+        }
+}
 		/*	Various File writing routines
 		 * 
        	int i = 0;
@@ -170,5 +205,4 @@ public class WebServer extends WebSocketServer {
 	    reader.close();
 	    */
 
-}
 

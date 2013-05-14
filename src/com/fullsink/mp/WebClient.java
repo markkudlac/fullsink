@@ -1,8 +1,8 @@
 package com.fullsink.mp;
 
-
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
+import static com.fullsink.mp.Const.*;
 
 import android.content.res.AssetFileDescriptor;
 import android.util.Base64;
@@ -20,14 +20,13 @@ import java.io.RandomAccessFile;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-
 public class WebClient extends WebSocketClient {
 	
 	MainActivity mnact = null;
 	String trackFile = "trackfile";
 	File trkFile = null;
-	Music clMusic = null;
 	int skipFile = 0;
+	int netlate = BASE_LATENCY;
 	
 	public WebClient( int port, String ipadd, MainActivity xmnact ) throws URISyntaxException {
 	
@@ -44,16 +43,26 @@ public class WebClient extends WebSocketClient {
 //		System.out.println("Client onMess: " + message );
 		
 		mnact.textOut("Cl Mess: " + message);
-		if (message.startsWith("CMD:PLAY")) {	
-    		outTrack();
-		} else if (message.startsWith("CMD:END")) {	
-    		clMusic.pause();
-		} else if (message.startsWith("CMD:PAUSE")) {	
-    		endTrack();
-		} else if (message.startsWith("DATA:")){
+		if (message.startsWith(CMD_SEEK)) {	
+			mnact.getTrack().seekTo(Integer.parseInt(WebServer.getArg(message)));
+		} else if (message.startsWith(CMD_PREP)) {	
+			streamTrack(WebServer.getArg(message));
+		} else if (message.startsWith(CMD_PLAY)) {	
+			mnact.playStream(Integer.parseInt(WebServer.getArg(message)) + netlate);
+		} else if (message.startsWith(CMD_RESUME)) {	
+			mnact.playStream(Integer.parseInt(WebServer.getArg(message)));
+		} else if (message.startsWith(CMD_PAUSE)) {	
+			mnact.getTrack().pause();
+		} else if (message.startsWith(CMD_STOP)) {	
+			mnact.getTrack().dispose();
+		} else if (message.startsWith(CMD_PONG)) {	
+			netlate = WebServer.calcLatency(Long.parseLong(WebServer.getArg(message)));
+		} else if (message.startsWith(CMD_DATA)){
 			mnact.textOut("CL Mess size : " + message.length());
 			rcvTrack(message.substring(5));
-		}
+		} else if (message.startsWith(CMD_PING)) {	
+        	send(CMD_PONG + WebServer.getArg(message));
+        }
     }
 
     @Override
@@ -61,8 +70,10 @@ public class WebClient extends WebSocketClient {
     	System.out.println( "You are connected to WebServer: " + getURI() );
     	
 //    	setFile(100);
-    	send("CMD:TRACK");
-    	mnact.textOut("Sent : CMD:TRACK");
+    	send(CMD_CONNECT + Prefs.getAcountID(mnact));
+    	send(CMD_PING + System.currentTimeMillis());
+    	send(CMD_INIT);
+    	mnact.textOut("Sent : "+CMD_INIT);
     }
 
     @Override
@@ -109,7 +120,7 @@ public class WebClient extends WebSocketClient {
     	    
     	    */
     	
-    	AssetFileDescriptor afd = mnact.getAssets().openFd("Track3.mp3");
+    	AssetFileDescriptor afd = mnact.getAssets().openFd(TRKFILE);
 	    FileInputStream in = afd.createInputStream();
 //        InputStream in = new FileInputStream();
         
@@ -150,23 +161,13 @@ public class WebClient extends WebSocketClient {
     	}
     }
 
-    public void outTrack() {
+    public void streamTrack(String strmfile) {
     	
-    	mnact.textOut("In outTrack");
-    	
-    	try {
-// This is for streaming
-    		
-    		if (clMusic == null) {
-    			clMusic = new Music("http://" + Prefs.getServerIPAddress(mnact) + ":" +
-    					Prefs.getHttpdPort(mnact) + "/trkfile.mp3", mnact);
-    		} else {
-    			clMusic.play();
-    		}
+    	mnact.textOut("In streamTrack called from PREP"); 		
+ 
+    	mnact.setTrack(new Music("http://" + Prefs.getServerIPAddress(mnact) + ":" +
+    					Prefs.getHttpdPort(mnact) + "/"+strmfile, mnact));
 
-    	} catch (Exception e) {
-    		System.out.println( "I/O outTrack " + e);
-    	}
     }
 
 
@@ -174,10 +175,7 @@ public class WebClient extends WebSocketClient {
     	
     	mnact.textOut("In endTrack");
     	
-    	if (clMusic != null){
-    		clMusic.dispose();
-    		clMusic = null;
-    	}
+    		mnact.getTrack().dispose();
     }
 
    

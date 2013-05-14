@@ -36,10 +36,20 @@
         android:onClick="click" 
         android:text="@string/clientbutOff" />			
 	</LinearLayout>		
-		
+	
+<LinearLayout android:id="@+id/seekpar" android:layout_width="fill_parent"  android:layout_height="wrap_content" 
+    		android:orientation="vertical" android:layout_alignParentBottom="true" android:layout_alignParentLeft="true">
+			<SeekBar android:id="@+id/seekbar"
+   android:layout_width="fill_parent"
+   android:layout_height="wrap_content"
+   android:layout_margin="5dip"
+   android:max="100"
+   android:progress="0"
+   />
+			
 	<LinearLayout android:id="@+id/mediabuts" android:orientation="horizontal" android:paddingTop="10dip"
 	    	android:paddingBottom="10dip"
-			android:layout_alignParentBottom="true" android:layout_alignParentLeft="true" android:gravity="center" 
+			 android:gravity="center" 
 			android:layout_width="fill_parent" android:layout_height="wrap_content" android:background="#FFAFAF" >
 			
 			<Button android:id="@+id/btnPrevious" android:layout_width="wrap_content" android:layout_height="wrap_content" 
@@ -56,8 +66,9 @@
 				android:background="@drawable/next"
 				android:onClick="click" />
 	</LinearLayout>
-	
-	<ScrollView android:layout_below="@+id/netbuts" android:layout_above="@+id/mediabuts" 
+</LinearLayout>
+		
+	<ScrollView android:layout_below="@+id/netbuts" android:layout_above="@+id/seekpar" 
 	    android:layout_width="fill_parent" android:layout_marginBottom="10dip"
 		    android:orientation="vertical" android:layout_marginTop="10dip" android:layout_height="wrap_content"
 		    android:background="#CFCFFF" android:fillViewport="true">

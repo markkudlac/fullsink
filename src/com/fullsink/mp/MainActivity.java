@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.java_websocket.WebSocketImpl;
-
+import static com.fullsink.mp.Const.*;
 import fi.iki.elonen.SimpleWebServer;
 
 import android.app.Activity;
@@ -26,11 +26,12 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageView;
+import android.widget.SeekBar;
+import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements Runnable{
 	
 	public static WebServer WServ = null;	
 	public static SimpleWebServer HttpdServ = null;
@@ -45,12 +46,13 @@ public class MainActivity extends Activity {
 	Music track; //currently loaded track
 
 	TextView textout;  // message window
+	SeekBar seekbar;
+	Thread barThread;
 	Button btnPlay; //The play button will need to change from 'play' to 'pause', so we need an instance of it
 	Random random; //used for shuffle
 	boolean isTuning; //is user currently jammin out, if so automatically start playing the next track
 	int currentTrack; //index of current track selected
 	int type; //0 for loading from assets, 1 for loading from SD card
-	Music clMusic = null;
 	
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -93,6 +95,8 @@ public class MainActivity extends Activity {
 		}
 	}
     
+    
+    @Override
 	public void onDestroy() {
 		super.onDestroy();
 		
@@ -102,11 +106,63 @@ public class MainActivity extends Activity {
 		
 	}
     
+	
+    @Override
+    public void run() {
+        int currentPosition= 0;
+ 
+        while (track!= null) {
+            try {
+                Thread.sleep(1000);
+                currentPosition= track.getCurrentPosition();
+ //       		textOut("In barThread Position : "+ currentPosition);
+            } catch (InterruptedException e) {
+                return;
+            } catch (Exception e) {
+                return;
+            }     
+            
+            if (track.isPlaying()) {
+            	seekbar.setProgress(currentPosition);
+            }
+        }
+    }
+    
+    
     private void initialize(int type){
  
     	textout = (TextView) findViewById(R.id.textout);
         btnPlay = (Button) findViewById(R.id.btnPlay);
         btnPlay.setBackgroundResource(R.drawable.play);
+        seekbar = (SeekBar) findViewById(R.id.seekbar);
+        barThread = new Thread(this);
+        
+        seekbar.setOnSeekBarChangeListener( new OnSeekBarChangeListener()
+        	{
+        		public void onProgressChanged(SeekBar seekBar, int progress,
+                                        boolean fromUser)
+        		{
+                                        // TODO Auto-generated method stub
+                                     //   textOut("SeekBar value is "+progress);
+                        }
+
+                        public void onStartTrackingTouch(SeekBar seekBar)
+                        {
+                        	textOut("SeekBar start touch ");   
+                        	track.pause();
+                        	// TODO Auto-generated method stub
+                        }
+
+                        public void onStopTrackingTouch(SeekBar seekBar)
+                        {
+                        	textOut("SeekBar end touch progress val: " + seekBar.getProgress()); 
+                        	track.seekTo(seekBar.getProgress());
+                        	track.play();
+                                        // TODO Auto-generated method stub
+                        }
+});
+        
+        
     	trackNames = new ArrayList<String>();
     	assets = getAssets();
     	currentTrack = 0;
@@ -117,6 +173,18 @@ public class MainActivity extends Activity {
     	addTracks(getTracks());
     	loadTrack();
     }
+    
+    
+    public void setTrack(Music xtrk) {
+    	track = xtrk;
+    }
+    
+    
+    public Music getTrack() {
+    	return(track);
+    }
+    
+    
     
     //Generate a String Array that represents all of the files found
     private String[] getTracks(){
@@ -168,7 +236,9 @@ public class MainActivity extends Activity {
     //Loads the track by calling loadMusic
     private void loadTrack(){
     	if(track != null){
+    		toClients(CMD_STOP);
     		track.dispose();
+    		track = null;
     	}
     	if(trackNames.size() > 0){
     		track = loadMusic(type);
@@ -177,12 +247,14 @@ public class MainActivity extends Activity {
     
 	//loads a Music instance using either a built in asset or an external resource
     private Music loadMusic(int type){
+    	System.out.println("In loadMusic");
     	switch(type){
     	case 0:
     		try{
     			AssetFileDescriptor assetDescriptor = assets.openFd(trackNames.get(currentTrack));
     			if (WServ != null){
     				WServ.cueTrack(trackNames.get(currentTrack));
+    				toClients(CMD_PREP + TRKFILE);
     			}
     			return new Music(assetDescriptor,this);
     		} catch(IOException e){
@@ -207,7 +279,14 @@ public class MainActivity extends Activity {
     	}
     }
     
+    
+    public void playStream(int offset) {
+    	textOut("in playStream offset : " + offset);
+    	track.seekTo(offset);
+    	track.play();
+    }
 
+    
     @Override
     public boolean onCreateOptionsMenu(Menu menu){
 		// Inflate the menu; this adds items to the action bar if it is present.
@@ -261,12 +340,11 @@ public class MainActivity extends Activity {
 //				textOut("Shuffle : " + Prefs.getShuffle(this));
 				
 				if(isTuning){
-					toClients("CMD:PAUSE");
+					toClients(CMD_PAUSE);
 					isTuning = false;
 					btnPlay.setBackgroundResource(R.drawable.play);
 					track.pause();
 				} else{
-					toClients("CMD:PLAY");
 					isTuning = true;
 					btnPlay.setBackgroundResource(R.drawable.pause);
 					playTrack();
@@ -322,12 +400,23 @@ public class MainActivity extends Activity {
     //Plays the Track
     private void playTrack(){
     	if(isTuning && track != null){
+ 
+    	try {
+    		if (!barThread.isAlive()) {
+    			barThread.start();
+    		}
+    	} catch (Exception e) {
+                textOut("Thread exception : "+ e);
+            }   
     		
-    		textOut("In playTrack Position : "+ track.getCurrentPosition());
-    		textOut("In playTrack Duration : "+ track.getDuration());
-    		toClients("CMD:END");
-    		toClients("CMD:PLAY:trkfile.mp3");
-    		track.seekTo(20000 + track.getCurrentPosition());
+    		
+    		seekbar.setMax(track.getDuration());
+       		toClients(CMD_RESUME + track.getCurrentPosition());
+       		
+       		if (WServ != null ) {
+       		playDelay(WServ.netlate);
+       		} 
+       		
 			track.play();
 			
 			Toast.makeText(getBaseContext(), "Playing " + trackNames.get(currentTrack).substring(0,
@@ -430,8 +519,25 @@ public void textOut(final String xmess){
 
 	runOnUiThread(new Runnable() {
         public void run() {
- //       	System.out.println( "In run for textOut");
         	textout.append(xmess + "\n");
+        }
+    });
+}
+
+
+
+public void playDelay(final int xwait){
+
+	runOnUiThread(new Runnable() {
+        public void run() {
+        	try {
+        	Thread.sleep(xwait);
+//        	System.out.println("After sleep : " + xwait);
+        	} catch (InterruptedException e) {
+                return;
+            } catch (Exception e) {
+                return;
+            }     
         }
     });
 }
