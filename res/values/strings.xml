@@ -6,6 +6,9 @@
     <string name="serverbutOn">ON</string>
     <string name="clientbutOff">CONNECT</string>
     <string name="clientbutOn">UNPLUG</string>
+    <string name="clientbutMute">MUTE</string>
+    <string name="clientbutMuted">MUTED</string>
+    <string name="clientbutCopy">COPY</string>
     <string name="action_settings">Settings</string>
     <string name="pref_acntid">Account ID</string>
 	<string name="pref_sockport">Socket Port</string>

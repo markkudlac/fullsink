@@ -9,65 +9,69 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context=".MainActivity">
 			
-<LinearLayout android:id="@+id/netbuts" style="?android:attr/buttonBarStyle"
-    		android:orientation="horizontal" android:layout_alignParentTop="true" 
-    		 android:gravity="center" android:background="#FFAFAF" 
-			android:layout_width="fill_parent" android:layout_height="wrap_content" >	
+	<LinearLayout android:id="@+id/netbuts" style="?android:attr/buttonBarStyle"
+    		android:orientation="horizontal" android:layout_alignParentTop="true"  android:gravity="center"
+    		android:background="#FFAFAF" android:layout_width="fill_parent" android:layout_height="wrap_content" >	
 				    
-		<Button
-		    style="?android:attr/buttonBarButtonStyle"
-        android:id="@+id/btnShare"
-        android:layout_margin="10dip"
-        android:layout_width="0dip"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:background="#BBBBBB"
-        android:onClick="click" 
-        android:text="@string/serverbutOff" />
+		<Button android:id="@+id/btnShare" style="?android:attr/buttonBarButtonStyle"
+        	android:layout_margin="10dip" android:layout_width="0dip" android:layout_height="wrap_content"
+        	android:layout_weight="1" android:background="#BBBBBB" android:onClick="click" 
+        	android:text="@string/serverbutOff" />
 			   
-		<Button
-		    style="?android:attr/buttonBarButtonStyle"
-        android:id="@+id/btnConnect"
-        android:layout_margin="10dip"
-        android:layout_width="0dip"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:background="#BBBBBB"
-        android:onClick="click" 
-        android:text="@string/clientbutOff" />			
+		<Button android:id="@+id/btnConnect" style="?android:attr/buttonBarButtonStyle"
+        	android:layout_margin="10dip" android:layout_width="0dip" android:layout_height="wrap_content"
+        	android:layout_weight="1" android:background="#BBBBBB"  android:onClick="click" 
+        	android:text="@string/clientbutOff" />			
 	</LinearLayout>		
 	
-<LinearLayout android:id="@+id/seekpar" android:layout_width="fill_parent"  android:layout_height="wrap_content" 
+	<LinearLayout android:id="@+id/seekpar" android:layout_width="fill_parent"  android:layout_height="wrap_content" 
     		android:orientation="vertical" android:layout_alignParentBottom="true" android:layout_alignParentLeft="true">
-			<SeekBar android:id="@+id/seekbar"
-   android:layout_width="fill_parent"
-   android:layout_height="wrap_content"
-   android:layout_margin="5dip"
-   android:max="100"
-   android:progress="0"
-   />
 			
-	<LinearLayout android:id="@+id/mediabuts" android:orientation="horizontal" android:paddingTop="10dip"
+		<SeekBar android:id="@+id/seekbar" android:layout_width="fill_parent" android:layout_height="wrap_content"
+   			android:layout_margin="5dip" android:max="100" android:progress="0" />
+
+		<!--  Hidden initially -->			
+		<ProgressBar android:id="@+id/progressbar" android:layout_width="fill_parent" android:layout_height="wrap_content"
+   			android:layout_margin="5dip" android:max="100" android:progress="0"
+   			style="@android:style/Widget.ProgressBar.Horizontal" android:visibility="gone" />
+			
+		<LinearLayout android:id="@+id/mediabuts" android:orientation="horizontal" android:paddingTop="10dip"
 	    	android:paddingBottom="10dip"
 			 android:gravity="center" 
 			android:layout_width="fill_parent" android:layout_height="wrap_content" android:background="#FFAFAF" >
 			
 			<Button android:id="@+id/btnPrevious" android:layout_width="wrap_content" android:layout_height="wrap_content" 
 				android:background="@drawable/previous" android:layout_marginRight="30dip" 
-				android:onClick="click" />
-			
-
+				android:onClick="click" />		
+	
 			<Button android:id="@+id/btnPlay" android:layout_width="wrap_content" android:layout_height="wrap_content" 
 				android:background="@drawable/play" android:layout_marginRight="30dip" 
 				android:onClick="click" />
 			
-
 			<Button android:id="@+id/btnNext" android:layout_width="wrap_content" android:layout_height="wrap_content" 
 				android:background="@drawable/next"
 				android:onClick="click" />
+		</LinearLayout>
+
+		<!--  Hidden initially -->	
+		<LinearLayout android:id="@+id/clientbuts" style="?android:attr/buttonBarStyle" 
+	    	android:visibility="gone" android:orientation="horizontal" android:gravity="center"
+	    	android:background="#FFAFAF" android:layout_width="fill_parent" android:layout_height="wrap_content" >	
+					    
+			<Button
+			    android:id="@+id/btnclientMute" style="?android:attr/buttonBarButtonStyle"
+	        	android:layout_margin="10dip" android:layout_width="0dip" android:layout_height="wrap_content"
+	        	android:layout_weight="1" android:background="#BBBBBB" android:onClick="click" 
+	        	android:text="@string/clientbutMute" />
+				   
+			<Button
+			    android:id="@+id/btnclientCopy" style="?android:attr/buttonBarButtonStyle"
+	        	android:layout_margin="10dip" android:layout_width="0dip" android:layout_height="wrap_content"
+	        	android:layout_weight="1" android:background="#BBBBBB"  android:onClick="click" 
+	        	android:text="@string/clientbutCopy" />			
+		</LinearLayout>	
 	</LinearLayout>
-</LinearLayout>
-		
+
 	<ScrollView android:layout_below="@+id/netbuts" android:layout_above="@+id/seekpar" 
 	    android:layout_width="fill_parent" android:layout_marginBottom="10dip"
 		    android:orientation="vertical" android:layout_marginTop="10dip" android:layout_height="wrap_content"
@@ -77,5 +81,4 @@
 			    android:textSize="16sp" android:background="#FFFFFF">
 		</TextView>
 	</ScrollView>
-	
 </RelativeLayout>

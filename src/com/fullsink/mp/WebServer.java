@@ -63,7 +63,7 @@ public class WebServer extends WebSocketServer {
             if (message.startsWith(CMD_PING)) {	
             	mnact.toClients(CMD_PONG + getArg(message));
             } else if (message.startsWith(CMD_INIT)) {	
-            	mnact.toClients(CMD_PREP + TRKFILE);
+            	mnact.toClients(CMD_PREP + mnact.getCurrentTrackName());
             } else if (message.startsWith(CMD_READY)) {	
             	
             		if (mnact.track.isPlaying()) {
@@ -74,6 +74,8 @@ public class WebServer extends WebSocketServer {
             		
         	} else if (message.startsWith(CMD_PONG)) {	
     			netlate = calcLatency(Long.parseLong(getArg(message)));
+    		}  else if (message.startsWith(CMD_COPY)) {	
+    			copyTrackToClient(getArg(message));
     		} else if (message.startsWith(CMD_CONNECT)) {
         		mnact.textOut(getArg(message) + " has connected");
     		} else {		
@@ -114,7 +116,7 @@ public class WebServer extends WebSocketServer {
         		
         		byte [] xbuf = new byte[65536];
         	    		
-        		File trkFile = new File(mnact.getFilesDir(),TRKFILE);
+        		File trkFile = new File(mnact.getFilesDir(),mfile);
         		trkFile.createNewFile();
      		
         		AssetFileDescriptor afd = mnact.getAssets().openFd(mfile);
@@ -157,6 +159,37 @@ public class WebServer extends WebSocketServer {
     	   	
         	return(lag);
         }
+       
+       public void copyTrackToClient(String xtrk) {
+    	   
+    	   	byte [] xbuf = new byte[65536];
+
+           	mnact.textOut("In setFile : "+mnact.getFilesDir());  
+           	
+        	File trkFile;
+        	FileInputStream reader;
+        	
+        	try {
+	        	trkFile = new File(mnact.getFilesDir(),xtrk);
+	        	reader = new FileInputStream(trkFile);
+        	
+	        	 int bcnt, i;
+	 		    i = 0;
+	        	 bcnt = reader.read(xbuf);
+
+	 		    while (bcnt > 0) {
+	 		    	
+	 		    	mnact.toClients(CMD_FILE+Base64.encodeToString(xbuf,Base64.DEFAULT));
+	 		    	android.os.SystemClock.sleep(100);
+	 		    	mnact.textOut("Srv sent : " + i + " Sz : "+ bcnt); 
+	 		    	bcnt = reader.read(xbuf);
+	 		    	++i;
+	 		    }
+	 	    reader.close();
+        	} catch(Exception ex){
+        		System.out.println("File exception : "+ ex);
+        	}
+       }
 }
 		/*	Various File writing routines
 		 * 

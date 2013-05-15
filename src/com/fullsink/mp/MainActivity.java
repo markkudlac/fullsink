@@ -26,6 +26,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
@@ -47,7 +48,9 @@ public class MainActivity extends Activity implements Runnable{
 
 	TextView textout;  // message window
 	SeekBar seekbar;
-	Thread barThread;
+	ProgressBar progressbar;
+//	Thread barThread;
+	
 	Button btnPlay; //The play button will need to change from 'play' to 'pause', so we need an instance of it
 	Random random; //used for shuffle
 	boolean isTuning; //is user currently jammin out, if so automatically start playing the next track
@@ -103,7 +106,6 @@ public class MainActivity extends Activity implements Runnable{
 		stopSockServer();
 		stopHttpdServer();
 		stopSockClient();
-		
 	}
     
 	
@@ -111,7 +113,7 @@ public class MainActivity extends Activity implements Runnable{
     public void run() {
         int currentPosition= 0;
  
-        while (track!= null) {
+        while (track != null) {
             try {
                 Thread.sleep(1000);
                 currentPosition= track.getCurrentPosition();
@@ -123,7 +125,12 @@ public class MainActivity extends Activity implements Runnable{
             }     
             
             if (track.isPlaying()) {
-            	seekbar.setProgress(currentPosition);
+            	if (inClient()){
+            		progressbar.setMax(track.getDuration());
+            		progressbar.setProgress(currentPosition);
+            	} else {
+            		seekbar.setProgress(currentPosition);
+            	}
             }
         }
     }
@@ -135,7 +142,8 @@ public class MainActivity extends Activity implements Runnable{
         btnPlay = (Button) findViewById(R.id.btnPlay);
         btnPlay.setBackgroundResource(R.drawable.play);
         seekbar = (SeekBar) findViewById(R.id.seekbar);
-        barThread = new Thread(this);
+        progressbar = (ProgressBar) findViewById(R.id.progressbar);
+//        barThread = new Thread(this);
         
         seekbar.setOnSeekBarChangeListener( new OnSeekBarChangeListener()
         	{
@@ -148,15 +156,21 @@ public class MainActivity extends Activity implements Runnable{
 
                         public void onStartTrackingTouch(SeekBar seekBar)
                         {
-                        	textOut("SeekBar start touch ");   
+                        	textOut("SeekBar start touch "); 
+                        	toClients(CMD_PAUSE);
                         	track.pause();
                         	// TODO Auto-generated method stub
                         }
 
                         public void onStopTrackingTouch(SeekBar seekBar)
                         {
-                        	textOut("SeekBar end touch progress val: " + seekBar.getProgress()); 
-                        	track.seekTo(seekBar.getProgress());
+                        	int xseek;
+                        	
+                        	xseek = seekBar.getProgress();
+                        	textOut("SeekBar end touch progress val: " + xseek); 
+                        	track.seekTo(xseek);
+ //                       	toClients(CMD_SEEK + xseek);
+                        	toClients(CMD_RESUME + xseek);
                         	track.play();
                                         // TODO Auto-generated method stub
                         }
@@ -175,7 +189,7 @@ public class MainActivity extends Activity implements Runnable{
     }
     
     
-    public void setTrack(Music xtrk) {
+    public void setStreamTrack(Music xtrk) {
     	track = xtrk;
     }
     
@@ -247,30 +261,30 @@ public class MainActivity extends Activity implements Runnable{
     
 	//loads a Music instance using either a built in asset or an external resource
     private Music loadMusic(int type){
-    	System.out.println("In loadMusic");
+ 
     	switch(type){
     	case 0:
     		try{
-    			AssetFileDescriptor assetDescriptor = assets.openFd(trackNames.get(currentTrack));
+    			AssetFileDescriptor assetDescriptor = assets.openFd(getCurrentTrackName());
     			if (WServ != null){
-    				WServ.cueTrack(trackNames.get(currentTrack));
-    				toClients(CMD_PREP + TRKFILE);
+    				WServ.cueTrack(getCurrentTrackName());
+    				toClients(CMD_PREP + getCurrentTrackName());
     			}
     			return new Music(assetDescriptor,this);
     		} catch(IOException e){
     			e.printStackTrace();
-    			Toast.makeText(getBaseContext(), "Error Loading " + trackNames.get(currentTrack), Toast.LENGTH_LONG).show();
+    			Toast.makeText(getBaseContext(), "Error Loading " + getCurrentTrackName(), Toast.LENGTH_LONG).show();
     		}
     		return null;
     		
     	case 1:
     		try{
-    			FileInputStream fis = new FileInputStream(new File(path, trackNames.get(currentTrack)));
+    			FileInputStream fis = new FileInputStream(new File(path, getCurrentTrackName()));
     			FileDescriptor fileDescriptor = fis.getFD();
     			return new Music(fileDescriptor,this);
     		} catch(IOException e){
     			e.printStackTrace();
-    			Toast.makeText(getBaseContext(), "Error Loading " + trackNames.get(currentTrack), Toast.LENGTH_LONG).show();
+    			Toast.makeText(getBaseContext(), "Error Loading " + getCurrentTrackName(), Toast.LENGTH_LONG).show();
     		}
     		return null;
     		
@@ -280,10 +294,30 @@ public class MainActivity extends Activity implements Runnable{
     }
     
     
+    public String getCurrentTrackName(){
+    	return(trackNames.get(currentTrack));
+    }
+    
+    
     public void playStream(int offset) {
     	textOut("in playStream offset : " + offset);
-    	track.seekTo(offset);
-    	track.play();
+    	
+    	if (track != null){
+        	try {
+        		track.seekTo(offset);
+        		progressbar.setMax(track.getDuration());
+        	   	track.play();
+        	   	
+        	   	new Thread(this).start();
+        	   	/*
+        		if (!barThread.isAlive()) {
+        			barThread.start();
+        		}
+        		*/
+        	} catch (Exception e) {
+                    textOut("Thread exception : "+ e); 
+            }   
+    	}	
     }
 
     
@@ -315,11 +349,13 @@ public class MainActivity extends Activity implements Runnable{
 				startHttpdServer(Prefs.getHttpdPort(this), ipadd);
 				startSockServer(Prefs.getSocketPort(this),ipadd);
 				((Button) view).setText(getResources().getString(R.string.serverbutOn));
+				findViewById(R.id.btnConnect).setEnabled(false);
 			} else {
 				stopSockServer();
 				stopHttpdServer();
 			
 				((Button) view).setText(getResources().getString(R.string.serverbutOff));
+				findViewById(R.id.btnConnect).setEnabled(true);
 			}
 			return;
 			
@@ -328,9 +364,29 @@ public class MainActivity extends Activity implements Runnable{
 					getResources().getString(R.string.clientbutOff))) {
 				startSockClient(Prefs.getSocketPort(this), Prefs.getServerIPAddress(this));
 				((Button) view).setText(getResources().getString(R.string.clientbutOn));
+				if (track != null) {
+					track.dispose();
+					track = null;
+				}
+				findViewById(R.id.btnShare).setEnabled(false);
+				findViewById(R.id.seekbar).setVisibility(View.GONE);
+				progressbar.setProgress(0);
+				findViewById(R.id.progressbar).setVisibility(View.VISIBLE);
+				findViewById(R.id.mediabuts).setVisibility(View.GONE);
+				findViewById(R.id.clientbuts).setVisibility(View.VISIBLE);
 			} else {
 				stopSockClient();
 				((Button) view).setText(getResources().getString(R.string.clientbutOff));
+				findViewById(R.id.btnShare).setEnabled(true);
+				findViewById(R.id.seekbar).setVisibility(View.VISIBLE);
+				findViewById(R.id.progressbar).setVisibility(View.GONE);
+				findViewById(R.id.mediabuts).setVisibility(View.VISIBLE);
+				findViewById(R.id.clientbuts).setVisibility(View.GONE);
+				
+				isTuning = false;
+				btnPlay.setBackgroundResource(R.drawable.play);
+				seekbar.setProgress(0);
+				loadTrack();
 			}
 			return;
 
@@ -362,6 +418,28 @@ public class MainActivity extends Activity implements Runnable{
 			setTrack(1);
 			loadTrack();
 			playTrack();
+			return;
+			
+		case R.id.btnclientMute:
+			if (((Button) view).getText().equals(
+					getResources().getString(R.string.clientbutMute))) {
+				((Button) view).setText(getResources().getString(R.string.clientbutMuted));
+				Toast.makeText(getBaseContext(), "Muted", Toast.LENGTH_SHORT).show();
+				if (track != null) {
+					track.setVolume(0f,0f);
+				}
+			} else {
+				((Button) view).setText(getResources().getString(R.string.clientbutMute));
+				
+				if (track != null) {
+					track.setVolume(1f,1f);
+				}
+			}
+			return;
+			
+		case R.id.btnclientCopy:
+			Toast.makeText(getBaseContext(), "Copy : "+ WClient.currentTrack, Toast.LENGTH_SHORT).show();
+			WClient.startCopyFile();
 			return;
 			
 		default:
@@ -400,17 +478,20 @@ public class MainActivity extends Activity implements Runnable{
     //Plays the Track
     private void playTrack(){
     	if(isTuning && track != null){
- 
+    		
+    	seekbar.setMax(track.getDuration());
     	try {
+    		
+    		new Thread(this).start();
+    		/*
     		if (!barThread.isAlive()) {
     			barThread.start();
     		}
+    		*/
     	} catch (Exception e) {
-                textOut("Thread exception : "+ e);
+                textOut("Thread exception : "+ e); 
             }   
     		
-    		
-    		seekbar.setMax(track.getDuration());
        		toClients(CMD_RESUME + track.getCurrentPosition());
        		
        		if (WServ != null ) {
@@ -419,8 +500,8 @@ public class MainActivity extends Activity implements Runnable{
        		
 			track.play();
 			
-			Toast.makeText(getBaseContext(), "Playing " + trackNames.get(currentTrack).substring(0,
-					trackNames.get(currentTrack).length()-4), Toast.LENGTH_SHORT).show();
+			Toast.makeText(getBaseContext(), "Playing " + getCurrentTrackName().substring(0,
+					getCurrentTrackName().length()-4), Toast.LENGTH_SHORT).show();
 		}
     }
     
@@ -431,7 +512,7 @@ public void startSockServer(int port, String ipadd) {
    try {
 	 
     WServ = new WebServer( port, ipadd, MainActivity.this );
-    WServ.cueTrack(trackNames.get(currentTrack));		//Copy for stream
+    WServ.cueTrack(getCurrentTrackName());		//Copy for stream
     WServ.start();       
 
     System.out.println( "WebSockServ started on port: " + WServ.getPort() );
@@ -454,7 +535,6 @@ public void stopSockServer() {
    }
 }
 
-
 public void startSockClient(int port, String ipadd){
 	WebSocketImpl.DEBUG = false;		//This was true originally
 	try {
@@ -466,6 +546,7 @@ public void startSockClient(int port, String ipadd){
 		   System.out.println( "WebClient error : " + ex);
 	   }
 	}
+
 
 public void toClients(String mess){
 	
@@ -486,6 +567,11 @@ public void stopSockClient() {
 		   System.out.println( "WebSockClient stop error" + ex);
 	   }
 	}
+
+
+public boolean inClient() {
+	return(WClient != null);
+}
 
 
 public void startHttpdServer(int port, String ipadd) {
