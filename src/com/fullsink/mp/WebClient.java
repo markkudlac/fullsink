@@ -23,7 +23,7 @@ public class WebClient extends WebSocketClient {
 	MainActivity mnact = null;
 	String copyTrack = null;
 	String currentTrack = null;
-	boolean fileAppend = false;
+	int fileCount = 0;
 	int netlate = BASE_LATENCY;
 	
 	public WebClient( int port, String ipadd, MainActivity xmnact ) throws URISyntaxException {
@@ -57,10 +57,11 @@ public class WebClient extends WebSocketClient {
 			mnact.getTrack().pause();
 		} else if (message.startsWith(CMD_STOP)) {	
 			mnact.getTrack().dispose();
+			mnact.setStreamTrack(null);
 		} else if (message.startsWith(CMD_PONG)) {	
 			netlate = WebServer.calcLatency(Long.parseLong(WebServer.getArg(message)));
 		} else if (message.startsWith(CMD_FILE)){
-			mnact.textOut("CL Mess size : " + message.length());
+//			mnact.textOut("CL Mess size : " + message.length());
 			rcvTrack(message.substring(5));
 		} else if (message.startsWith(CMD_PING)) {	
         	send(CMD_PONG + WebServer.getArg(message));
@@ -90,7 +91,7 @@ public class WebClient extends WebSocketClient {
     public void startCopyFile(){
     	
     	copyTrack = currentTrack;
-    	fileAppend = false;
+    	fileCount = 0;
     	send(CMD_COPY + copyTrack);
     }
     
@@ -99,6 +100,16 @@ public class WebClient extends WebSocketClient {
     	
     	byte [] xbuf;
     	File wrfile = null;
+    	
+    	if (fileCount == 0 && blk.length() < 9) {
+ //   		mnact.textOut("File start : "+ blk);
+    		mnact.fileProgressControl(-(Integer.valueOf(blk)));
+    		return;
+    	} else if (blk.isEmpty()) {
+    		mnact.fileProgressControl(0);
+    		fileCount = 0;
+    		return;
+    	}
     	
     	try {
     		wrfile = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
@@ -110,8 +121,9 @@ public class WebClient extends WebSocketClient {
     		
     		wrfile = new File(wrfile,copyTrack);
     		
-    	    FileOutputStream writer = new FileOutputStream(wrfile,fileAppend);
-    	    fileAppend = true;
+    	    FileOutputStream writer = new FileOutputStream(wrfile,fileCount > 0);
+    	    ++fileCount;
+    	    mnact.fileProgressControl(fileCount);
     	    xbuf = Base64.decode(blk,Base64.DEFAULT);
 
     	    writer.write(xbuf);
@@ -122,6 +134,10 @@ public class WebClient extends WebSocketClient {
     }
 
     
+    public void cancelFileCopy() {
+    	mnact.textOut("Sending cancel");
+    	send(CMD_COPY + CANCEL_COPY);
+    }
     
     public void streamTrack(String strmfile) {
     		
@@ -131,8 +147,11 @@ public class WebClient extends WebSocketClient {
 
     }
 
+    
+ 
 
 }
+
 
 /*
  Various file reading routines

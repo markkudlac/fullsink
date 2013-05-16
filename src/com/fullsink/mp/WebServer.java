@@ -26,6 +26,7 @@ public class WebServer extends WebSocketServer {
 
 	MainActivity mnact = null;
 	int netlate = BASE_LATENCY;
+	String copyfile;
 	
         public WebServer( int port, String ipadd, MainActivity xmnact ) throws UnknownHostException {
         	
@@ -74,8 +75,9 @@ public class WebServer extends WebSocketServer {
             		
         	} else if (message.startsWith(CMD_PONG)) {	
     			netlate = calcLatency(Long.parseLong(getArg(message)));
-    		}  else if (message.startsWith(CMD_COPY)) {	
-    			copyTrackToClient(getArg(message));
+    		}  else if (message.startsWith(CMD_COPY)) {
+    			controlCopyTrack(getArg(message));
+    			
     		} else if (message.startsWith(CMD_CONNECT)) {
         		mnact.textOut(getArg(message) + " has connected");
     		} else {		
@@ -160,11 +162,24 @@ public class WebServer extends WebSocketServer {
         	return(lag);
         }
        
+       
+       public void controlCopyTrack(String xfile) {
+    	   
+    	   if (xfile.contentEquals(CANCEL_COPY)) {
+    		   mnact.textOut("Got cancel command");
+    	   } else {
+    		   copyfile = xfile;
+    		   new Thread(new FileServer(mnact,xfile)).start();
+ //   		   copyTrackToClient(xfile);
+    	   }
+       }
+       
+/*
        public void copyTrackToClient(String xtrk) {
     	   
-    	   	byte [] xbuf = new byte[65536];
+    	   	byte [] xbuf = new byte[BASE_BLOCKSIZE];
 
-           	mnact.textOut("In setFile : "+mnact.getFilesDir());  
+           	mnact.textOut("In copyTrackToClient : "+mnact.getFilesDir());  
            	
         	File trkFile;
         	FileInputStream reader;
@@ -173,24 +188,94 @@ public class WebServer extends WebSocketServer {
 	        	trkFile = new File(mnact.getFilesDir(),xtrk);
 	        	reader = new FileInputStream(trkFile);
         	
-	        	 int bcnt, i;
+	        	int bcnt, i;
 	 		    i = 0;
-	        	 bcnt = reader.read(xbuf);
-
-	 		    while (bcnt > 0) {
+	        	 
+	 		    bcnt = reader.read(xbuf);
+	        	mnact.toClients(CMD_FILE+ ((trkFile.length() / BASE_BLOCKSIZE)+1)); // Send length of file first
+	 		    
+	        	 while (bcnt > 0) {
 	 		    	
 	 		    	mnact.toClients(CMD_FILE+Base64.encodeToString(xbuf,Base64.DEFAULT));
 	 		    	android.os.SystemClock.sleep(100);
-	 		    	mnact.textOut("Srv sent : " + i + " Sz : "+ bcnt); 
+//	 		    	mnact.textOut("Srv sent : " + i + " Sz : "+ bcnt); 
 	 		    	bcnt = reader.read(xbuf);
 	 		    	++i;
 	 		    }
-	 	    reader.close();
+	        	reader.close();
+	        	mnact.toClients(CMD_FILE);  //End of file
         	} catch(Exception ex){
         		System.out.println("File exception : "+ ex);
         	}
        }
+   */    
+       
+       
+       private class FileServer implements Runnable {
+       	
+    	   MainActivity mnact;
+    	   String fileCopy;
+    	   
+    	   	FileServer(MainActivity xact, String xfile) {
+    	   		
+    	   		mnact = xact;
+    	   		fileCopy = xfile;
+    	   	}
+    	   
+    	   @Override
+    	   public void run() {
+
+    	           try {
+    	               copyTrackToClient(fileCopy);
+    	           } catch (InterruptedException e) {
+    	               return;
+    	           } catch (Exception e) {
+    	               return;
+    	           }     
+    	   }
+    	   
+    	      public void copyTrackToClient(String xtrk) throws InterruptedException {
+    	    	   
+    	    	   	byte [] xbuf = new byte[BASE_BLOCKSIZE];
+
+    	           	mnact.textOut("In copyTrackToClient : "+mnact.getFilesDir());  
+    	           	
+    	        	File trkFile;
+    	        	FileInputStream reader;
+    	        	
+    	        	try {
+    		        	trkFile = new File(mnact.getFilesDir(),xtrk);
+    		        	reader = new FileInputStream(trkFile);
+    	        	
+    		        	int bcnt, i;
+    		 		    i = 0;
+    		        	 
+    		 		    bcnt = reader.read(xbuf);
+    		        	mnact.toClients(CMD_FILE+ ((trkFile.length() / BASE_BLOCKSIZE)+1)); // Send length of file first
+    		 		    
+    		        	 while (bcnt > 0) {
+    		 		    	
+    		 		    	mnact.toClients(CMD_FILE+Base64.encodeToString(xbuf,Base64.DEFAULT));
+    		 		    	Thread.sleep(100);
+//    		 		    	android.os.SystemClock.sleep(100);
+//    		 		    	mnact.textOut("Srv sent : " + i + " Sz : "+ bcnt); 
+    		 		    	bcnt = reader.read(xbuf);
+    		 		    	++i;
+    		 		    }
+    		        	reader.close();
+    		        	mnact.toClients(CMD_FILE);  //End of file
+    	        	} catch(Exception ex){
+    	        		System.out.println("File exception : "+ ex);
+    	        	}
+    	       }
+
+       }
+       
 }
+
+/* 	
+
+*/     
 		/*	Various File writing routines
 		 * 
        	int i = 0;

@@ -75,20 +75,22 @@ public void onPrepared(MediaPlayer mp) {
 	public void onCompletion(MediaPlayer mediaPlayer) {
 
 		mnact.textOut( "IN onCompletion");
+		mnact.playNextTrack();
 	}
 
 		   
 	@Override
 	public void onSeekComplete(MediaPlayer mediaPlayer) {
-
+		
 		mnact.textOut( "Seek complete listener");
+
 	}
 		
 	
 	
 	public void play() {
 		System.out.println("In play");
-		if(isPlaying()){
+		if (isPlaying()){
 			return;
 		}
 		

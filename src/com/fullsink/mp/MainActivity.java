@@ -13,7 +13,9 @@ import static com.fullsink.mp.Const.*;
 import fi.iki.elonen.SimpleWebServer;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
@@ -49,7 +51,7 @@ public class MainActivity extends Activity implements Runnable{
 	TextView textout;  // message window
 	SeekBar seekbar;
 	ProgressBar progressbar;
-//	Thread barThread;
+	ProgressDialog progressdialog = null;
 	
 	Button btnPlay; //The play button will need to change from 'play' to 'pause', so we need an instance of it
 	Random random; //used for shuffle
@@ -116,7 +118,7 @@ public class MainActivity extends Activity implements Runnable{
         while (track != null) {
             try {
                 Thread.sleep(1000);
-                currentPosition= track.getCurrentPosition();
+                currentPosition= getTrack().getCurrentPosition();
  //       		textOut("In barThread Position : "+ currentPosition);
             } catch (InterruptedException e) {
                 return;
@@ -126,7 +128,8 @@ public class MainActivity extends Activity implements Runnable{
             
             if (track.isPlaying()) {
             	if (inClient()){
-            		progressbar.setMax(track.getDuration());
+//            		System.out.println("in Client before getDuration");
+            		progressbar.setMax(getTrack().getDuration());
             		progressbar.setProgress(currentPosition);
             	} else {
             		seekbar.setProgress(currentPosition);
@@ -190,12 +193,16 @@ public class MainActivity extends Activity implements Runnable{
     
     
     public void setStreamTrack(Music xtrk) {
-    	track = xtrk;
+    	synchronized(this) {		// May not be needed not sure on Sync
+    		track = xtrk;
+    	}
     }
     
     
     public Music getTrack() {
-    	return(track);
+    	synchronized(this) {	// May not be needed not sure on Sync
+    		return(track);
+    	}
     }
     
     
@@ -254,6 +261,7 @@ public class MainActivity extends Activity implements Runnable{
     		track.dispose();
     		track = null;
     	}
+    	
     	if(trackNames.size() > 0){
     		track = loadMusic(type);
     	}
@@ -262,15 +270,21 @@ public class MainActivity extends Activity implements Runnable{
 	//loads a Music instance using either a built in asset or an external resource
     private Music loadMusic(int type){
  
+		Music xmu;
+	
+		if (WServ != null){
+			WServ.cueTrack(getCurrentTrackName());
+		}
+		
     	switch(type){
     	case 0:
+    		
+
     		try{
     			AssetFileDescriptor assetDescriptor = assets.openFd(getCurrentTrackName());
-    			if (WServ != null){
-    				WServ.cueTrack(getCurrentTrackName());
-    				toClients(CMD_PREP + getCurrentTrackName());
-    			}
-    			return new Music(assetDescriptor,this);
+    			xmu = new Music(assetDescriptor,this);
+    			toClients(CMD_PREP + getCurrentTrackName());	// make sure music play is loaded
+    			return xmu;
     		} catch(IOException e){
     			e.printStackTrace();
     			Toast.makeText(getBaseContext(), "Error Loading " + getCurrentTrackName(), Toast.LENGTH_LONG).show();
@@ -281,7 +295,9 @@ public class MainActivity extends Activity implements Runnable{
     		try{
     			FileInputStream fis = new FileInputStream(new File(path, getCurrentTrackName()));
     			FileDescriptor fileDescriptor = fis.getFD();
-    			return new Music(fileDescriptor,this);
+    			xmu =  new Music(fileDescriptor,this);
+    			toClients(CMD_PREP + getCurrentTrackName());	// make sure music play is loaded
+    			return xmu;
     		} catch(IOException e){
     			e.printStackTrace();
     			Toast.makeText(getBaseContext(), "Error Loading " + getCurrentTrackName(), Toast.LENGTH_LONG).show();
@@ -304,9 +320,9 @@ public class MainActivity extends Activity implements Runnable{
     	
     	if (track != null){
         	try {
-        		track.seekTo(offset);
+        		getTrack().seekTo(offset);
         		progressbar.setMax(track.getDuration());
-        	   	track.play();
+        		getTrack().play();
         	   	
         	   	new Thread(this).start();
         	   	/*
@@ -403,7 +419,7 @@ public class MainActivity extends Activity implements Runnable{
 				} else{
 					isTuning = true;
 					btnPlay.setBackgroundResource(R.drawable.pause);
-					playTrack();
+					playTrack(true);
 				}
 			}
 			return;
@@ -411,13 +427,11 @@ public class MainActivity extends Activity implements Runnable{
 		case R.id.btnPrevious:
 			setTrack(0);
 			loadTrack();
-			playTrack();
+			playTrack(false);
 			return;
 			
 		case R.id.btnNext:
-			setTrack(1);
-			loadTrack();
-			playTrack();
+			butNext();
 			return;
 			
 		case R.id.btnclientMute:
@@ -438,7 +452,26 @@ public class MainActivity extends Activity implements Runnable{
 			return;
 			
 		case R.id.btnclientCopy:
-			Toast.makeText(getBaseContext(), "Copy : "+ WClient.currentTrack, Toast.LENGTH_SHORT).show();
+//			Toast.makeText(getBaseContext(), "Copy : "+ WClient.currentTrack, Toast.LENGTH_SHORT).show();
+			progressdialog = new ProgressDialog(this);
+			progressdialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+			
+			progressdialog.setMax(100);
+			progressdialog.setProgress(0);
+			
+			progressdialog.setMessage("Copying : " + WClient.currentTrack);
+			progressdialog.setCancelable(false);
+			
+			progressdialog.setButton(DialogInterface.BUTTON_NEGATIVE, "Cancel", new DialogInterface.OnClickListener() {
+			    @Override
+			    public void onClick(DialogInterface dialog, int which) {
+			    	WClient.cancelFileCopy();
+			        dialog.dismiss();
+			    }
+			});
+			
+			progressdialog.show();
+
 			WClient.startCopyFile();
 			return;
 			
@@ -446,6 +479,16 @@ public class MainActivity extends Activity implements Runnable{
 			return;
 		}
 	}
+    
+    
+    
+    private void butNext() {
+    	
+    	setTrack(1);
+		loadTrack();
+		playTrack(false);
+    }
+    
     
     private void setTrack(int direction){
     	if(direction == 0){
@@ -476,35 +519,45 @@ public class MainActivity extends Activity implements Runnable{
     }
     
     //Plays the Track
-    private void playTrack(){
+    private void playTrack(boolean resume){
     	if(isTuning && track != null){
-    		
-    	seekbar.setMax(track.getDuration());
-    	try {
-    		
-    		new Thread(this).start();
-    		/*
-    		if (!barThread.isAlive()) {
-    			barThread.start();
-    		}
-    		*/
-    	} catch (Exception e) {
-                textOut("Thread exception : "+ e); 
-            }   
-    		
-       		toClients(CMD_RESUME + track.getCurrentPosition());
-       		
-       		if (WServ != null ) {
-       		playDelay(WServ.netlate);
+    				 		
+       		if (WServ != null && resume) {
+           		toClients(CMD_RESUME + track.getCurrentPosition());
+       			android.os.SystemClock.sleep(WServ.netlate);
        		} 
        		
 			track.play();
 			
+	    	seekbar.setMax(track.getDuration());
+	    	try {
+	    		
+	    		new Thread(this).start();
+	    		/*
+	    		if (!barThread.isAlive()) {
+	    			barThread.start();
+	    		}
+	    		*/
+	    	} catch (Exception e) {
+	                textOut("Thread exception : "+ e); 
+	            }   
+	    	
 			Toast.makeText(getBaseContext(), "Playing " + getCurrentTrackName().substring(0,
 					getCurrentTrackName().length()-4), Toast.LENGTH_SHORT).show();
 		}
     }
     
+    
+    
+public void playNextTrack() {
+	
+	if (!inClient()) {
+		textOut("In playNextTrack should not be client");
+		butNext();
+	}
+}
+
+
 
 public void startSockServer(int port, String ipadd) {
     WebSocketImpl.DEBUG = false;		//This was true originally
@@ -611,6 +664,24 @@ public void textOut(final String xmess){
 }
 
 
+public void fileProgressControl(final int xprog){
+
+	runOnUiThread(new Runnable() {
+        public void run() {
+        	if (xprog == 0) {
+        		progressdialog.dismiss();
+        		Toast.makeText(getBaseContext(), "Copy Complete", Toast.LENGTH_SHORT).show();
+        	} else if (xprog < 0) {
+        		progressdialog.setMax(-xprog);
+        	} else {
+        		progressdialog.setProgress(xprog);
+        	}
+        }
+    });
+}
+/*
+ * 
+ * This is here for reference only no us System
 
 public void playDelay(final int xwait){
 
@@ -627,6 +698,6 @@ public void playDelay(final int xwait){
         }
     });
 }
-
+*/
 
 }
