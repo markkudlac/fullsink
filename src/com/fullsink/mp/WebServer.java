@@ -27,6 +27,7 @@ public class WebServer extends WebSocketServer {
 	MainActivity mnact = null;
 	int netlate = BASE_LATENCY;
 	String copyfile;
+	Thread fileThread = null;
 	
         public WebServer( int port, String ipadd, MainActivity xmnact ) throws UnknownHostException {
         	
@@ -110,24 +111,44 @@ public class WebServer extends WebSocketServer {
                 }
         }
         
-        public void cueTrack(String mfile){
+        
+        public void deleteCues(){
+        	
+        	String[] xdump = mnact.getFilesDir().list();
+    		for (int i=0; i< xdump.length; i++){
+    			System.out.println("Dump of cued bits : "+xdump[i]+"  : "+i);
+    			new File(mnact.getFilesDir(),xdump[i]).delete();
+       		}
+        }
+        
+        
+        
+        public void cueTrack(File musicdir, String mfile){
         	
         	mnact.textOut("In cueTrack : " + mfile);
  
         	try {
         		
-        		byte [] xbuf = new byte[65536];
-        	    		
-        		File trkFile = new File(mnact.getFilesDir(),mfile);
+        		byte [] xbuf = new byte[65536];     		
+        		      		
+           		//Parent directories need to be generated first
+        		
+        		int xind = mfile.lastIndexOf("/");   		
+        		if (xind > 0){
+        			String tmpdir = mfile.substring(0, xind);
+        			new File(mnact.getFilesDir(),tmpdir).mkdirs();
+        		}
+        		
+        		File trkFile = new File(mnact.getFilesDir(), mfile);
         		trkFile.createNewFile();
      		
-        		AssetFileDescriptor afd = mnact.getAssets().openFd(mfile);
-        	    FileInputStream in = afd.createInputStream();
-        	    
+           	    FileInputStream in = new FileInputStream(new File(musicdir, mfile));
+ //       		System.out.println("Create input");        	    
         	    OutputStream out = new FileOutputStream(trkFile);
-
+//        		System.out.println("Create output");
+        	    
+        	    
         	    // Transfer bytes from in to out
-
         	    int len;
         	    while ((len = in.read(xbuf)) > 0) {
         	        out.write(xbuf, 0, len);
@@ -166,57 +187,26 @@ public class WebServer extends WebSocketServer {
        public void controlCopyTrack(String xfile) {
     	   
     	   if (xfile.contentEquals(CANCEL_COPY)) {
-    		   mnact.textOut("Got cancel command");
+ 
+    		   if (fileThread != null) {
+    			   fileThread.interrupt();
+    			   fileThread = null;
+    		   }
     	   } else {
     		   copyfile = xfile;
-    		   new Thread(new FileServer(mnact,xfile)).start();
- //   		   copyTrackToClient(xfile);
+    		   fileThread = new Thread(new FileServer(mnact,xfile));
+    		   fileThread.start();
     	   }
        }
        
-/*
-       public void copyTrackToClient(String xtrk) {
-    	   
-    	   	byte [] xbuf = new byte[BASE_BLOCKSIZE];
 
-           	mnact.textOut("In copyTrackToClient : "+mnact.getFilesDir());  
-           	
-        	File trkFile;
-        	FileInputStream reader;
-        	
-        	try {
-	        	trkFile = new File(mnact.getFilesDir(),xtrk);
-	        	reader = new FileInputStream(trkFile);
-        	
-	        	int bcnt, i;
-	 		    i = 0;
-	        	 
-	 		    bcnt = reader.read(xbuf);
-	        	mnact.toClients(CMD_FILE+ ((trkFile.length() / BASE_BLOCKSIZE)+1)); // Send length of file first
-	 		    
-	        	 while (bcnt > 0) {
-	 		    	
-	 		    	mnact.toClients(CMD_FILE+Base64.encodeToString(xbuf,Base64.DEFAULT));
-	 		    	android.os.SystemClock.sleep(100);
-//	 		    	mnact.textOut("Srv sent : " + i + " Sz : "+ bcnt); 
-	 		    	bcnt = reader.read(xbuf);
-	 		    	++i;
-	 		    }
-	        	reader.close();
-	        	mnact.toClients(CMD_FILE);  //End of file
-        	} catch(Exception ex){
-        		System.out.println("File exception : "+ ex);
-        	}
-       }
-   */    
-       
        
        private class FileServer implements Runnable {
        	
     	   MainActivity mnact;
     	   String fileCopy;
     	   
-    	   	FileServer(MainActivity xact, String xfile) {
+    	   		FileServer(MainActivity xact, String xfile) {
     	   		
     	   		mnact = xact;
     	   		fileCopy = xfile;
@@ -224,32 +214,28 @@ public class WebServer extends WebSocketServer {
     	   
     	   @Override
     	   public void run() {
-
-    	           try {
-    	               copyTrackToClient(fileCopy);
-    	           } catch (InterruptedException e) {
-    	               return;
-    	           } catch (Exception e) {
-    	               return;
-    	           }     
+    		   copyTrackToClient(fileCopy);    
     	   }
     	   
-    	      public void copyTrackToClient(String xtrk) throws InterruptedException {
+    	      public void copyTrackToClient(String xtrk) {
     	    	   
     	    	   	byte [] xbuf = new byte[BASE_BLOCKSIZE];
 
     	           	mnact.textOut("In copyTrackToClient : "+mnact.getFilesDir());  
     	           	
     	        	File trkFile;
-    	        	FileInputStream reader;
+    	        	FileInputStream reader = null;
     	        	
     	        	try {
     		        	trkFile = new File(mnact.getFilesDir(),xtrk);
     		        	reader = new FileInputStream(trkFile);
     	        	
-    		        	int bcnt, i;
+    		        	int bcnt;
+    		        	/*
+    		        	int i;
     		 		    i = 0;
-    		        	 
+    		        	 */
+    		        	
     		 		    bcnt = reader.read(xbuf);
     		        	mnact.toClients(CMD_FILE+ ((trkFile.length() / BASE_BLOCKSIZE)+1)); // Send length of file first
     		 		    
@@ -257,20 +243,35 @@ public class WebServer extends WebSocketServer {
     		 		    	
     		 		    	mnact.toClients(CMD_FILE+Base64.encodeToString(xbuf,Base64.DEFAULT));
     		 		    	Thread.sleep(100);
-//    		 		    	android.os.SystemClock.sleep(100);
-//    		 		    	mnact.textOut("Srv sent : " + i + " Sz : "+ bcnt); 
-    		 		    	bcnt = reader.read(xbuf);
+/*   		 		    	android.os.SystemClock.sleep(100);
+    		 		    	mnact.textOut("Srv sent : " + i + " Sz : "+ bcnt); 
     		 		    	++i;
+    */
+    		 		    	bcnt = reader.read(xbuf);
+
     		 		    }
     		        	reader.close();
     		        	mnact.toClients(CMD_FILE);  //End of file
-    	        	} catch(Exception ex){
+    	        	} catch(IOException ex){
     	        		System.out.println("File exception : "+ ex);
-    	        	}
-    	       }
+    	        	} catch (InterruptedException e) {
 
+    	        		if (reader != null) {
+    	        			System.out.println("Interupt caught");
+    	        			try {
+ //   	    	        		mnact.toClients(CMD_FILE);  //End of file
+    	        				reader.close();
+    	        			} catch (Exception ex) {
+    	      	               return;
+    	      	           }     
+    	        		}
+    	               return;
+    	        	} catch (Exception e) {
+     	               return;
+     	           }     
+    	       }
        }
-       
+ 
 }
 
 /* 	

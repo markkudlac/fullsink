@@ -72,7 +72,8 @@
 		</LinearLayout>	
 	</LinearLayout>
 
-	<ScrollView android:layout_below="@+id/netbuts" android:layout_above="@+id/seekpar" 
+	<ScrollView android:id="@+id/debug"
+	    android:layout_below="@+id/netbuts" android:layout_above="@+id/seekpar" android:visibility="gone"
 	    android:layout_width="fill_parent" android:layout_marginBottom="10dip"
 		    android:orientation="vertical" android:layout_marginTop="10dip" android:layout_height="wrap_content"
 		    android:background="#CFCFFF" android:fillViewport="true">
@@ -81,4 +82,10 @@
 			    android:textSize="16sp" android:background="#FFFFFF">
 		</TextView>
 	</ScrollView>
+	
+	    <ListView android:id="@+id/playlist" android:layout_above="@+id/seekpar" android:layout_below="@+id/netbuts"
+        android:layout_width="fill_parent" android:fillViewport="true" android:layout_height="0dip"
+        android:layout_marginBottom="10dip" android:layout_marginTop="10dip"
+        android:background="@drawable/border" android:choiceMode="singleChoice" android:drawSelectorOnTop="true" />
+         
 </RelativeLayout>

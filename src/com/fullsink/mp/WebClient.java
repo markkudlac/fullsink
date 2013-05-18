@@ -5,6 +5,7 @@ import org.java_websocket.handshake.ServerHandshake;
 import static com.fullsink.mp.Const.*;
 
 import android.content.res.AssetFileDescriptor;
+import android.net.Uri;
 import android.os.Environment;
 import android.util.Base64;
 
@@ -101,7 +102,9 @@ public class WebClient extends WebSocketClient {
     	byte [] xbuf;
     	File wrfile = null;
     	
-    	if (fileCount == 0 && blk.length() < 9) {
+    	if (fileCount < 0) {
+    		return;
+    	} else if (fileCount == 0 && blk.length() < 9) {
  //   		mnact.textOut("File start : "+ blk);
     		mnact.fileProgressControl(-(Integer.valueOf(blk)));
     		return;
@@ -112,14 +115,8 @@ public class WebClient extends WebSocketClient {
     	}
     	
     	try {
-    		wrfile = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
-    		wrfile = new File(wrfile,"FullSink");
-    		if (!wrfile.exists()) {
-    			
-    			wrfile.mkdir();
-    		}
-    		
-    		wrfile = new File(wrfile,copyTrack);
+
+    		wrfile = targetCopyFile();
     		
     	    FileOutputStream writer = new FileOutputStream(wrfile,fileCount > 0);
     	    ++fileCount;
@@ -134,21 +131,51 @@ public class WebClient extends WebSocketClient {
     }
 
     
-    public void cancelFileCopy() {
-    	mnact.textOut("Sending cancel");
-    	send(CMD_COPY + CANCEL_COPY);
+    public File targetCopyFile() {
+    	File wrfile;
+		String fileonly;
+		
+    		wrfile = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
+    		wrfile = new File(wrfile,"FullSink");
+    		if (!wrfile.exists()) {		
+    			wrfile.mkdir();
+    		}
+    		
+    		fileonly = copyTrack;
+    		int xind = fileonly.lastIndexOf("/");   		
+    		if (xind >= 0){
+    			 fileonly = fileonly.substring(xind+1);
+    		}
+    		return (new File(wrfile,fileonly));
     }
+    
+    
+    public void cancelFileCopy() {
+
+    	send(CMD_COPY + CANCEL_COPY);
+    	android.os.SystemClock.sleep(1000);
+    	
+    	if (fileCount > 0) {
+    		
+    		fileCount = -1;
+    		try {
+        		targetCopyFile().delete();
+        	} catch (Exception e) {
+        		System.out.println( "Copy File delete error " + e);
+        	}
+    	}
+    }
+    
     
     public void streamTrack(String strmfile) {
     		
     	currentTrack = strmfile;
-    	mnact.setStreamTrack(new Music("http://" + Prefs.getServerIPAddress(mnact) + ":" +
-    					Prefs.getHttpdPort(mnact) + "/"+strmfile, mnact));
+    	String url = "http://" + Prefs.getServerIPAddress(mnact) + ":" +
+				Prefs.getHttpdPort(mnact) + "/"+Uri.encode(strmfile);
+    	System.out.println( "Stream URL : " +url);
+    	mnact.setStreamTrack(new Music(url, mnact));
 
     }
-
-    
- 
 
 }
 

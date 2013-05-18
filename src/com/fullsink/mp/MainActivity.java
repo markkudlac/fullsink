@@ -18,46 +18,57 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
-import android.content.res.AssetManager;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
+import android.view.GestureDetector;
+import android.view.GestureDetector.SimpleOnGestureListener;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class MainActivity extends Activity implements Runnable{
+public class MainActivity extends Activity implements Runnable {
 	
 	public static WebServer WServ = null;	
 	public static SimpleWebServer HttpdServ = null;
 	public static WebClient WClient = null;
 	
 	WakeLock wakeLock;
-	private static final String[] EXTENSIONS = { ".mp3", ".mid", ".wav", ".ogg", ".mp4" }; //Playable Extensions
+	private static final String[] EXTENSIONS = { ".mp3", ".mid", ".wav", ".ogg" }; //Playable Extensions , ".mp4" add later
 	List<String> trackNames; //Playable Track Titles
-	AssetManager assets; //Assets (Compiled with APK)
+
 	File path; //directory where music is loaded from on SD Card
 
 	Music track; //currently loaded track
 
 	TextView textout;  // message window
+	ScrollView debug;
+	ListView playlist;
 	SeekBar seekbar;
 	ProgressBar progressbar;
 	ProgressDialog progressdialog = null;
 	
 	Button btnPlay; //The play button will need to change from 'play' to 'pause', so we need an instance of it
-	Random random; //used for shuffle
 	boolean isTuning; //is user currently jammin out, if so automatically start playing the next track
 	int currentTrack; //index of current track selected
-	int type; //0 for loading from assets, 1 for loading from SD card
+
+	private GestureDetector gestureDetector;
+    View.OnTouchListener gestureListener;
 	
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -65,11 +76,16 @@ public class MainActivity extends Activity implements Runnable{
 
 		setVolumeControlStream(AudioManager.STREAM_MUSIC);
 		PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
-// was this		wakeLock = powerManager.newWakeLock(PowerManager.FULL_WAKE_LOCK, "Lexiconda");
 		wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Lexiconda");
         setContentView(R.layout.activity_main);
 
-        initialize(0);
+        gestureDetector = new GestureDetector(this, new MyGestureDetector(this));
+        gestureListener = new View.OnTouchListener() {
+            public boolean onTouch(View v, MotionEvent event) {
+                return gestureDetector.onTouchEvent(event);
+            }
+        };
+        initialize();
         
     }
     
@@ -119,7 +135,6 @@ public class MainActivity extends Activity implements Runnable{
             try {
                 Thread.sleep(1000);
                 currentPosition= getTrack().getCurrentPosition();
- //       		textOut("In barThread Position : "+ currentPosition);
             } catch (InterruptedException e) {
                 return;
             } catch (Exception e) {
@@ -128,7 +143,6 @@ public class MainActivity extends Activity implements Runnable{
             
             if (track.isPlaying()) {
             	if (inClient()){
-//            		System.out.println("in Client before getDuration");
             		progressbar.setMax(getTrack().getDuration());
             		progressbar.setProgress(currentPosition);
             	} else {
@@ -139,21 +153,40 @@ public class MainActivity extends Activity implements Runnable{
     }
     
     
-    private void initialize(int type){
- 
+    private void initialize(){
+
     	textout = (TextView) findViewById(R.id.textout);
+    	debug = (ScrollView) findViewById(R.id.debug);
+    	playlist= (ListView) findViewById(R.id.playlist);
+    	
+      	View headView = View.inflate(this,R.layout.playlist_head, null);
+    	playlist.addHeaderView(headView,null,false);
+    	playlist.setOnItemClickListener(new OnItemClickListener() {
+
+    		   public void onItemClick(AdapterView<?> adapter, View v, int position, long id) {
+    			   	
+	    		currentTrack = position - 1;
+	    		loadTrack();
+	    		if (!isTuning) {
+	    			isTuning = true;
+	    			btnPlay.setBackgroundResource(R.drawable.pause);
+	    		}
+	    		playTrack(false);
+	  //  		Toast.makeText(getBaseContext(), "Selected : "+selItem + " POS : "+position, Toast.LENGTH_LONG).show();
+	    		   }
+    		   });
+    	
+        
         btnPlay = (Button) findViewById(R.id.btnPlay);
         btnPlay.setBackgroundResource(R.drawable.play);
         seekbar = (SeekBar) findViewById(R.id.seekbar);
         progressbar = (ProgressBar) findViewById(R.id.progressbar);
-//        barThread = new Thread(this);
         
         seekbar.setOnSeekBarChangeListener( new OnSeekBarChangeListener()
         	{
         		public void onProgressChanged(SeekBar seekBar, int progress,
                                         boolean fromUser)
         		{
-                                        // TODO Auto-generated method stub
                                      //   textOut("SeekBar value is "+progress);
                         }
 
@@ -162,7 +195,6 @@ public class MainActivity extends Activity implements Runnable{
                         	textOut("SeekBar start touch "); 
                         	toClients(CMD_PAUSE);
                         	track.pause();
-                        	// TODO Auto-generated method stub
                         }
 
                         public void onStopTrackingTouch(SeekBar seekBar)
@@ -172,23 +204,25 @@ public class MainActivity extends Activity implements Runnable{
                         	xseek = seekBar.getProgress();
                         	textOut("SeekBar end touch progress val: " + xseek); 
                         	track.seekTo(xseek);
- //                       	toClients(CMD_SEEK + xseek);
                         	toClients(CMD_RESUME + xseek);
                         	track.play();
-                                        // TODO Auto-generated method stub
                         }
 });
         
         
     	trackNames = new ArrayList<String>();
-    	assets = getAssets();
     	currentTrack = 0;
     	isTuning = false;
-    	random = new Random();
-    	this.type = type;
     	
-    	addTracks(getTracks());
+    	trackNames = loadFromSD();
     	loadTrack();
+    	
+    	ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_single_choice, trackNames);
+    	playlist.setAdapter(arrayAdapter);
+    	playlist.setItemChecked(1, true);
+    	
+    	debug.setOnTouchListener(gestureListener);
+    	playlist.setOnTouchListener(gestureListener);
     }
     
     
@@ -207,42 +241,25 @@ public class MainActivity extends Activity implements Runnable{
     
     
     
-    //Generate a String Array that represents all of the files found
-    private String[] getTracks(){
-    	if(type == 0){
-    		try {
-    			String[] temp = getAssets().list("");
-    			return temp;
-    		} catch (IOException e) {
-    			e.printStackTrace();
-    			Toast.makeText(getBaseContext(), e.getMessage(), Toast.LENGTH_LONG).show();
-    		}
-    	} else if(type == 1){
-    		if(Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED) 
-        			|| Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED_READ_ONLY)){
-        		path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
-
-    			String[] temp = path.list();
-    			return temp;
-    		} else{
-    			Toast.makeText(getBaseContext(), "SD Card is either mounted elsewhere or is unusable", Toast.LENGTH_LONG).show();
-    		}
-    	}
-    	return null;
-    }
-    
     //Adds the playable files to the trackNames List
-    private void addTracks(String[] temp){
-    	if(temp != null){
-			for(int i = 0; i < temp.length; i++){
+    
+    private List<String> addTracks(String[] xfiles){
+    
+    List<String> mediafiles = new ArrayList<String>();
+    
+    	if(xfiles != null){
+			for(int i = 0; i < xfiles.length; i++){
 				//Only accept files that have one of the extensions in the EXTENSIONS array
-				if(trackChecker(temp[i])){
-					trackNames.add(temp[i]);
+				if(trackChecker(xfiles[i])){
+					mediafiles.add(xfiles[i]);
 				}
 			}
 			Toast.makeText(getBaseContext(), "Loaded " + Integer.toString(trackNames.size()) + " Tracks", Toast.LENGTH_SHORT).show();
 		}
+    	return mediafiles;
     }
+    
+    
     
     //Checks to make sure that the track to be loaded has a correct extenson
     private boolean trackChecker(String trackToTest){
@@ -254,6 +271,56 @@ public class MainActivity extends Activity implements Runnable{
     	return false;
     }
     
+    
+    private List<String> loadFromSD() {
+    	
+		if(Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED) 
+    			|| Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED_READ_ONLY)){
+    		path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
+
+			return searchMusicDirectory(path,"",0);
+
+		} else{
+			Toast.makeText(getBaseContext(), "SD Card is either mounted elsewhere or is unusable", Toast.LENGTH_LONG).show();
+		}
+    	return null;
+    }
+    
+    
+    private List<String> searchMusicDirectory(File xdir, String dirPath, int count){
+    	
+    	List<String> mediafiles = new ArrayList<String>();
+    	List <String> dirs = new ArrayList<String>();;
+    	
+    	String[] temp = xdir.list();
+    	
+	   	if(temp != null){
+			for(int i = 0; i < temp.length && count < TRACK_COUNT_LIMIT; i++){
+				//Only accept files that have one of the extensions in the EXTENSIONS array
+				if(trackChecker(temp[i])){
+					System.out.println("Media file found : "+temp[i]);
+					mediafiles.add(dirPath + temp[i]);
+					++count;
+				} else if (new File(xdir,temp[i]).isDirectory()){
+						dirs.add(temp[i]);
+				}
+			}
+			
+			for (String dirfile : dirs) {
+				
+				if (count >= TRACK_COUNT_LIMIT || (mediafiles.size() + count) >= TRACK_COUNT_LIMIT) { break; }
+				
+				System.out.println("Media directory found : "+dirfile);
+				mediafiles.addAll(  searchMusicDirectory(new File(xdir,dirfile), dirPath+dirfile+"/", count));
+				
+			}
+
+	   	}
+    	return mediafiles;
+    	
+    }
+    
+    
     //Loads the track by calling loadMusic
     private void loadTrack(){
     	if(track != null){
@@ -263,50 +330,30 @@ public class MainActivity extends Activity implements Runnable{
     	}
     	
     	if(trackNames.size() > 0){
-    		track = loadMusic(type);
+    		track = loadMusic();
     	}
     }
     
-	//loads a Music instance using either a built in asset or an external resource
-    private Music loadMusic(int type){
+	//loads a Music instance using an external resource
+    private Music loadMusic(){
  
 		Music xmu;
 	
 		if (WServ != null){
-			WServ.cueTrack(getCurrentTrackName());
+			WServ.cueTrack(path, getCurrentTrackName());
 		}
-		
-    	switch(type){
-    	case 0:
-    		
 
-    		try{
-    			AssetFileDescriptor assetDescriptor = assets.openFd(getCurrentTrackName());
-    			xmu = new Music(assetDescriptor,this);
-    			toClients(CMD_PREP + getCurrentTrackName());	// make sure music play is loaded
-    			return xmu;
-    		} catch(IOException e){
-    			e.printStackTrace();
-    			Toast.makeText(getBaseContext(), "Error Loading " + getCurrentTrackName(), Toast.LENGTH_LONG).show();
-    		}
-    		return null;
-    		
-    	case 1:
-    		try{
-    			FileInputStream fis = new FileInputStream(new File(path, getCurrentTrackName()));
-    			FileDescriptor fileDescriptor = fis.getFD();
-    			xmu =  new Music(fileDescriptor,this);
-    			toClients(CMD_PREP + getCurrentTrackName());	// make sure music play is loaded
-    			return xmu;
-    		} catch(IOException e){
-    			e.printStackTrace();
-    			Toast.makeText(getBaseContext(), "Error Loading " + getCurrentTrackName(), Toast.LENGTH_LONG).show();
-    		}
-    		return null;
-    		
-    	default:
-    		return null;
-    	}
+		try{
+			FileInputStream fis = new FileInputStream(new File(path, getCurrentTrackName()));
+			FileDescriptor fileDescriptor = fis.getFD();
+			xmu =  new Music(fileDescriptor,this);
+			toClients(CMD_PREP + getCurrentTrackName());	// make sure music play is loaded
+			return xmu;
+		} catch(IOException e){
+			e.printStackTrace();
+			Toast.makeText(getBaseContext(), "Error Loading " + getCurrentTrackName(), Toast.LENGTH_LONG).show();
+		}
+		return null;
     }
     
     
@@ -325,11 +372,7 @@ public class MainActivity extends Activity implements Runnable{
         		getTrack().play();
         	   	
         	   	new Thread(this).start();
-        	   	/*
-        		if (!barThread.isAlive()) {
-        			barThread.start();
-        		}
-        		*/
+
         	} catch (Exception e) {
                     textOut("Thread exception : "+ e); 
             }   
@@ -390,6 +433,8 @@ public class MainActivity extends Activity implements Runnable{
 				findViewById(R.id.progressbar).setVisibility(View.VISIBLE);
 				findViewById(R.id.mediabuts).setVisibility(View.GONE);
 				findViewById(R.id.clientbuts).setVisibility(View.VISIBLE);
+				findViewById(R.id.playlist).setVisibility(View.GONE);
+				findViewById(R.id.debug).setVisibility(View.VISIBLE);
 			} else {
 				stopSockClient();
 				((Button) view).setText(getResources().getString(R.string.clientbutOff));
@@ -398,6 +443,8 @@ public class MainActivity extends Activity implements Runnable{
 				findViewById(R.id.progressbar).setVisibility(View.GONE);
 				findViewById(R.id.mediabuts).setVisibility(View.VISIBLE);
 				findViewById(R.id.clientbuts).setVisibility(View.GONE);
+				findViewById(R.id.playlist).setVisibility(View.VISIBLE);
+				findViewById(R.id.debug).setVisibility(View.GONE);
 				
 				isTuning = false;
 				btnPlay.setBackgroundResource(R.drawable.play);
@@ -409,7 +456,6 @@ public class MainActivity extends Activity implements Runnable{
 			
 		case R.id.btnPlay:
 			synchronized(this){
-//				textOut("Shuffle : " + Prefs.getShuffle(this));
 				
 				if(isTuning){
 					toClients(CMD_PAUSE);
@@ -425,9 +471,10 @@ public class MainActivity extends Activity implements Runnable{
 			return;
 			
 		case R.id.btnPrevious:
-			setTrack(0);
+			setTrack(-1);
 			loadTrack();
 			playTrack(false);
+			playlist.setItemChecked(currentTrack+1, true);
 			return;
 			
 		case R.id.btnNext:
@@ -452,7 +499,6 @@ public class MainActivity extends Activity implements Runnable{
 			return;
 			
 		case R.id.btnclientCopy:
-//			Toast.makeText(getBaseContext(), "Copy : "+ WClient.currentTrack, Toast.LENGTH_SHORT).show();
 			progressdialog = new ProgressDialog(this);
 			progressdialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
 			
@@ -467,6 +513,7 @@ public class MainActivity extends Activity implements Runnable{
 			    public void onClick(DialogInterface dialog, int which) {
 			    	WClient.cancelFileCopy();
 			        dialog.dismiss();
+			        Toast.makeText(getBaseContext(), "Copy Cancelled", Toast.LENGTH_SHORT).show();
 			    }
 			});
 			
@@ -481,17 +528,17 @@ public class MainActivity extends Activity implements Runnable{
 	}
     
     
-    
     private void butNext() {
     	
     	setTrack(1);
 		loadTrack();
 		playTrack(false);
+		playlist.setItemChecked(currentTrack+1, true);
     }
     
     
     private void setTrack(int direction){
-    	if(direction == 0){
+    	if(direction == -1){
     		currentTrack--;
 			if(currentTrack < 0){
 				currentTrack = trackNames.size()-1;
@@ -504,7 +551,7 @@ public class MainActivity extends Activity implements Runnable{
     	}
     	
     	if(Prefs.getShuffle(this)){
-			int temp = random.nextInt(trackNames.size());
+			int temp = new Random().nextInt(trackNames.size());
 			while(true){
 				if(temp != currentTrack){
 					currentTrack = temp;
@@ -533,11 +580,7 @@ public class MainActivity extends Activity implements Runnable{
 	    	try {
 	    		
 	    		new Thread(this).start();
-	    		/*
-	    		if (!barThread.isAlive()) {
-	    			barThread.start();
-	    		}
-	    		*/
+
 	    	} catch (Exception e) {
 	                textOut("Thread exception : "+ e); 
 	            }   
@@ -565,7 +608,8 @@ public void startSockServer(int port, String ipadd) {
    try {
 	 
     WServ = new WebServer( port, ipadd, MainActivity.this );
-    WServ.cueTrack(getCurrentTrackName());		//Copy for stream
+    WServ.deleteCues();
+    WServ.cueTrack(path, getCurrentTrackName());		//Copy for stream
     WServ.start();       
 
     System.out.println( "WebSockServ started on port: " + WServ.getPort() );
@@ -575,6 +619,9 @@ public void startSockServer(int port, String ipadd) {
 	   System.out.println( "WebSockServer host not found error" + ex);
    }
   }
+
+
+
 
 public void stopSockServer() {
 	
@@ -678,6 +725,45 @@ public void fileProgressControl(final int xprog){
         	}
         }
     });
+}
+
+
+class MyGestureDetector extends SimpleOnGestureListener {
+    
+	final ViewConfiguration vc;
+	final int swipeMinDistance;
+	final int swipeThresholdVelocity;
+	
+	
+	public MyGestureDetector(MainActivity xmnact){
+		
+		vc = ViewConfiguration.get(xmnact);
+		swipeMinDistance = vc.getScaledTouchSlop();
+		swipeThresholdVelocity = vc.getScaledMinimumFlingVelocity();
+		
+	}
+	
+	
+	@Override
+    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+        try {
+            if (Math.abs(e1.getY() - e2.getY()) > 200)
+                return false;
+            // right to left swipe
+            if(e1.getX() - e2.getX() > swipeMinDistance && Math.abs(velocityX) > swipeThresholdVelocity) {
+                System.out.println("Left Swipe");
+               	findViewById(R.id.debug).setVisibility(View.GONE);
+            	findViewById(R.id.playlist).setVisibility(View.VISIBLE);
+            }  else if (e2.getX() - e1.getX() > swipeMinDistance && Math.abs(velocityX) > swipeThresholdVelocity) {
+            	System.out.println("Right Swipe");
+            	findViewById(R.id.debug).setVisibility(View.VISIBLE);
+            	findViewById(R.id.playlist).setVisibility(View.GONE);
+            }
+        } catch (Exception e) {
+            // nothing
+        }
+        return false;
+    }
 }
 /*
  * 
