@@ -79,7 +79,7 @@ public class MainActivity extends Activity implements Runnable {
 		wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Lexiconda");
         setContentView(R.layout.activity_main);
 
-        gestureDetector = new GestureDetector(this, new MyGestureDetector(this));
+        gestureDetector = new GestureDetector(this, new FS_GestureDetector(this));
         gestureListener = new View.OnTouchListener() {
             public boolean onTouch(View v, MotionEvent event) {
                 return gestureDetector.onTouchEvent(event);
@@ -211,18 +211,27 @@ public class MainActivity extends Activity implements Runnable {
         
         
     	trackNames = new ArrayList<String>();
-    	currentTrack = 0;
-    	isTuning = false;
     	
+    	isTuning = false;
     	trackNames = loadFromSD();
-    	loadTrack();
+    	
+    	if (trackNames.size() > 0) {
+    		currentTrack = 0;
+    	} else {
+    		currentTrack = -1;
+    	}
     	
     	ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_single_choice, trackNames);
     	playlist.setAdapter(arrayAdapter);
-    	playlist.setItemChecked(1, true);
+    	
+    	if (loadTrack())
+    	{
+    		playlist.setItemChecked(1, true);
+    	}
     	
     	debug.setOnTouchListener(gestureListener);
     	playlist.setOnTouchListener(gestureListener);
+    	System.out.println("Out Initialize");
     }
     
     
@@ -274,23 +283,30 @@ public class MainActivity extends Activity implements Runnable {
     
     private List<String> loadFromSD() {
     	
+    	try {
+ //   		System.out.println("External storage state : "+Environment.getExternalStorageState());
+    		
 		if(Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED) 
-    			|| Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED_READ_ONLY)){
+    			|| Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED_READ_ONLY)
+    			){
     		path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
-
 			return searchMusicDirectory(path,"",0);
 
 		} else{
+			
 			Toast.makeText(getBaseContext(), "SD Card is either mounted elsewhere or is unusable", Toast.LENGTH_LONG).show();
 		}
-    	return null;
+    	} catch(Exception ex) {
+    		System.out.println("Exception in loadFromSD : "+ex);
+    	}
+    	return new ArrayList<String>();
     }
     
     
     private List<String> searchMusicDirectory(File xdir, String dirPath, int count){
     	
     	List<String> mediafiles = new ArrayList<String>();
-    	List <String> dirs = new ArrayList<String>();;
+    	List <String> dirs = new ArrayList<String>();
     	
     	String[] temp = xdir.list();
     	
@@ -322,16 +338,18 @@ public class MainActivity extends Activity implements Runnable {
     
     
     //Loads the track by calling loadMusic
-    private void loadTrack(){
+    private boolean loadTrack(){
     	if(track != null){
     		toClients(CMD_STOP);
     		track.dispose();
     		track = null;
     	}
     	
-    	if(trackNames.size() > 0){
+    	if(trackNames.size() > 0 && currentTrack >= 0){
     		track = loadMusic();
+    		return true;
     	}
+    	return false;
     }
     
 	//loads a Music instance using an external resource
@@ -339,19 +357,21 @@ public class MainActivity extends Activity implements Runnable {
  
 		Music xmu;
 	
-		if (WServ != null){
-			WServ.cueTrack(path, getCurrentTrackName());
-		}
-
-		try{
-			FileInputStream fis = new FileInputStream(new File(path, getCurrentTrackName()));
-			FileDescriptor fileDescriptor = fis.getFD();
-			xmu =  new Music(fileDescriptor,this);
-			toClients(CMD_PREP + getCurrentTrackName());	// make sure music play is loaded
-			return xmu;
-		} catch(IOException e){
-			e.printStackTrace();
-			Toast.makeText(getBaseContext(), "Error Loading " + getCurrentTrackName(), Toast.LENGTH_LONG).show();
+		if (getCurrentTrackName() != null && currentTrack >= 0 && currentTrack < trackNames.size()) {
+			if (WServ != null){
+				WServ.cueTrack(path, getCurrentTrackName());
+			}
+	
+			try{
+				FileInputStream fis = new FileInputStream(new File(path, getCurrentTrackName()));
+				FileDescriptor fileDescriptor = fis.getFD();
+				xmu =  new Music(fileDescriptor,this);
+				toClients(CMD_PREP + getCurrentTrackName());	// make sure music play is loaded
+				return xmu;
+			} catch(IOException e){
+				e.printStackTrace();
+				Toast.makeText(getBaseContext(), "Error Loading " + getCurrentTrackName(), Toast.LENGTH_LONG).show();
+			}
 		}
 		return null;
     }
@@ -421,12 +441,14 @@ public class MainActivity extends Activity implements Runnable {
 		case R.id.btnConnect:		
 			if (((Button) view).getText().equals(
 					getResources().getString(R.string.clientbutOff))) {
-				startSockClient(Prefs.getSocketPort(this), Prefs.getServerIPAddress(this));
+				
+			//	startSockClient(Prefs.getSocketPort(this), Prefs.getServerIPAddress(this));
 				((Button) view).setText(getResources().getString(R.string.clientbutOn));
 				if (track != null) {
 					track.dispose();
 					track = null;
 				}
+				
 				findViewById(R.id.btnShare).setEnabled(false);
 				findViewById(R.id.seekbar).setVisibility(View.GONE);
 				progressbar.setProgress(0);
@@ -435,6 +457,8 @@ public class MainActivity extends Activity implements Runnable {
 				findViewById(R.id.clientbuts).setVisibility(View.VISIBLE);
 				findViewById(R.id.playlist).setVisibility(View.GONE);
 				findViewById(R.id.debug).setVisibility(View.VISIBLE);
+				
+				new Thread(new ServerSearch(this)).start();
 			} else {
 				stopSockClient();
 				((Button) view).setText(getResources().getString(R.string.clientbutOff));
@@ -728,44 +752,10 @@ public void fileProgressControl(final int xprog){
 }
 
 
-class MyGestureDetector extends SimpleOnGestureListener {
-    
-	final ViewConfiguration vc;
-	final int swipeMinDistance;
-	final int swipeThresholdVelocity;
-	
-	
-	public MyGestureDetector(MainActivity xmnact){
-		
-		vc = ViewConfiguration.get(xmnact);
-		swipeMinDistance = vc.getScaledTouchSlop();
-		swipeThresholdVelocity = vc.getScaledMinimumFlingVelocity();
-		
-	}
-	
-	
-	@Override
-    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-        try {
-            if (Math.abs(e1.getY() - e2.getY()) > 200)
-                return false;
-            // right to left swipe
-            if(e1.getX() - e2.getX() > swipeMinDistance && Math.abs(velocityX) > swipeThresholdVelocity) {
-                System.out.println("Left Swipe");
-               	findViewById(R.id.debug).setVisibility(View.GONE);
-            	findViewById(R.id.playlist).setVisibility(View.VISIBLE);
-            }  else if (e2.getX() - e1.getX() > swipeMinDistance && Math.abs(velocityX) > swipeThresholdVelocity) {
-            	System.out.println("Right Swipe");
-            	findViewById(R.id.debug).setVisibility(View.VISIBLE);
-            	findViewById(R.id.playlist).setVisibility(View.GONE);
-            }
-        } catch (Exception e) {
-            // nothing
-        }
-        return false;
-    }
-}
 /*
+ * 
+
+
  * 
  * This is here for reference only no us System
 

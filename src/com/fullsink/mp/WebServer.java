@@ -81,6 +81,8 @@ public class WebServer extends WebSocketServer {
     			
     		} else if (message.startsWith(CMD_CONNECT)) {
         		mnact.textOut(getArg(message) + " has connected");
+    		} else if (message.startsWith(CMD_NAME)) {
+    			mnact.toClients(CMD_NAME + Prefs.getAcountID(mnact));
     		} else {		
 //        		this.sendToAll( message );
     		}
@@ -242,7 +244,7 @@ public class WebServer extends WebSocketServer {
     		        	 while (bcnt > 0) {
     		 		    	
     		 		    	mnact.toClients(CMD_FILE+Base64.encodeToString(xbuf,Base64.DEFAULT));
-    		 		    	Thread.sleep(100);
+    		 		    	Thread.sleep(FILE_COPY_WAIT);
 /*   		 		    	android.os.SystemClock.sleep(100);
     		 		    	mnact.textOut("Srv sent : " + i + " Sz : "+ bcnt); 
     		 		    	++i;

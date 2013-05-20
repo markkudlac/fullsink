@@ -2,6 +2,7 @@ package com.fullsink.mp;
 
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
+
 import static com.fullsink.mp.Const.*;
 
 import android.content.res.AssetFileDescriptor;
@@ -16,6 +17,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -30,11 +33,11 @@ public class WebClient extends WebSocketClient {
 	public WebClient( int port, String ipadd, MainActivity xmnact ) throws URISyntaxException {
 	
         super(
-//        		new URI("ws://192.168.1.105:8080")
         		new URI("ws://" + ipadd + ":" + port)
         	);
         
         mnact = xmnact;
+        
 }
 	
 	@Override
@@ -66,16 +69,21 @@ public class WebClient extends WebSocketClient {
 			rcvTrack(message.substring(5));
 		} else if (message.startsWith(CMD_PING)) {	
         	send(CMD_PONG + WebServer.getArg(message));
+        } else if (message.startsWith(CMD_NAME)) {	
+        	mnact.textOut("Found server : " + WebServer.getArg(message));
         }
     }
 
     @Override
     public void onOpen( ServerHandshake handshake ) {
     	System.out.println( "You are connected to WebServer: " + getURI() );
-    	
+ /*   	
     	send(CMD_CONNECT + Prefs.getAcountID(mnact));
     	send(CMD_PING + System.currentTimeMillis());
     	send(CMD_INIT);
+    	*/
+    	
+	       send(CMD_NAME);
     }
 
     @Override
@@ -88,7 +96,14 @@ public class WebClient extends WebSocketClient {
     	System.out.println( "Exception occured:\n" + ex );
     }
     
-
+    
+    public void scanForServers() {
+    	
+    	new Thread(new ServerSearch(mnact)).start();
+    }
+    
+ 
+    
     public void startCopyFile(){
     	
     	copyTrack = currentTrack;
@@ -179,6 +194,46 @@ public class WebClient extends WebSocketClient {
 
 }
 
+
+class ServerSearch implements Runnable {
+   	
+	   MainActivity mnact;
+  
+	   ServerSearch(MainActivity xact) {
+	   		
+	   		mnact = xact;
+	   	}
+	   
+	   @Override
+	   public void run() {
+		    Socket sock;
+		    String addr = NetStrat.getWifiApIpAddress();
+
+		    
+		    String baseaddr = addr.substring(0, addr.lastIndexOf('.') + 1);
+		    	sock = new Socket();
+		    	
+			    for (int i=1; i<=254; i++)
+			    {
+			    	addr = baseaddr.concat(String.format("%d", i));
+//			    	System.out.println("Address : " + addr +"  :  "+Prefs.getSocketPort(mnact) );
+			    	try {	    	       
+			    	       sock.connect(new InetSocketAddress( addr, Prefs.getSocketPort(mnact)), 500);
+			    	       System.out.println("Websocket found on IP:" + addr );
+			    	       sock.close();
+			    	       
+			    	       mnact.WClient = new WebClient(Prefs.getSocketPort(mnact), addr, mnact);
+			    	       mnact.WClient.connect();
+
+			    	     }
+			    	catch (Exception ex) {
+//			    	       System.out.println("Websocket NOT found on IP:" + addr );
+			    	    }
+			    }
+			    
+			    System.out.println("Websocket search complete : " + addr);
+	   }
+}
 
 /*
  Various file reading routines
