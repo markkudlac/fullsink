@@ -17,7 +17,8 @@ public interface Const extends BaseColumns {
 //	public static final String LOOKUP_PICK = "http://192.168.1.102:3000/pick/";
 //	public static final String LOOKUP_PICK = "http://www.rtrol.com/pick/";
 	
-//	public static final String TRKFILE = "trkfile.mp3";
+	public static final String HTMLDIR = "F_html_S";
+	public static final String SERVERID_JS = "serverid.js";
 	
 	public static final String CMD_PREP = "PREP:";
 	public static final String CMD_READY = "READY";

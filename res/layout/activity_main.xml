@@ -24,6 +24,9 @@
         	android:text="@string/clientbutOff" />			
 	</LinearLayout>		
 	
+
+	
+	
 	<LinearLayout android:id="@+id/seekpar" android:layout_width="fill_parent"  android:layout_height="wrap_content" 
     		android:orientation="vertical" android:layout_alignParentBottom="true" android:layout_alignParentLeft="true">
 			
@@ -71,21 +74,25 @@
 	        	android:text="@string/clientbutCopy" />			
 		</LinearLayout>	
 	</LinearLayout>
-
-	<ScrollView android:id="@+id/debug"
-	    android:layout_below="@+id/netbuts" android:layout_above="@+id/seekpar" android:visibility="gone"
-	    android:layout_width="fill_parent" android:layout_marginBottom="10dip"
-		    android:orientation="vertical" android:layout_marginTop="10dip" android:layout_height="wrap_content"
-		    android:background="#CFCFFF" android:fillViewport="true">
-
-		<TextView android:id="@+id/textout" android:layout_width="fill_parent" android:layout_height="wrap_content" 
-			    android:textSize="16sp" android:background="#FFFFFF">
-		</TextView>
-	</ScrollView>
 	
-	    <ListView android:id="@+id/playlist" android:layout_above="@+id/seekpar" android:layout_below="@+id/netbuts"
-        android:layout_width="fill_parent" android:fillViewport="true" android:layout_height="0dip"
-        android:layout_marginBottom="10dip" android:layout_marginTop="10dip"
+  	<RelativeLayout android:id="@+id/midfield" android:layout_width="fill_parent"  android:layout_height="0dip" 
+    		android:orientation="vertical" android:layout_alignParentLeft="true" android:fillViewport="true"
+    		android:layout_below="@+id/netbuts" android:layout_above="@+id/seekpar"
+    		android:layout_marginBottom="10dip" android:layout_marginTop="10dip" >
+		
+	    	<ScrollView android:id="@+id/debug"
+	    android:visibility="gone"
+	    android:layout_width="fill_parent"
+		    android:orientation="vertical" android:layout_height="fill_parent"
+		    android:background="#CFCFFF">
+
+			<TextView android:id="@+id/textout" android:layout_width="fill_parent" android:layout_height="wrap_content" 
+				    android:textSize="16sp" android:background="#FFFFFF">
+			</TextView>
+		</ScrollView>
+	
+	    <ListView android:id="@+id/playlist"
+        android:layout_width="fill_parent" android:layout_height="fill_parent"
         android:background="@drawable/border" android:choiceMode="singleChoice" android:drawSelectorOnTop="true" />
-         
+	</RelativeLayout>
 </RelativeLayout>

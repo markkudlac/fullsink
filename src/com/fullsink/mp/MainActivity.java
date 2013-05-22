@@ -17,7 +17,6 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.res.AssetFileDescriptor;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Environment;
@@ -29,7 +28,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewConfiguration;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
@@ -59,6 +58,8 @@ public class MainActivity extends Activity implements Runnable {
 	TextView textout;  // message window
 	ScrollView debug;
 	ListView playlist;
+	ListView serverlist;
+	ServerAdapter serveradapter;
 	SeekBar seekbar;
 	ProgressBar progressbar;
 	ProgressDialog progressdialog = null;
@@ -159,13 +160,19 @@ public class MainActivity extends Activity implements Runnable {
     	debug = (ScrollView) findViewById(R.id.debug);
     	playlist= (ListView) findViewById(R.id.playlist);
     	
-      	View headView = View.inflate(this,R.layout.playlist_head, null);
-    	playlist.addHeaderView(headView,null,false);
+    	serverlist = (ListView) View.inflate(this,R.layout.server_adapter, null);
+    	((ViewGroup) findViewById(R.id.midfield)).addView(serverlist);
+    	serveradapter = new ServerAdapter(this);
+    	serverlist.setOnItemClickListener(serveradapter);
+    	serverlist.setAdapter(serveradapter);
+    	
+//      	View headView = View.inflate(this,R.layout.playlist_head, null);
+ //   	playlist.addHeaderView(headView,"test",false);
     	playlist.setOnItemClickListener(new OnItemClickListener() {
 
     		   public void onItemClick(AdapterView<?> adapter, View v, int position, long id) {
     			   	
-	    		currentTrack = position - 1;
+	    		currentTrack = position;
 	    		loadTrack();
 	    		if (!isTuning) {
 	    			isTuning = true;
@@ -226,7 +233,7 @@ public class MainActivity extends Activity implements Runnable {
     	
     	if (loadTrack())
     	{
-    		playlist.setItemChecked(1, true);
+    		playlist.setItemChecked(0, true);
     	}
     	
     	debug.setOnTouchListener(gestureListener);
@@ -246,26 +253,6 @@ public class MainActivity extends Activity implements Runnable {
     	synchronized(this) {	// May not be needed not sure on Sync
     		return(track);
     	}
-    }
-    
-    
-    
-    //Adds the playable files to the trackNames List
-    
-    private List<String> addTracks(String[] xfiles){
-    
-    List<String> mediafiles = new ArrayList<String>();
-    
-    	if(xfiles != null){
-			for(int i = 0; i < xfiles.length; i++){
-				//Only accept files that have one of the extensions in the EXTENSIONS array
-				if(trackChecker(xfiles[i])){
-					mediafiles.add(xfiles[i]);
-				}
-			}
-			Toast.makeText(getBaseContext(), "Loaded " + Integer.toString(trackNames.size()) + " Tracks", Toast.LENGTH_SHORT).show();
-		}
-    	return mediafiles;
     }
     
     
@@ -442,7 +429,7 @@ public class MainActivity extends Activity implements Runnable {
 			if (((Button) view).getText().equals(
 					getResources().getString(R.string.clientbutOff))) {
 				
-			//	startSockClient(Prefs.getSocketPort(this), Prefs.getServerIPAddress(this));
+//				startSockClient(Prefs.getSocketPort(this), Prefs.getServerIPAddress(this));
 				((Button) view).setText(getResources().getString(R.string.clientbutOn));
 				if (track != null) {
 					track.dispose();
@@ -456,11 +443,14 @@ public class MainActivity extends Activity implements Runnable {
 				findViewById(R.id.mediabuts).setVisibility(View.GONE);
 				findViewById(R.id.clientbuts).setVisibility(View.VISIBLE);
 				findViewById(R.id.playlist).setVisibility(View.GONE);
-				findViewById(R.id.debug).setVisibility(View.VISIBLE);
+//				findViewById(R.id.debug).setVisibility(View.VISIBLE);
+				findViewById(R.id.serverlist).setVisibility(View.VISIBLE);			
 				
-				new Thread(new ServerSearch(this)).start();
+				new Thread(new ServerSearch(this,serveradapter)).start();
 			} else {
 				stopSockClient();
+				serverlist.clearChoices();
+				serveradapter.clear();
 				((Button) view).setText(getResources().getString(R.string.clientbutOff));
 				findViewById(R.id.btnShare).setEnabled(true);
 				findViewById(R.id.seekbar).setVisibility(View.VISIBLE);
@@ -469,6 +459,7 @@ public class MainActivity extends Activity implements Runnable {
 				findViewById(R.id.clientbuts).setVisibility(View.GONE);
 				findViewById(R.id.playlist).setVisibility(View.VISIBLE);
 				findViewById(R.id.debug).setVisibility(View.GONE);
+				findViewById(R.id.serverlist).setVisibility(View.GONE);
 				
 				isTuning = false;
 				btnPlay.setBackgroundResource(R.drawable.play);
@@ -498,7 +489,7 @@ public class MainActivity extends Activity implements Runnable {
 			setTrack(-1);
 			loadTrack();
 			playTrack(false);
-			playlist.setItemChecked(currentTrack+1, true);
+			playlist.setItemChecked(currentTrack, true);
 			return;
 			
 		case R.id.btnNext:
@@ -557,7 +548,7 @@ public class MainActivity extends Activity implements Runnable {
     	setTrack(1);
 		loadTrack();
 		playTrack(false);
-		playlist.setItemChecked(currentTrack+1, true);
+		playlist.setItemChecked(currentTrack, true);
     }
     
     
@@ -639,6 +630,7 @@ public void startSockServer(int port, String ipadd) {
     System.out.println( "WebSockServ started on port: " + WServ.getPort() );
     textOut("WebSockServ started");
     textOut("Address : " + WServ.getAddress());
+    WServ.initHTML();
    } catch ( Exception ex ) {
 	   System.out.println( "WebSockServer host not found error" + ex);
    }
@@ -734,6 +726,15 @@ public void textOut(final String xmess){
     });
 }
 
+
+public void adapterOut(){
+
+	runOnUiThread(new Runnable() {
+        public void run() {
+        	serveradapter.notifyDataSetChanged();
+        }
+    });
+}
 
 public void fileProgressControl(final int xprog){
 

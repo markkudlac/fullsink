@@ -5,16 +5,12 @@ import org.java_websocket.handshake.ServerHandshake;
 
 import static com.fullsink.mp.Const.*;
 
-import android.content.res.AssetFileDescriptor;
 import android.net.Uri;
 import android.os.Environment;
 import android.util.Base64;
 
 
 import java.io.File;
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -29,15 +25,17 @@ public class WebClient extends WebSocketClient {
 	String currentTrack = null;
 	int fileCount = 0;
 	int netlate = BASE_LATENCY;
+	String ipAddress;
 	
-	public WebClient( int port, String ipadd, MainActivity xmnact ) throws URISyntaxException {
+	
+	public WebClient( int port, String ipAddress, MainActivity mnact ) throws URISyntaxException {
 	
         super(
-        		new URI("ws://" + ipadd + ":" + port)
+        		new URI("ws://" + ipAddress + ":" + port)
         	);
         
-        mnact = xmnact;
-        
+        this.mnact = mnact;
+        this.ipAddress = ipAddress;
 }
 	
 	@Override
@@ -77,13 +75,13 @@ public class WebClient extends WebSocketClient {
     @Override
     public void onOpen( ServerHandshake handshake ) {
     	System.out.println( "You are connected to WebServer: " + getURI() );
- /*   	
+   	
     	send(CMD_CONNECT + Prefs.getAcountID(mnact));
     	send(CMD_PING + System.currentTimeMillis());
     	send(CMD_INIT);
-    	*/
     	
-	       send(CMD_NAME);
+    	
+//	       send(CMD_NAME);
     }
 
     @Override
@@ -97,11 +95,12 @@ public class WebClient extends WebSocketClient {
     }
     
     
+   /* 
     public void scanForServers() {
     	
     	new Thread(new ServerSearch(mnact)).start();
     }
-    
+ */   
  
     
     public void startCopyFile(){
@@ -185,7 +184,7 @@ public class WebClient extends WebSocketClient {
     public void streamTrack(String strmfile) {
     		
     	currentTrack = strmfile;
-    	String url = "http://" + Prefs.getServerIPAddress(mnact) + ":" +
+    	String url = "http://" + ipAddress + ":" +
 				Prefs.getHttpdPort(mnact) + "/"+Uri.encode(strmfile);
     	System.out.println( "Stream URL : " +url);
     	mnact.setStreamTrack(new Music(url, mnact));
@@ -198,32 +197,36 @@ public class WebClient extends WebSocketClient {
 class ServerSearch implements Runnable {
    	
 	   MainActivity mnact;
-  
-	   ServerSearch(MainActivity xact) {
+	   ServerAdapter serveradapter;
+	   
+	   ServerSearch(MainActivity xact, ServerAdapter serveradapter) {
 	   		
 	   		mnact = xact;
+	   		this.serveradapter = serveradapter;
 	   	}
 	   
 	   @Override
 	   public void run() {
 		    Socket sock;
 		    String addr = NetStrat.getWifiApIpAddress();
-
-		    
+	    
 		    String baseaddr = addr.substring(0, addr.lastIndexOf('.') + 1);
 		    	sock = new Socket();
 		    	
 			    for (int i=1; i<=254; i++)
 			    {
+			    	
 			    	addr = baseaddr.concat(String.format("%d", i));
-//			    	System.out.println("Address : " + addr +"  :  "+Prefs.getSocketPort(mnact) );
+ //			    	System.out.println("Address : " + addr +"  :  "+Prefs.getHttpdPort(mnact) );
 			    	try {	    	       
-			    	       sock.connect(new InetSocketAddress( addr, Prefs.getSocketPort(mnact)), 500);
-			    	       System.out.println("Websocket found on IP:" + addr );
+			    	       sock.connect(new InetSocketAddress( addr, Prefs.getHttpdPort(mnact)), 500);
+//			    	       sock.connect(new InetSocketAddress( addr, Prefs.getSocketPort(mnact)), 500);
 			    	       sock.close();
 			    	       
-			    	       mnact.WClient = new WebClient(Prefs.getSocketPort(mnact), addr, mnact);
-			    	       mnact.WClient.connect();
+//			    	       mnact.WClient = new WebClient(Prefs.getSocketPort(mnact), addr, mnact);
+//			    	       mnact.WClient.connect();
+		 			    	System.out.println("Server found Address : " + addr );
+			    	       new HttpCom(mnact,serveradapter).execute(addr,Prefs.getHttpdPort(mnact).toString(),SERVERID_JS);
 
 			    	     }
 			    	catch (Exception ex) {
