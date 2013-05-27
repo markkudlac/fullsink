@@ -17,6 +17,7 @@ public class Prefs extends PreferenceFragment {
 		addPreferencesFromResource(R.xml.settings);
 		
 	}
+
 	
 	public static Integer getHttpdPort(Context context) {
 				
@@ -36,6 +37,8 @@ public class Prefs extends PreferenceFragment {
 		
 		return(Integer.parseInt(xstr));
 	}
+
+	
 	
 	public static String getAcountID(Context context) {
 			

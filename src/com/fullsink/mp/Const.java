@@ -8,7 +8,7 @@ public interface Const extends BaseColumns {
 	public static final int LONG_WAIT = 7000;
 	public static final int BASE_LATENCY = 20;
 	public static final int BASE_BLOCKSIZE = 65536;
-	public static final int TRACK_COUNT_LIMIT = 50;
+	public static final int TRACK_COUNT_LIMIT = 100;
 	public static final int FILE_COPY_WAIT = 150;
 	
 	
@@ -17,8 +17,11 @@ public interface Const extends BaseColumns {
 //	public static final String LOOKUP_PICK = "http://192.168.1.102:3000/pick/";
 //	public static final String LOOKUP_PICK = "http://www.rtrol.com/pick/";
 	
-	public static final String HTMLDIR = "F_html_S";
+	public static final String HTML_DIR = "F_html_S";
 	public static final String SERVERID_JS = "serverid.js";
+	public static final String MUSIC_DIR = "FullSink";
+	public static final String SERVICE_NAME = "FullSink";
+	public static final String SERVER_PHOTO = "serverphoto";
 	
 	public static final String CMD_PREP = "PREP:";
 	public static final String CMD_READY = "READY";
@@ -34,7 +37,6 @@ public interface Const extends BaseColumns {
 	public static final String CMD_FILE = "FILE:";
 	public static final String CMD_COPY = "COPY:";
 	public static final String CANCEL_COPY = "<<!CANCEL_COPY#(?";
-	public static final String CMD_NAME = "NAME:";
 	
 }
 

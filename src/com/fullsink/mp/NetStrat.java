@@ -2,6 +2,7 @@ package com.fullsink.mp;
 
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.net.ServerSocket;
 import java.net.SocketException;
 import java.util.Enumeration;
 
@@ -57,4 +58,45 @@ static	public String getWifiApIpAddress() {
 	    return null;
 	}
 	
+
+static public int getNextSocket() {
+    // Initialize a server socket on the next available port.
+	
+	ServerSocket  mSocket;
+	int sock = -1;
+	
+	try {
+	    mSocket = new ServerSocket(0);
+	    sock = mSocket.getLocalPort();
+	    mSocket.close();
+	} catch (Exception ex) {
+		System.out.println("Socket exception : " + ex);
+	}
+	return sock;
+}
+
+
+static public int getSocketPort(MainActivity mnact) {
+	
+	int sock = -1;
+	
+	sock = Prefs.getSocketPort(mnact);
+	if (sock <= 1024) {
+		sock = getNextSocket();
+	}
+	return sock;
+}
+
+
+static public int getHttpdPort(MainActivity mnact) {
+	
+	int sock = -1;
+	
+	sock = Prefs.getHttpdPort(mnact);
+	if (sock <= 1024) {
+		sock = getNextSocket();
+	}
+	return sock;
+}
+
 }

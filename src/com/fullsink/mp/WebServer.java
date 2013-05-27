@@ -34,7 +34,6 @@ public class WebServer extends WebSocketServer {
         public WebServer( int port, String ipadd, MainActivity xmnact ) throws UnknownHostException {
         	
                 super( new InetSocketAddress(
- //               InetAddress.getByName("192.168.1.106"), port ) );
                 InetAddress.getByName(ipadd), port ) );
                 
                 mnact = xmnact;
@@ -47,15 +46,13 @@ public class WebServer extends WebSocketServer {
         @Override
         public void onOpen( WebSocket conn, ClientHandshake handshake ) {
  //               this.sendToAll( "CMD:MESS : new connection: " + handshake.getResourceDescriptor() );
- //               this.sendToAll( "new connection: " );
-        	mnact.toClients(CMD_PING + System.currentTimeMillis());
-                System.out.println( conn.getRemoteSocketAddress().getAddress().getHostAddress() + " : CONNECTED" );
+        	conn.send(CMD_PING + System.currentTimeMillis());
+                System.out.println("WebSocketServer client connected : " + conn.getRemoteSocketAddress().getAddress().getHostAddress());
         }
 
         @Override
         public void onClose( WebSocket conn, int code, String reason, boolean remote ) {
- //               this.sendToAll("CMD:MESS closed " + conn);
-                System.out.println("closed" + conn);
+                System.out.println("WebSocketServer client closed : " + conn.getRemoteSocketAddress().getAddress().getHostAddress());
         }
 
         @Override
@@ -65,28 +62,24 @@ public class WebServer extends WebSocketServer {
             mnact.textOut( "onMessage server : " + message );
             
             if (message.startsWith(CMD_PING)) {	
-            	mnact.toClients(CMD_PONG + getArg(message));
+            	conn.send(CMD_PONG + getArg(message));
             } else if (message.startsWith(CMD_INIT)) {	
-            	mnact.toClients(CMD_PREP + mnact.getCurrentTrackName());
+            	conn.send(CMD_PREP + mnact.getCurrentTrackName());
             } else if (message.startsWith(CMD_READY)) {	
             	
             		if (mnact.track.isPlaying()) {
-            			mnact.toClients(CMD_PLAY + (mnact.track.getCurrentPosition()));
+            			conn.send(CMD_PLAY + (mnact.track.getCurrentPosition()));
             		} else {
-            			mnact.toClients(CMD_SEEK + mnact.track.getCurrentPosition());
+            			conn.send(CMD_SEEK + mnact.track.getCurrentPosition());
             		}
             		
         	} else if (message.startsWith(CMD_PONG)) {	
     			netlate = calcLatency(Long.parseLong(getArg(message)));
     		}  else if (message.startsWith(CMD_COPY)) {
-    			controlCopyTrack(getArg(message));
+    			controlCopyTrack(getArg(message), conn);
     			
     		} else if (message.startsWith(CMD_CONNECT)) {
         		mnact.textOut(getArg(message) + " has connected");
-    		} else if (message.startsWith(CMD_NAME)) {
-    			mnact.toClients(CMD_NAME + Prefs.getAcountID(mnact));
-    		} else {		
-//        		this.sendToAll( message );
     		}
         }
 
@@ -106,6 +99,7 @@ public class WebServer extends WebSocketServer {
          * @throws InterruptedException
          *             When socket related I/O errors occur.
          */
+        
         public void sendToAll( String text ) {
                 Collection<WebSocket> con = connections();
                 synchronized ( con ) {
@@ -121,12 +115,21 @@ public class WebServer extends WebSocketServer {
         	String[] xdump = mnact.getFilesDir().list();
     		for (int i=0; i< xdump.length; i++){
 //    			System.out.println("Dump of cued bits : "+xdump[i]+"  : "+i);
-    			if (!xdump[i].equals(HTMLDIR)) {
-    				new File(mnact.getFilesDir(),xdump[i]).delete();
+    			if (!xdump[i].equals(HTML_DIR)) {
+    				DeleteRecursive(new File(mnact.getFilesDir(),xdump[i]));
     			}
        		}
         }
         
+    
+        
+ static   void DeleteRecursive(File fileOrDirectory) {
+            if (fileOrDirectory.isDirectory())
+                for (File child : fileOrDirectory.listFiles())
+                    DeleteRecursive(child);
+
+            fileOrDirectory.delete();
+        }
         
         
         public void cueTrack(File musicdir, String mfile){
@@ -190,7 +193,7 @@ public class WebServer extends WebSocketServer {
         }
        
        
-       public void controlCopyTrack(String xfile) {
+       public void controlCopyTrack(String xfile, WebSocket client) {
     	   
     	   if (xfile.contentEquals(CANCEL_COPY)) {
  
@@ -200,7 +203,7 @@ public class WebServer extends WebSocketServer {
     		   }
     	   } else {
     		   copyfile = xfile;
-    		   fileThread = new Thread(new FileServer(mnact,xfile));
+    		   fileThread = new Thread(new FileServer(mnact, xfile, client));
     		   fileThread.start();
     	   }
        }
@@ -210,11 +213,13 @@ public class WebServer extends WebSocketServer {
        	
     	   MainActivity mnact;
     	   String fileCopy;
+    	   WebSocket client;
     	   
-    	   		FileServer(MainActivity xact, String xfile) {
+    	   		FileServer(MainActivity xact, String xfile, WebSocket client) {
     	   		
     	   		mnact = xact;
     	   		fileCopy = xfile;
+    	   		this.client = client;
     	   	}
     	   
     	   @Override
@@ -236,10 +241,6 @@ public class WebServer extends WebSocketServer {
     		        	reader = new FileInputStream(trkFile);
     	        	
     		        	int bcnt;
-    		        	/*
-    		        	int i;
-    		 		    i = 0;
-    		        	 */
     		        	
     		 		    bcnt = reader.read(xbuf);
     		        	mnact.toClients(CMD_FILE+ ((trkFile.length() / BASE_BLOCKSIZE)+1)); // Send length of file first
@@ -248,10 +249,7 @@ public class WebServer extends WebSocketServer {
     		 		    	
     		 		    	mnact.toClients(CMD_FILE+Base64.encodeToString(xbuf,Base64.DEFAULT));
     		 		    	Thread.sleep(FILE_COPY_WAIT);
-/*   		 		    	android.os.SystemClock.sleep(100);
-    		 		    	mnact.textOut("Srv sent : " + i + " Sz : "+ bcnt); 
-    		 		    	++i;
-    */
+
     		 		    	bcnt = reader.read(xbuf);
 
     		 		    }
@@ -278,12 +276,10 @@ public class WebServer extends WebSocketServer {
        }
  
        
-        public void initHTML() {
+        public void initHTML(int webServerPort) {
         	
        	// Put this back later after testing complete
-//       	if (! new File(mnact.getFilesDir(),HTMLDIR).isDirectory()) {
-
-       		mnact.textOut("In initHTML");
+//       	if (! new File(mnact.getFilesDir(),HTML_DIR).isDirectory()) {
         	 
         	try {
         		
@@ -291,11 +287,19 @@ public class WebServer extends WebSocketServer {
         		File htmldest,htmlpar;
         		      		
            		//Parent directories need to be generated first
-        		String[] afiles = mnact.getAssets().list("html");
+        		String[] afiles = mnact.getAssets().list(HTML_DIR);
 
-        			htmlpar = new File(mnact.getFilesDir(),HTMLDIR);
-        			htmlpar.mkdirs();
+        		htmlpar = new File(mnact.getFilesDir(),HTML_DIR);
+        		
+      //*******  This delete is here for testing now 
+ //       		if (htmlpar.exists())	DeleteRecursive(htmlpar);
+        	        
+      //*************
+        		
+        		htmlpar.mkdirs();
 
+        		generateServerId(htmlpar,webServerPort);
+        		
         		// Copy contents of assets over to files
         		for (int i=0; i<afiles.length; i++){
         			System.out.println("Transfer : "+afiles[i]); 
@@ -303,17 +307,16 @@ public class WebServer extends WebSocketServer {
             		htmldest = new File(htmlpar, afiles[i]);
             		htmldest.createNewFile();
         		
-            		InputStream in = mnact.getAssets().open("html/"+afiles[i]);
+            		InputStream in = mnact.getAssets().open(HTML_DIR+"/"+afiles[i]);
  //       		System.out.println("Create input");        	    
         	    OutputStream out = new FileOutputStream(htmldest);
-        		System.out.println("Create output");
+ //       		System.out.println("Create output");
         	    
         	    
         	    // Transfer bytes from in to out
         	    int len;
         	    while ((len = in.read(xbuf)) > 0) {
         	        out.write(xbuf, 0, len);
-            		System.out.println("Transfer output");
         	    }
         	    in.close();
         	    out.close();
@@ -324,6 +327,61 @@ public class WebServer extends WebSocketServer {
         	}
 
  //      	}
+        }
+        
+        private void generateServerId(File htmldir, int webSocketPort) {
+        	
+        	/*
+        	 * 
+        Server id JSON looks like 
+        
+        {
+product:"FullSink",
+id:"The server name from Prefs",
+port: "12345",
+img:"the photo file"
+}            
+        	 */
+        	
+        	File serverid, photofile;
+        	byte [] xbuf = new byte[BASE_BLOCKSIZE]; 
+        	String builder;
+        	int photosize = 0;
+        	
+        	builder = "{ service:\""+ SERVICE_NAME+ "\", id:\"" + Prefs.getAcountID(mnact) + "\", port:\""+
+        				webSocketPort + "\", img:\"";
+        	
+ 
+        	// Get Photofile into buffer
+        	try {
+           		photofile = new File(mnact.getFilesDir(),HTML_DIR+"/"+SERVER_PHOTO);
+           		
+           		if (photofile.exists()) {
+	        		InputStream in = new FileInputStream(photofile);
+	        		photosize = in.read(xbuf);
+	        		in.close();
+           		}
+        	}catch (IOException e) {
+        		System.out.println( "Photo file " + e);
+        	}
+        	
+        	try {
+	        	serverid = new File(htmldir,SERVERID_JS );
+	    		serverid.createNewFile();
+	    		
+	    		OutputStream out = new FileOutputStream(serverid);
+	    		out.write(builder.getBytes(), 0, builder.length());
+	    		
+	    		if (photosize > 0){
+	    			out.write(xbuf,0,photosize);
+	    		}
+	    		
+	    		builder="\"}";
+	    		out.write(builder.getBytes(), 0, builder.length());
+	    		out.close();
+        	} catch (IOException e) {
+        		System.out.println( "File I/O error " + e);
+        	}
         }
 }
 

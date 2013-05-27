@@ -46,6 +46,7 @@ public class MainActivity extends Activity implements Runnable {
 	public static WebServer WServ = null;	
 	public static SimpleWebServer HttpdServ = null;
 	public static WebClient WClient = null;
+	public static NsdHelper mNsdHelper = null;
 	
 	WakeLock wakeLock;
 	private static final String[] EXTENSIONS = { ".mp3", ".mid", ".wav", ".ogg" }; //Playable Extensions , ".mp4" add later
@@ -84,6 +85,8 @@ public class MainActivity extends Activity implements Runnable {
         gestureListener = new View.OnTouchListener() {
             public boolean onTouch(View v, MotionEvent event) {
                 return gestureDetector.onTouchEvent(event);
+                
+                
             }
         };
         initialize();
@@ -121,10 +124,12 @@ public class MainActivity extends Activity implements Runnable {
     @Override
 	public void onDestroy() {
 		super.onDestroy();
-		
+
+		mNsdHelper.tearDown();
 		stopSockServer();
 		stopHttpdServer();
 		stopSockClient();
+		
 	}
     
 	
@@ -166,8 +171,6 @@ public class MainActivity extends Activity implements Runnable {
     	serverlist.setOnItemClickListener(serveradapter);
     	serverlist.setAdapter(serveradapter);
     	
-//      	View headView = View.inflate(this,R.layout.playlist_head, null);
- //   	playlist.addHeaderView(headView,"test",false);
     	playlist.setOnItemClickListener(new OnItemClickListener() {
 
     		   public void onItemClick(AdapterView<?> adapter, View v, int position, long id) {
@@ -238,6 +241,10 @@ public class MainActivity extends Activity implements Runnable {
     	
     	debug.setOnTouchListener(gestureListener);
     	playlist.setOnTouchListener(gestureListener);
+    	
+    	 mNsdHelper = new NsdHelper(this, serveradapter);
+		 mNsdHelper.initializeNsd();
+		 
     	System.out.println("Out Initialize");
     }
     
@@ -247,6 +254,17 @@ public class MainActivity extends Activity implements Runnable {
     		track = xtrk;
     	}
     }
+    
+    
+    
+    public void clearCurrentTrack() {
+  
+    	if (track != null){
+    		track.dispose();
+    		track = null;
+    	}
+    }
+    
     
     
     public Music getTrack() {
@@ -314,10 +332,8 @@ public class MainActivity extends Activity implements Runnable {
 				if (count >= TRACK_COUNT_LIMIT || (mediafiles.size() + count) >= TRACK_COUNT_LIMIT) { break; }
 				
 				System.out.println("Media directory found : "+dirfile);
-				mediafiles.addAll(  searchMusicDirectory(new File(xdir,dirfile), dirPath+dirfile+"/", count));
-				
+				mediafiles.addAll(  searchMusicDirectory(new File(xdir,dirfile), dirPath+dirfile+"/", count));	
 			}
-
 	   	}
     	return mediafiles;
     	
@@ -400,6 +416,11 @@ public class MainActivity extends Activity implements Runnable {
         startActivity(intent);
 	}
   
+	
+	public void toPhoto(MenuItem item) {
+        Intent intent = new Intent(this,PhotoActivity.class);
+        startActivity(intent);
+	}
     
     /*****************************************  LOOK HERE *******************************/
     
@@ -407,13 +428,19 @@ public class MainActivity extends Activity implements Runnable {
 		int id = view.getId();
 		switch(id){
 		case R.id.btnShare:	
+			
 			if (((Button) view).getText().equals(
 					getResources().getString(R.string.serverbutOff))) {
-				String ipadd = NetStrat.getWifiApIpAddress();
-				System.out.println("WebSock Port : " + Prefs.getSocketPort(this) + "  IPADD : " + ipadd);
 				
-				startHttpdServer(Prefs.getHttpdPort(this), ipadd);
-				startSockServer(Prefs.getSocketPort(this),ipadd);
+				
+				
+				String ipadd = NetStrat.getWifiApIpAddress();
+				startHttpdServer(NetStrat.getHttpdPort(this), ipadd);
+				
+				int webSockPort = NetStrat.getSocketPort(this);
+				System.out.println("WebSock Port : " + webSockPort + "  IPADD : " + ipadd);
+				startSockServer(webSockPort,ipadd);
+				
 				((Button) view).setText(getResources().getString(R.string.serverbutOn));
 				findViewById(R.id.btnConnect).setEnabled(false);
 			} else {
@@ -429,12 +456,9 @@ public class MainActivity extends Activity implements Runnable {
 			if (((Button) view).getText().equals(
 					getResources().getString(R.string.clientbutOff))) {
 				
-//				startSockClient(Prefs.getSocketPort(this), Prefs.getServerIPAddress(this));
 				((Button) view).setText(getResources().getString(R.string.clientbutOn));
-				if (track != null) {
-					track.dispose();
-					track = null;
-				}
+				
+				clearCurrentTrack();
 				
 				findViewById(R.id.btnShare).setEnabled(false);
 				findViewById(R.id.seekbar).setVisibility(View.GONE);
@@ -444,10 +468,13 @@ public class MainActivity extends Activity implements Runnable {
 				findViewById(R.id.clientbuts).setVisibility(View.VISIBLE);
 				findViewById(R.id.playlist).setVisibility(View.GONE);
 //				findViewById(R.id.debug).setVisibility(View.VISIBLE);
-				findViewById(R.id.serverlist).setVisibility(View.VISIBLE);			
+				findViewById(R.id.serverlist).setVisibility(View.VISIBLE);						
 				
-				new Thread(new ServerSearch(this,serveradapter)).start();
+				
+				mNsdHelper.discoverServices();
+				
 			} else {
+				mNsdHelper.stopDiscovery();
 				stopSockClient();
 				serverlist.clearChoices();
 				serveradapter.clear();
@@ -497,6 +524,7 @@ public class MainActivity extends Activity implements Runnable {
 			return;
 			
 		case R.id.btnclientMute:
+			
 			if (((Button) view).getText().equals(
 					getResources().getString(R.string.clientbutMute))) {
 				((Button) view).setText(getResources().getString(R.string.clientbutMuted));
@@ -511,6 +539,7 @@ public class MainActivity extends Activity implements Runnable {
 					track.setVolume(1f,1f);
 				}
 			}
+			
 			return;
 			
 		case R.id.btnclientCopy:
@@ -620,8 +649,9 @@ public void playNextTrack() {
 public void startSockServer(int port, String ipadd) {
     WebSocketImpl.DEBUG = false;		//This was true originally
     
+    System.out.println( "In WebSockServer");
    try {
-	 
+	stopSockServer();
     WServ = new WebServer( port, ipadd, MainActivity.this );
     WServ.deleteCues();
     WServ.cueTrack(path, getCurrentTrackName());		//Copy for stream
@@ -630,12 +660,12 @@ public void startSockServer(int port, String ipadd) {
     System.out.println( "WebSockServ started on port: " + WServ.getPort() );
     textOut("WebSockServ started");
     textOut("Address : " + WServ.getAddress());
-    WServ.initHTML();
+    WServ.initHTML(WServ.getPort());
+    		
    } catch ( Exception ex ) {
 	   System.out.println( "WebSockServer host not found error" + ex);
    }
   }
-
 
 
 
@@ -645,18 +675,20 @@ public void stopSockServer() {
 		if (WServ != null) {
 			WServ.stop();
 			WServ = null;
+			mNsdHelper.tearDown();
 		}
 	} catch(Exception ex ) {
 	   System.out.println( "WebSockServer stop error" + ex);
    }
 }
 
-public void startSockClient(int port, String ipadd){
+public void startSockClient(int webSockPort, String ipadd, int httpdPort){
 	WebSocketImpl.DEBUG = false;		//This was true originally
 	try {
-
-		 WClient = new WebClient(port, ipadd, MainActivity.this);
+		stopSockClient();
+		 WClient = new WebClient(webSockPort, ipadd, httpdPort,  MainActivity.this);
 		 WClient.connect();
+
 		 
 	} catch ( Exception ex ) {
 		   System.out.println( "WebClient error : " + ex);
@@ -690,14 +722,15 @@ public boolean inClient() {
 }
 
 
-public void startHttpdServer(int port, String ipadd) {
+public void startHttpdServer(int httpdPort, String ipadd) {
     
    try {
-    
-    HttpdServ = new SimpleWebServer( ipadd, port, getFilesDir() ); 
-    HttpdServ.start();       
+	stopHttpdServer();
+    HttpdServ = new SimpleWebServer( ipadd, httpdPort, getFilesDir() ); 
+    HttpdServ.start();  
+    mNsdHelper.registerService(httpdPort);
     textOut("HttpdServ started");
-    textOut("Address : " + ipadd + "  Port : "+port);
+    textOut("Address : " + ipadd + "  Port : "+httpdPort);
    } catch ( Exception ex ) {
 	   System.out.println( "HttpdServer error : " + ex);
    }
@@ -752,29 +785,5 @@ public void fileProgressControl(final int xprog){
     });
 }
 
-
-/*
- * 
-
-
- * 
- * This is here for reference only no us System
-
-public void playDelay(final int xwait){
-
-	runOnUiThread(new Runnable() {
-        public void run() {
-        	try {
-        	Thread.sleep(xwait);
-//        	System.out.println("After sleep : " + xwait);
-        	} catch (InterruptedException e) {
-                return;
-            } catch (Exception e) {
-                return;
-            }     
-        }
-    });
-}
-*/
 
 }

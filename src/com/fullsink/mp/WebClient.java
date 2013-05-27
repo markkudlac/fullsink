@@ -26,16 +26,18 @@ public class WebClient extends WebSocketClient {
 	int fileCount = 0;
 	int netlate = BASE_LATENCY;
 	String ipAddress;
+	int httpdport;
 	
 	
-	public WebClient( int port, String ipAddress, MainActivity mnact ) throws URISyntaxException {
+	public WebClient( int websocketport, String ipAddress, int httpdport, MainActivity mnact ) throws URISyntaxException {
 	
         super(
-        		new URI("ws://" + ipAddress + ":" + port)
+        		new URI("ws://" + ipAddress + ":" + websocketport)
         	);
         
         this.mnact = mnact;
         this.ipAddress = ipAddress;
+        this.httpdport = httpdport;
 }
 	
 	@Override
@@ -67,8 +69,6 @@ public class WebClient extends WebSocketClient {
 			rcvTrack(message.substring(5));
 		} else if (message.startsWith(CMD_PING)) {	
         	send(CMD_PONG + WebServer.getArg(message));
-        } else if (message.startsWith(CMD_NAME)) {	
-        	mnact.textOut("Found server : " + WebServer.getArg(message));
         }
     }
 
@@ -79,9 +79,6 @@ public class WebClient extends WebSocketClient {
     	send(CMD_CONNECT + Prefs.getAcountID(mnact));
     	send(CMD_PING + System.currentTimeMillis());
     	send(CMD_INIT);
-    	
-    	
-//	       send(CMD_NAME);
     }
 
     @Override
@@ -94,13 +91,6 @@ public class WebClient extends WebSocketClient {
     	System.out.println( "Exception occured:\n" + ex );
     }
     
-    
-   /* 
-    public void scanForServers() {
-    	
-    	new Thread(new ServerSearch(mnact)).start();
-    }
- */   
  
     
     public void startCopyFile(){
@@ -150,7 +140,7 @@ public class WebClient extends WebSocketClient {
 		String fileonly;
 		
     		wrfile = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
-    		wrfile = new File(wrfile,"FullSink");
+    		wrfile = new File(wrfile,MUSIC_DIR);
     		if (!wrfile.exists()) {		
     			wrfile.mkdir();
     		}
@@ -182,10 +172,11 @@ public class WebClient extends WebSocketClient {
     
     
     public void streamTrack(String strmfile) {
-    		
+    	
+    	System.out.println("Ready to stream addr : " + ipAddress + "  Port : "+ httpdport);
     	currentTrack = strmfile;
     	String url = "http://" + ipAddress + ":" +
-				Prefs.getHttpdPort(mnact) + "/"+Uri.encode(strmfile);
+				httpdport + "/"+Uri.encode(strmfile);
     	System.out.println( "Stream URL : " +url);
     	mnact.setStreamTrack(new Music(url, mnact));
 
@@ -194,6 +185,7 @@ public class WebClient extends WebSocketClient {
 }
 
 
+/*
 class ServerSearch implements Runnable {
    	
 	   MainActivity mnact;
@@ -208,18 +200,29 @@ class ServerSearch implements Runnable {
 	   @Override
 	   public void run() {
 		    Socket sock;
-		    String addr = NetStrat.getWifiApIpAddress();
+		    String addr;
 	    
+		    // This is mainly here for testing
+		    addr = Prefs.getServerIPAddress(mnact);
+		    
+		    if (addr.length() > 8) {
+				System.out.println("Preference connect Address : " + addr );
+	    	    new HttpCom(mnact,serveradapter).execute(addr,Prefs.getHttpdPort(mnact).toString(),SERVERID_JS);
+	    	    return;
+			}
+		    
+		    addr = NetStrat.getWifiApIpAddress();
 		    String baseaddr = addr.substring(0, addr.lastIndexOf('.') + 1);
-		    	sock = new Socket();
+//		    	sock = new Socket();
 		    	
-			    for (int i=1; i<=254; i++)
+			    for (int i=190; i<=214; i++)
 			    {
-			    	
+			    	sock = null;
+			    	sock = new Socket();
 			    	addr = baseaddr.concat(String.format("%d", i));
- //			    	System.out.println("Address : " + addr +"  :  "+Prefs.getHttpdPort(mnact) );
+ 			    	System.out.println("Address : " + addr +"  :  "+Prefs.getHttpdPort(mnact) );
 			    	try {	    	       
-			    	       sock.connect(new InetSocketAddress( addr, Prefs.getHttpdPort(mnact)), 500);
+			    	       sock.connect(new InetSocketAddress( addr, Prefs.getHttpdPort(mnact)), 150);
 //			    	       sock.connect(new InetSocketAddress( addr, Prefs.getSocketPort(mnact)), 500);
 			    	       sock.close();
 			    	       
@@ -230,13 +233,15 @@ class ServerSearch implements Runnable {
 
 			    	     }
 			    	catch (Exception ex) {
-//			    	       System.out.println("Websocket NOT found on IP:" + addr );
+//			    	       System.out.println("Websocket NOT found on IP:" + addr + "  : "+ex);
 			    	    }
 			    }
 			    
 			    System.out.println("Websocket search complete : " + addr);
 	   }
 }
+
+*/
 
 /*
  Various file reading routines
