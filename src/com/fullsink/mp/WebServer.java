@@ -52,7 +52,7 @@ public class WebServer extends WebSocketServer {
 
         @Override
         public void onClose( WebSocket conn, int code, String reason, boolean remote ) {
-                System.out.println("WebSocketServer client closed : " + conn.getRemoteSocketAddress().getAddress().getHostAddress());
+                System.out.println("WebSocketServer client closed : " + conn);
         }
 
         @Override
@@ -292,12 +292,10 @@ public class WebServer extends WebSocketServer {
         		htmlpar = new File(mnact.getFilesDir(),HTML_DIR);
         		
       //*******  This delete is here for testing now 
- //       		if (htmlpar.exists())	DeleteRecursive(htmlpar);
-        	        
+  //      		if (htmlpar.exists())	DeleteRecursive(htmlpar); 
       //*************
         		
         		htmlpar.mkdirs();
-
         		generateServerId(htmlpar,webServerPort);
         		
         		// Copy contents of assets over to files
@@ -307,19 +305,16 @@ public class WebServer extends WebSocketServer {
             		htmldest = new File(htmlpar, afiles[i]);
             		htmldest.createNewFile();
         		
-            		InputStream in = mnact.getAssets().open(HTML_DIR+"/"+afiles[i]);
- //       		System.out.println("Create input");        	    
-        	    OutputStream out = new FileOutputStream(htmldest);
- //       		System.out.println("Create output");
-        	    
+            		InputStream in = mnact.getAssets().open(HTML_DIR+"/"+afiles[i]);    
+            		OutputStream out = new FileOutputStream(htmldest);
         	    
         	    // Transfer bytes from in to out
-        	    int len;
-        	    while ((len = in.read(xbuf)) > 0) {
-        	        out.write(xbuf, 0, len);
-        	    }
-        	    in.close();
-        	    out.close();
+            		int len;
+            		while ((len = in.read(xbuf)) > 0) {
+            			out.write(xbuf, 0, len);
+            		}
+            		in.close();
+            		out.close();
         		}
         	    
         	} catch (IOException e) {
@@ -353,6 +348,7 @@ img:"the photo file"
         	
  
         	// Get Photofile into buffer
+ //       	System.out.println("Files dir : "+mnact.getFilesDir().getPath());
         	try {
            		photofile = new File(mnact.getFilesDir(),HTML_DIR+"/"+SERVER_PHOTO);
            		

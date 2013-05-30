@@ -21,6 +21,7 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
 		String addr;
 		int httpdPort;
 		ServerAdapter serveradapter;
+		String servicename;
 		
 	public HttpCom(MainActivity mnact, ServerAdapter serveradapter) {
 		this.mnact = mnact;
@@ -35,11 +36,10 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
     	try {
     			addr = xparam[0];
     			httpdPort = Integer.valueOf(xparam[1]);
+    			servicename = xparam[3];
     			
     		String xurl = "http://"+ xparam[0]  + ":" + xparam[1] + "/" + HTML_DIR + "/" + xparam[2];
- //   		System.out.println("In logUser url : " + xurl);
-    		
-    		
+    			
     		URL url = new URL(xurl);
     		
     		con = (HttpURLConnection) url.openConnection();
@@ -76,17 +76,16 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
     	 if (result != null) {
     		 try {
     			 byte[] xbuf;
-    	 System.out.println("Out PostExecute : " + result.getString("id") + "  Address : " +addr); 
-    	 System.out.println("Out PostExecute httpdPort : " + httpdPort + " webSockPort : " +result.getString("port") );
+//    	 System.out.println("Out PostExecute : " + result.getString("id") + "  Address : " +addr); 
+//    	 System.out.println("Out PostExecute httpdPort : " + httpdPort + " webSockPort : " +result.getString("port") );
     			 mnact.textOut("HttpCom ID Server : " + result.getString("id"));
     	 
- //   			 System.out.println("Out PostExecute img len : " + result.getString("img").length()); 
     			 xbuf = Base64.decode(result.getString("img"),Base64.DEFAULT);
     			 
-    			 serveradapter.add(result.getString("id"), addr, httpdPort, result.getInt("port"),
+    			 serveradapter.add(result.getString("id"), addr, httpdPort, result.getInt("port"), servicename,
     					 BitmapFactory.decodeByteArray(xbuf, 0, xbuf.length));
 
-    			 mnact.adapterOut();
+    			 mnact.adapterOut(false,-1);
     		 } catch (Exception ex) { System.out.println("Exception caught : " + ex); }
     	 }
      }

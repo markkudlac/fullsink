@@ -17,6 +17,7 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Environment;
@@ -85,38 +86,39 @@ public class MainActivity extends Activity implements Runnable {
         gestureListener = new View.OnTouchListener() {
             public boolean onTouch(View v, MotionEvent event) {
                 return gestureDetector.onTouchEvent(event);
-                
-                
             }
         };
         initialize();
         
     }
     
+    
     @Override
     public void onResume(){
     	super.onResume();
     	wakeLock.acquire();
+
+    	if (inClient()) {
+    		mNsdHelper.discoverServices();
+    	}
     }
 	
+    
     @Override
 	public void onPause(){
 		super.onPause();
 		wakeLock.release();
-		if(track != null){
-			if(track.isPlaying()){
-				track.pause();
+
+		if (inClient()) {
+			mNsdHelper.stopDiscovery();
+		}
+			
+		if (isFinishing()){
+			if (track != null) {
 				isTuning = false;
-				btnPlay.setBackgroundResource(R.drawable.play);
-			}
-			if(isFinishing()){
 				track.dispose();
-				finish();
 			}
-		} else{
-			if(isFinishing()){
-				finish();
-			}
+			finish();
 		}
 	}
     
@@ -125,28 +127,73 @@ public class MainActivity extends Activity implements Runnable {
 	public void onDestroy() {
 		super.onDestroy();
 
-		mNsdHelper.tearDown();
+		mNsdHelper.unregisterService();
 		stopSockServer();
 		stopHttpdServer();
 		stopSockClient();
 		
 	}
     
+    
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        // Checks the orientation of the screen
+        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+        	System.out.println("Got configuration change : Landscape");
+        } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT){
+        	System.out.println("Got configuration change : Portrait");
+        }
+    }
+    
+    
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu){
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.main, menu);
+		return true;
+	}
+    
+    
+	public void toSettings(MenuItem item) {
+        Intent intent = new Intent(this,SettingsActivity.class);
+        startActivity(intent);
+	}
+  
 	
+	public void toPhoto(MenuItem item) {
+        Intent intent = new Intent(this,PhotoActivity.class);
+        startActivity(intent);
+	}
+    
+	
+	// Set 
     @Override
     public void run() {
         int currentPosition= 0;
  
         while (track != null) {
+        	
+        	/* Was like this but I think this puts in unneeded lag
+        	 * 
+        	 
             try {
                 Thread.sleep(1000);
-                currentPosition= getTrack().getCurrentPosition();
+                currentPosition = getTrack().getCurrentPosition();
             } catch (InterruptedException e) {
                 return;
             } catch (Exception e) {
                 return;
             }     
-            
+            */
+        	
+        	try {
+                currentPosition = getTrack().getCurrentPosition();
+            } catch (Exception ex) {
+                System.out.println("Exception in thread run for seek : " + ex);
+            } 
+        	
             if (track.isPlaying()) {
             	if (inClient()){
             		progressbar.setMax(getTrack().getDuration());
@@ -155,6 +202,12 @@ public class MainActivity extends Activity implements Runnable {
             		seekbar.setProgress(currentPosition);
             	}
             }
+            
+            try {
+                Thread.sleep(1000);
+            } catch (Exception ex) {	//InterruptedException
+                return;
+            }     
         }
     }
     
@@ -182,7 +235,6 @@ public class MainActivity extends Activity implements Runnable {
 	    			btnPlay.setBackgroundResource(R.drawable.pause);
 	    		}
 	    		playTrack(false);
-	  //  		Toast.makeText(getBaseContext(), "Selected : "+selItem + " POS : "+position, Toast.LENGTH_LONG).show();
 	    		   }
     		   });
     	
@@ -403,25 +455,7 @@ public class MainActivity extends Activity implements Runnable {
     }
 
     
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu){
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.main, menu);
-		return true;
-	}
-    
-    
-	public void toSettings(MenuItem item) {
-        Intent intent = new Intent(this,SettingsActivity.class);
-        startActivity(intent);
-	}
-  
-	
-	public void toPhoto(MenuItem item) {
-        Intent intent = new Intent(this,PhotoActivity.class);
-        startActivity(intent);
-	}
-    
+ 
     /*****************************************  LOOK HERE *******************************/
     
     public void click(View view){
@@ -431,8 +465,6 @@ public class MainActivity extends Activity implements Runnable {
 			
 			if (((Button) view).getText().equals(
 					getResources().getString(R.string.serverbutOff))) {
-				
-				
 				
 				String ipadd = NetStrat.getWifiApIpAddress();
 				startHttpdServer(NetStrat.getHttpdPort(this), ipadd);
@@ -457,12 +489,10 @@ public class MainActivity extends Activity implements Runnable {
 					getResources().getString(R.string.clientbutOff))) {
 				
 				((Button) view).setText(getResources().getString(R.string.clientbutOn));
-				
-				clearCurrentTrack();
-				
+				clearStream();
 				findViewById(R.id.btnShare).setEnabled(false);
 				findViewById(R.id.seekbar).setVisibility(View.GONE);
-				progressbar.setProgress(0);
+				
 				findViewById(R.id.progressbar).setVisibility(View.VISIBLE);
 				findViewById(R.id.mediabuts).setVisibility(View.GONE);
 				findViewById(R.id.clientbuts).setVisibility(View.VISIBLE);
@@ -572,6 +602,14 @@ public class MainActivity extends Activity implements Runnable {
 	}
     
     
+    public void clearStream() {
+    	
+    	clearCurrentTrack();
+    	progressbar.setProgress(0);
+    }
+    
+    
+    
     private void butNext() {
     	
     	setTrack(1);
@@ -675,7 +713,6 @@ public void stopSockServer() {
 		if (WServ != null) {
 			WServ.stop();
 			WServ = null;
-			mNsdHelper.tearDown();
 		}
 	} catch(Exception ex ) {
 	   System.out.println( "WebSockServer stop error" + ex);
@@ -740,10 +777,12 @@ public void startHttpdServer(int httpdPort, String ipadd) {
 public void stopHttpdServer() {
 	
 	try {
-		if (WServ != null) {
-			WServ.stop();
-			WServ = null;
+		if (HttpdServ != null) {
+			HttpdServ.stop();
+			HttpdServ = null;
+			textOut("Before calling unregister");
 		}
+		mNsdHelper.unregisterService();
 	} catch(Exception ex ) {
 	   System.out.println( "HttpdServer stop : " + ex);
    }
@@ -760,14 +799,29 @@ public void textOut(final String xmess){
 }
 
 
-public void adapterOut(){
+public void adapterOut(final boolean remove, final int item){
 
 	runOnUiThread(new Runnable() {
         public void run() {
+        	
+        	if (remove ) {
+        		serveradapter.setNotifyOnChange(true);	//turn auto upadte back on
+        		if (item >= 0 ) serverlist.setItemChecked(item,false);	// This is dumb and should not be required
+        	}
+        	
         	serveradapter.notifyDataSetChanged();
+        	
+        	//There may be a hole here as not sure if notify is completed here. Seems to work
+        	System.out.println( "Checked count : " + serverlist.getCheckedItemCount());
+        	// Stop stream if the check (current connection) is lost count zero
+			if (remove && serverlist.getCheckedItemCount() == 0) {
+			 clearStream();
+			}
         }
     });
 }
+
+
 
 public void fileProgressControl(final int xprog){
 

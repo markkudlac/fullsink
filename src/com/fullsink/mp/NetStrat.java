@@ -79,11 +79,12 @@ static public int getNextSocket() {
 static public int getSocketPort(MainActivity mnact) {
 	
 	int sock = -1;
-	
+
 	sock = Prefs.getSocketPort(mnact);
 	if (sock <= 1024) {
 		sock = getNextSocket();
 	}
+	System.out.println("In getSocketPort port : " + sock);
 	return sock;
 }
 
@@ -91,11 +92,12 @@ static public int getSocketPort(MainActivity mnact) {
 static public int getHttpdPort(MainActivity mnact) {
 	
 	int sock = -1;
-	
+
 	sock = Prefs.getHttpdPort(mnact);
 	if (sock <= 1024) {
 		sock = getNextSocket();
 	}
+	System.out.println("In getHttpdPort port : " + sock);
 	return sock;
 }
 

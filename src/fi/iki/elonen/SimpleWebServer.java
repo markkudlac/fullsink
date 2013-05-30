@@ -1,8 +1,14 @@
 package fi.iki.elonen;
 
+import static com.fullsink.mp.Const.BASE_BLOCKSIZE;
+import static com.fullsink.mp.Const.HTML_DIR;
+
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
@@ -245,7 +251,9 @@ public class SimpleWebServer extends NanoHTTPD {
 
     @Override
     public Response serve(String uri, Method method, Map<String, String> header, Map<String, String> parms, Map<String, String> files) {
-        System.out.println(method + " '" + uri + "' ");
+        String filename = null;
+    	
+    	System.out.println(method + " '" + uri + "' ");
 
         Iterator<String> e = header.keySet().iterator();
         while (e.hasNext()) {
@@ -256,16 +264,58 @@ public class SimpleWebServer extends NanoHTTPD {
         while (e.hasNext()) {
             String value = e.next();
             System.out.println("  PRM: '" + value + "' = '" + parms.get(value) + "'");
+            if (value.equals("file")) {
+            	filename = parms.get(value);
+            }
         }
         e = files.keySet().iterator();
         while (e.hasNext()) {
             String value = e.next();
             System.out.println("  UPLOADED: '" + value + "' = '" + files.get(value) + "'");
+            
+      //Added for trans fer of upload files. This should be reviewed later
+            
+            if (value.equals("file") && filename.length() > 0) {
+            	copyFile(files.get(value), filename);
+            }
         }
 
         return serveFile(uri, header, getRootDir());
     }
 
+    
+    public void copyFile(String targ, String dest) {
+    	
+    	System.out.println(" Copy temp file HTTPD in: " + targ + "  out : " + dest);
+    	
+    	try {
+    		byte [] xbuf = new byte[BASE_BLOCKSIZE];  
+    		File fl_dest;
+
+    		fl_dest = new File(rootDir, HTML_DIR + "/"+dest);
+    		fl_dest.createNewFile();
+    		// Copy contents of temp over to files
+    		
+        	InputStream in = new FileInputStream(new File(targ)); 	    
+    	    OutputStream out = new FileOutputStream(fl_dest);
+//       		System.out.println("Create output");
+    	    
+    	    
+    	    // Transfer bytes from in to out
+    	    int len;
+    	    while ((len = in.read(xbuf)) > 0) {
+    	        out.write(xbuf, 0, len);
+    	    }
+    	    in.close();
+    	    out.close();
+    	    
+    	} catch (IOException e) {
+    		System.out.println( "File I/O error " + e);
+    	}
+    }
+    
+    
+    
     /**
      * Starts as a standalone file server and waits for Enter.
 
