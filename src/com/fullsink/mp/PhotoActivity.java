@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.security.MessageDigest;
 
 import android.net.Uri;
 import android.os.Bundle;
@@ -15,6 +16,7 @@ import android.widget.ImageView;
 import android.widget.Toast;
 import android.app.Activity;
 import android.content.ContentUris;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -35,7 +37,7 @@ public class PhotoActivity extends Activity {
         
         photoimageview = (ImageView) findViewById(R.id.photoimage);
         
-        Bitmap bm = getPhotoBitmap();
+        Bitmap bm = getPhotoBitmap(this);
         
         if (bm != null)	photoimageview.setImageBitmap(bm);
         
@@ -140,13 +142,16 @@ public class PhotoActivity extends Activity {
 
     	    writer.write(xbuf);
     	    writer.close();
+    	    
+    	    Prefs.setImageHash(this, computeHash(xbuf));
+    	    
     	} catch (IOException e) {
     		System.out.println( "Phot File write error " + e);
     	}
     }
     
-    
-    private Bitmap getPhotoBitmap() {
+  /*  
+    static private Bitmap getPhotoBitmap() {
     	
     	Bitmap bm = null;
     	
@@ -164,16 +169,78 @@ public class PhotoActivity extends Activity {
 	    	    reader.close();
 	    		}
     	} catch (IOException e) {
-    		System.out.println( "Phot File write error " + e);
+    		System.out.println( "Photo File write error " + e);
     	}
         return(bm);
     }
+ */
+    static private Bitmap getPhotoBitmap(Context context) {
+    	
+    	Bitmap bm = null;
+    	byte[] xbyte;
+    	
+    	
+		xbyte = getPhotoByte(context);
+		if (xbyte.length > 0) {
+			xbyte = Base64.decode(xbyte,Base64.DEFAULT);
+	    	bm = BitmapFactory.decodeByteArray(xbyte, 0, xbyte.length);
+		}
+        return(bm);
+    }
+    
+    
+    static public byte[] getPhotoByte(Context context) {
  
+		byte [] xbuf = new byte[BASE_BLOCKSIZE];
+		int flsz;
+      	try {
+	    		File photofl;
+	    		photofl = new File(context.getFilesDir(),HTML_DIR + "/"+SERVER_PHOTO);
+	    		if (photofl.exists()){
+		    	    FileInputStream reader = new FileInputStream(photofl);
+		    	    flsz = reader.read(xbuf);
+		    	    System.out.println("Read photo file bytes : "+flsz);
+		    	    reader.close();
+		    	    
+		    	    byte [] destbuf = new byte[flsz];
+		    	    System.arraycopy(xbuf, 0, destbuf, 0, flsz);
+		    	    return (destbuf);
+	    		} else {
+	    			System.out.println("Photo not found");
+	    		}
+    	} catch (IOException e) {
+    		System.out.println( "Photo File write error " + e);
+    	}
+        return(null);
+    }
+    
     
     private void clearPhoto() {
     	
     	new File(getFilesDir(),HTML_DIR + "/"+SERVER_PHOTO).delete();
     	photoimageview.setImageResource(R.drawable.looping);    //This needs to be changed
+    	 Prefs.setImageHash(this, "");
+    }
+    
+    
+    public String computeHash(byte[] input) {
+    	
+    	try {
+	        MessageDigest digest = MessageDigest.getInstance("MD5");
+	        digest.reset();
+	
+	        byte[] byteData = digest.digest(input);
+	        StringBuffer sb = new StringBuffer();
+	
+	        for (int i = 0; i < byteData.length; i++){
+	          sb.append(Integer.toString((byteData[i] & 0xff) + 0x100, 16).substring(1));
+	        }
+	        return sb.toString();
+        
+        } catch (Exception ex) {
+        	System.out.println("Has : " + ex);
+        }
+        return null;
     }
 }
 

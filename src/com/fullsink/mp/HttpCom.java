@@ -78,7 +78,7 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
     			 byte[] xbuf;
 //    	 System.out.println("Out PostExecute : " + result.getString("id") + "  Address : " +addr); 
 //    	 System.out.println("Out PostExecute httpdPort : " + httpdPort + " webSockPort : " +result.getString("port") );
-    			 mnact.textOut("HttpCom ID Server : " + result.getString("id"));
+ //   			 mnact.textOut("HttpCom ID Server : " + result.getString("id"));
     	 
     			 xbuf = Base64.decode(result.getString("img"),Base64.DEFAULT);
     			 

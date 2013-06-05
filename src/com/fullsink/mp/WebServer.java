@@ -292,7 +292,7 @@ public class WebServer extends WebSocketServer {
         		htmlpar = new File(mnact.getFilesDir(),HTML_DIR);
         		
       //*******  This delete is here for testing now 
-  //      		if (htmlpar.exists())	DeleteRecursive(htmlpar); 
+       		if (htmlpar.exists())	DeleteRecursive(htmlpar); 
       //*************
         		
         		htmlpar.mkdirs();

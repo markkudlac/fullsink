@@ -13,7 +13,8 @@
     <string name="pref_acntid">Account ID</string>
 	<string name="pref_sockport">Socket Port</string>
 	<string name="default_sockport">0</string>
-	<string name="pref_srvadd">Server IP Address</string>
+	<!-- Resolver is for testing this is if length <= 12  then call http://www.fullsink.com  -->
+	<string name="pref_srvadd">Resolver lt=18 Addr:Port</string>
 	<string name="pref_httpdport">HTTPD Port</string>
 	<string name="default_httpdport">0</string>
 	<string name="pref_shuffle">Shuffle</string>

@@ -108,16 +108,12 @@ public class MainActivity extends Activity implements Runnable {
 	public void onPause(){
 		super.onPause();
 		wakeLock.release();
-
 		if (inClient()) {
 			mNsdHelper.stopDiscovery();
 		}
-			
+		
 		if (isFinishing()){
-			if (track != null) {
-				isTuning = false;
-				track.dispose();
-			}
+			clearCurrentTrack();
 			finish();
 		}
 	}
@@ -126,7 +122,6 @@ public class MainActivity extends Activity implements Runnable {
     @Override
 	public void onDestroy() {
 		super.onDestroy();
-
 		mNsdHelper.unregisterService();
 		stopSockServer();
 		stopHttpdServer();
@@ -467,15 +462,19 @@ public class MainActivity extends Activity implements Runnable {
 					getResources().getString(R.string.serverbutOff))) {
 				
 				String ipadd = NetStrat.getWifiApIpAddress();
-				startHttpdServer(NetStrat.getHttpdPort(this), ipadd);
+				int httpdPort = NetStrat.getHttpdPort(this);
+				startHttpdServer(httpdPort, ipadd);
 				
 				int webSockPort = NetStrat.getSocketPort(this);
+				
 				System.out.println("WebSock Port : " + webSockPort + "  IPADD : " + ipadd);
 				startSockServer(webSockPort,ipadd);
 				
 				((Button) view).setText(getResources().getString(R.string.serverbutOn));
 				findViewById(R.id.btnConnect).setEnabled(false);
+				NetStrat.logServer(this, ipadd, Prefs.getAcountID(this), webSockPort, httpdPort );
 			} else {
+				NetStrat.logServer(this,SERVER_OFFLINE);	//Server is turned off
 				stopSockServer();
 				stopHttpdServer();
 			
@@ -500,8 +499,8 @@ public class MainActivity extends Activity implements Runnable {
 //				findViewById(R.id.debug).setVisibility(View.VISIBLE);
 				findViewById(R.id.serverlist).setVisibility(View.VISIBLE);						
 				
-				
 				mNsdHelper.discoverServices();
+
 				
 			} else {
 				mNsdHelper.stopDiscovery();

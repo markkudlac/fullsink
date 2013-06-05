@@ -32,6 +32,7 @@ public class SimpleWebServer extends NanoHTTPD {
         put("jpeg", "image/jpeg");
         put("png", "image/png");
         put("mp3", "audio/mpeg");
+        put("m4a", "audio/mpeg");		// Mark added this for apple
         put("m3u", "audio/mpeg-url");
         put("mp4", "video/mp4");
         put("ogv", "video/ogg");
@@ -43,6 +44,7 @@ public class SimpleWebServer extends NanoHTTPD {
         put("doc", "application/msword");
         put("ogg", "application/x-ogg");
         put("zip", "application/octet-stream");
+        put("gz", "application/octet-stream");
         put("exe", "application/octet-stream");
         put("class", "application/octet-stream");
     }};
