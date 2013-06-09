@@ -5,11 +5,7 @@ import java.net.*;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
-import android.util.Base64;
 
 import org.json.JSONObject;
 
@@ -36,16 +32,15 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
     	try {
     			addr = xparam[0];
     			httpdPort = Integer.valueOf(xparam[1]);
-    			servicename = xparam[3];
+    			servicename = xparam[2];
     			
-    		String xurl = "http://"+ xparam[0]  + ":" + xparam[1] + "/" + HTML_DIR + "/" + xparam[2];
+ //   		String xurl = "http://"+ xparam[0]  + ":" + xparam[1] + "/" + HTML_DIR + "/" + xparam[2];
+    		String xurl = HTML_DIR + "/" + SERVERID_JS;
     			
-    		URL url = new URL(xurl);
-    		
+    		URL url = new URL(HTTP_PROT, xparam[0], httpdPort, xurl);	
     		con = (HttpURLConnection) url.openConnection();
     		
     		InputStream xin = (InputStream) con.getInputStream();
-    		
     		BufferedReader reader = new BufferedReader(new InputStreamReader(xin));
     		String result, line = reader.readLine();
     		result = line;
@@ -64,7 +59,6 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
     	finally {
     		if (con != null) con.disconnect();	
     	}
-  	
     	return(json);
 	}
 	
@@ -75,16 +69,13 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
     	 
     	 if (result != null) {
     		 try {
-    			 byte[] xbuf;
 //    	 System.out.println("Out PostExecute : " + result.getString("id") + "  Address : " +addr); 
 //    	 System.out.println("Out PostExecute httpdPort : " + httpdPort + " webSockPort : " +result.getString("port") );
  //   			 mnact.textOut("HttpCom ID Server : " + result.getString("id"));
-    	 
-    			 xbuf = Base64.decode(result.getString("img"),Base64.DEFAULT);
-    			 
+    	 			 
     			 serveradapter.add(result.getString("id"), addr, httpdPort, result.getInt("port"), servicename,
-    					 BitmapFactory.decodeByteArray(xbuf, 0, xbuf.length));
-
+					 null);
+    			 new DownloadImageTask(mnact, addr, httpdPort, serveradapter, null).execute(HTML_DIR + "/" + SERVER_PHOTO);
     			 mnact.adapterOut(false,-1);
     		 } catch (Exception ex) { System.out.println("Exception caught : " + ex); }
     	 }

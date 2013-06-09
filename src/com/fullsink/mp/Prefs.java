@@ -76,6 +76,7 @@ public static boolean getShuffle(Context context) {
 	}
 
 
+/*
 public static void setImageHash(Context context, String hash) {
 	
 	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
@@ -90,5 +91,5 @@ public static String getImageHash(Context context) {
 	
 	return prefs.getString("com.fullsink.mp.imagehash","");
 }
-
+*/
 }

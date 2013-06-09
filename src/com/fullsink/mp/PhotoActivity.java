@@ -4,11 +4,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.security.MessageDigest;
+//import java.security.MessageDigest;
 
 import android.net.Uri;
 import android.os.Bundle;
-//import android.provider.ContactsContract.CommonDataKinds.Photo;
 import android.provider.ContactsContract.Contacts; 
 import android.util.Base64;
 import android.view.View;
@@ -125,7 +124,7 @@ public class PhotoActivity extends Activity {
     }
     
     
-    // Contact photo is store as base64
+    // Contact photo is stored on FS_html
     private void storePhoto(byte[] photoblob) {
     	
        	try {
@@ -138,42 +137,15 @@ public class PhotoActivity extends Activity {
         		photodest.createNewFile();
     		
     	    FileOutputStream writer = new FileOutputStream(photodest,false);
-    	    byte[] xbuf = Base64.encode(photoblob,Base64.DEFAULT);
-
-    	    writer.write(xbuf);
+    	    writer.write(photoblob);
     	    writer.close();
-    	    
-    	    Prefs.setImageHash(this, computeHash(xbuf));
     	    
     	} catch (IOException e) {
     		System.out.println( "Phot File write error " + e);
     	}
     }
     
-  /*  
-    static private Bitmap getPhotoBitmap() {
-    	
-    	Bitmap bm = null;
-    	
-      	try {
-	    		File photofl;
-	    		byte [] xbuf = new byte[BASE_BLOCKSIZE];
-	    		
-	    		photofl = new File(getFilesDir(),HTML_DIR + "/"+SERVER_PHOTO);
-	    		if (photofl.exists()){
-		    	    FileInputStream reader = new FileInputStream(photofl);
-		    	    if (reader.read(xbuf) > 0) {
-		    	    	xbuf = Base64.decode(xbuf,Base64.DEFAULT);
-		    	    	bm = BitmapFactory.decodeByteArray(xbuf, 0, xbuf.length);
-		    	    }
-	    	    reader.close();
-	    		}
-    	} catch (IOException e) {
-    		System.out.println( "Photo File write error " + e);
-    	}
-        return(bm);
-    }
- */
+ 
     static private Bitmap getPhotoBitmap(Context context) {
     	
     	Bitmap bm = null;
@@ -181,7 +153,7 @@ public class PhotoActivity extends Activity {
     	
     	
 		xbyte = getPhotoByte(context);
-		if (xbyte.length > 0) {
+		if (xbyte != null && xbyte.length > 0) {
 			xbyte = Base64.decode(xbyte,Base64.DEFAULT);
 	    	bm = BitmapFactory.decodeByteArray(xbyte, 0, xbyte.length);
 		}
@@ -219,10 +191,42 @@ public class PhotoActivity extends Activity {
     	
     	new File(getFilesDir(),HTML_DIR + "/"+SERVER_PHOTO).delete();
     	photoimageview.setImageResource(R.drawable.looping);    //This needs to be changed
-    	 Prefs.setImageHash(this, "");
     }
     
     
+    
+    /*  
+    static private Bitmap getPhotoBitmap() {
+    	
+    	Bitmap bm = null;
+    	
+      	try {
+	    		File photofl;
+	    		byte [] xbuf = new byte[BASE_BLOCKSIZE];
+	    		
+	    		photofl = new File(getFilesDir(),HTML_DIR + "/"+SERVER_PHOTO);
+	    		if (photofl.exists()){
+		    	    FileInputStream reader = new FileInputStream(photofl);
+		    	    if (reader.read(xbuf) > 0) {
+		    	    	xbuf = Base64.decode(xbuf,Base64.DEFAULT);
+		    	    	bm = BitmapFactory.decodeByteArray(xbuf, 0, xbuf.length);
+		    	    }
+	    	    reader.close();
+	    		}
+    	} catch (IOException e) {
+    		System.out.println( "Photo File write error " + e);
+    	}
+        return(bm);
+    }
+ */
+    
+    
+    
+    /* 
+     * 
+     * 
+     Keep this for reference for awhile
+     
     public String computeHash(byte[] input) {
     	
     	try {
@@ -242,6 +246,7 @@ public class PhotoActivity extends Activity {
         }
         return null;
     }
+    */
 }
 
 

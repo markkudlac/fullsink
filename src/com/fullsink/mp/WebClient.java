@@ -119,7 +119,6 @@ public class WebClient extends WebSocketClient {
     	}
     	
     	try {
-
     		wrfile = targetCopyFile();
     		
     	    FileOutputStream writer = new FileOutputStream(wrfile,fileCount > 0);

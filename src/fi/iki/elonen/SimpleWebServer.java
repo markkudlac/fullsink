@@ -40,11 +40,11 @@ public class SimpleWebServer extends NanoHTTPD {
         put("mov", "video/quicktime");
         put("swf", "application/x-shockwave-flash");
         put("js", "application/javascript");
+        put("json", "text/javascript");  // added mark to support JQuery getJSON
         put("pdf", "application/pdf");
         put("doc", "application/msword");
         put("ogg", "application/x-ogg");
         put("zip", "application/octet-stream");
-        put("gz", "application/octet-stream");
         put("exe", "application/octet-stream");
         put("class", "application/octet-stream");
     }};
@@ -232,6 +232,7 @@ public class SimpleWebServer extends NanoHTTPD {
                         res.addHeader("Content-Length", "" + dataLen);
                         res.addHeader("Content-Range", "bytes " + startFrom + "-" + endAt + "/" + fileLen);
                         res.addHeader("ETag", etag);
+    //                    res.addHeader("Access-Control-Allow-Origin", "*");		Allow cross scripting Mark
                     }
                 } else {
                     if (etag.equals(header.get("if-none-match")))
@@ -248,6 +249,7 @@ public class SimpleWebServer extends NanoHTTPD {
         }
 
         res.addHeader("Accept-Ranges", "bytes"); // Announce that the file server accepts partial content requestes
+        res.addHeader("Access-Control-Allow-Origin", "*");		//Allow cross scripting Mark
         return res;
     }
 

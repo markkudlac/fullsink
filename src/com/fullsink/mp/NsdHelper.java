@@ -223,7 +223,7 @@ class ServerSearch implements Runnable {
 				System.out.println("ServerSearch connect Address : " + addr + " Port : "+port);
 
 				if (! serveradapter.inServerList(addr)) {
-					new HttpCom(mnact,serveradapter).execute(addr,String.valueOf(port),SERVERID_JS,servicename);
+					new HttpCom(mnact,serveradapter).execute(addr,String.valueOf(port), servicename);
 				}
 	    	    return;
 	   }

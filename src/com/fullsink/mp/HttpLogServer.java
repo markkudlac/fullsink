@@ -4,11 +4,8 @@ package com.fullsink.mp;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 
 import android.os.AsyncTask;
 
@@ -58,8 +55,9 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
 	            
 	            nameValuePairs.add(new BasicNameValuePair("longitude", xparam[4]));
 	            nameValuePairs.add(new BasicNameValuePair("latitude", xparam[5]));
-	            nameValuePairs.add(new BasicNameValuePair("imagehash", xparam[6]));
-        	} else {
+//	            nameValuePairs.add(new BasicNameValuePair("imagehash", xparam[6]));
+        	} 
+    /*    	else {
            // Update image only
 	            byte[] xb = PhotoActivity.getPhotoByte(mnact);
 	            System.out.println("Size of photo : "+xb.length);
@@ -69,25 +67,27 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
 	            nameValuePairs.add(new BasicNameValuePair("userimage", img));
 
         	}
+        	*/
             httpPut.setEntity(new UrlEncodedFormEntity(nameValuePairs));
         	
             response = httpclient.execute(httpPut);
             StatusLine statusLine = response.getStatusLine();
+            
             if(statusLine.getStatusCode() == HttpStatus.SC_OK){
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 response.getEntity().writeTo(out);
                 out.close();
                 responseString = out.toString();
                 json = new JSONObject(responseString);
+                /*
                 if (xparam.length == 0) {
                 	System.out.println("Assigh photo to false");
                 	json.put("photo", false);
                 }
-                
+                */
             } else{
                 //Closes the connection.
                 response.getEntity().getContent().close();
-                System.out.println("JSON photo : " + json.getBoolean("photo"));
                 throw new IOException(statusLine.getReasonPhrase());
             }
         } catch (ClientProtocolException ex) {
@@ -95,14 +95,6 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-  /*  	
-    	try {
- 
-    		json = new JSONObject(result);
-
-     		System.out.println("JSON photo : " + json.getString("photo"));
-    	} catch (Exception ex) { System.out.println("Exception caught : " + ex); }
-*/
   	
     	return(json);
 	}
@@ -115,13 +107,13 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
     	 if (result != null) {
     		 try {
  
-    			 System.out.println("PostExecuteHttpLogServer  photo : " + result.getBoolean("photo"));
-    			 
+    			 System.out.println("PostExecuteHttpLogServer  rtn : " + result.getBoolean("rtn"));
+  /*  			 
     			 if (result.getBoolean("photo")){
     				 // Update the photo
     				 new HttpLogServer(mnact,macaddr).execute();
     			 }
-    			 
+    */
     		 } catch (Exception ex) { System.out.println("Exception caught : " + ex); }
     	 }
      }

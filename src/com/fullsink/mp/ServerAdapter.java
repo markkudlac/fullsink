@@ -20,6 +20,7 @@ public class ServerAdapter extends ArrayAdapter<ServerData> implements OnItemCli
 	
 	MainActivity mnact;
 	int currentChecked = -1;
+	boolean testflg = false;
 	
 	static ArrayList<ServerData> items = new ArrayList<ServerData>();
 	
@@ -52,9 +53,25 @@ public class ServerAdapter extends ArrayAdapter<ServerData> implements OnItemCli
             }
            
             ImageView imgv = (ImageView) view.findViewById(R.id.image1);
-            imgv.setImageBitmap(rec.img);
+            imgv.setImageBitmap(rec.img); 
          }
         return view;
+    }
+    
+    
+    public void updateImage(String ipAddr, Bitmap img){
+    	
+    	ServerData rec;
+
+    	for (int i=0; i< getCount(); i++){
+    		rec = (ServerData)getItem(i);
+    		if (ipAddr.equals(rec.ipAddr)) {
+    			rec.img = img;
+    			notifyDataSetChanged();
+    		//	System.out.println("In updateImage found and updated");
+    			return;
+    		}
+    	}
     }
     
     
@@ -126,3 +143,6 @@ final class ServerData {
 		this.img = img;
 	}
 }
+
+
+

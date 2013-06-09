@@ -20,6 +20,8 @@ import static com.fullsink.mp.Const.*;
 
 import android.util.Base64;
 
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 /**
  * A simple WebSocketServer implementation.
@@ -80,6 +82,8 @@ public class WebServer extends WebSocketServer {
     			
     		} else if (message.startsWith(CMD_CONNECT)) {
         		mnact.textOut(getArg(message) + " has connected");
+    		} else if (message.startsWith(CMD_ZIPPREP)) {
+    			zipTrack(getArg(message), conn);
     		}
         }
 
@@ -134,10 +138,9 @@ public class WebServer extends WebSocketServer {
         
         public void cueTrack(File musicdir, String mfile){
         	
-        	mnact.textOut("In cueTrack : " + mfile);
+ //       	mnact.textOut("In cueTrack : " + mfile);
  
         	try {
-        		
         		byte [] xbuf = new byte[BASE_BLOCKSIZE];     		
         		      		
            		//Parent directories need to be generated first
@@ -150,12 +153,10 @@ public class WebServer extends WebSocketServer {
         		
         		File trkFile = new File(mnact.getFilesDir(), mfile);
         		trkFile.createNewFile();
-     		
+        		
            	    FileInputStream in = new FileInputStream(new File(musicdir, mfile));
  //       		System.out.println("Create input");        	    
         	    OutputStream out = new FileOutputStream(trkFile);
-//        		System.out.println("Create output");
-        	    
         	    
         	    // Transfer bytes from in to out
         	    int len;
@@ -165,14 +166,55 @@ public class WebServer extends WebSocketServer {
         	    in.close();
         	    out.close();
         	    
-        	    mnact.textOut("File sz : "+trkFile.length());
-        	    
         	} catch (IOException e) {
         		System.out.println( "File I/O error " + e);
         	}
-
         }
       
+        
+       public void zipTrack(String mfile, WebSocket client){
+        	
+        	System.out.println("In zipTrack : " + mfile);
+ 
+        	try {
+        		byte [] xbuf = new byte[BASE_BLOCKSIZE];     		
+        		      		
+           		// Take file path passed in and create zip file for it for download for web
+        		// all directories will already exist
+        		
+        		String zipfl = mfile;		// find final file name to make zip file flat
+        		int xind = zipfl.lastIndexOf("/");   		
+        		if (xind > 0){
+        			zipfl = zipfl.substring(xind + 1);
+  
+        		}
+        		
+        		File trkFile = new File(mnact.getFilesDir(), mfile);
+   
+        		System.out.println("Zip file path is : " + mnact.getFilesDir() + mfile + ".zip");
+        		File zipFile = new File(mnact.getFilesDir(), mfile + ".zip");
+        		
+        		if (!zipFile.exists()) {
+        			zipFile.createNewFile();
+	           	    FileInputStream in = new FileInputStream(trkFile);   	    
+		    	    ZipOutputStream zout = new ZipOutputStream(new FileOutputStream(zipFile)); 
+		    	    zout.putNextEntry(new ZipEntry(zipfl)); // Make zipfile flat so no directories
+		    	    
+		    	    // Transfer bytes from in to out
+		    	    int len;
+		    	    while ((len = in.read(xbuf)) > 0) {
+		    	        zout.write(xbuf, 0, len);
+		    	    }
+		    	    in.close();
+		    	    zout.close();
+        		}
+        		client.send(CMD_ZIPREADY);
+        	} catch (IOException e) {
+        		System.out.println( "File I/O error " + e);
+        	}
+        }
+        
+        
         public static String getArg(String xstr){
         	
         	return(xstr.substring(xstr.indexOf(':')+1));
@@ -215,7 +257,7 @@ public class WebServer extends WebSocketServer {
     	   String fileCopy;
     	   WebSocket client;
     	   
-    	   		FileServer(MainActivity xact, String xfile, WebSocket client) {
+    	   	FileServer(MainActivity xact, String xfile, WebSocket client) {
     	   		
     	   		mnact = xact;
     	   		fileCopy = xfile;
@@ -243,18 +285,19 @@ public class WebServer extends WebSocketServer {
     		        	int bcnt;
     		        	
     		 		    bcnt = reader.read(xbuf);
-    		        	mnact.toClients(CMD_FILE+ ((trkFile.length() / BASE_BLOCKSIZE)+1)); // Send length of file first
+    		 		    //was mnact.toClients
+    		        	client.send(CMD_FILE+ ((trkFile.length() / BASE_BLOCKSIZE)+1)); // Send length of file first
     		 		    
     		        	 while (bcnt > 0) {
     		 		    	
-    		 		    	mnact.toClients(CMD_FILE+Base64.encodeToString(xbuf,Base64.DEFAULT));
+    		        		 client.send(CMD_FILE+Base64.encodeToString(xbuf,Base64.DEFAULT));
     		 		    	Thread.sleep(FILE_COPY_WAIT);
 
     		 		    	bcnt = reader.read(xbuf);
 
     		 		    }
     		        	reader.close();
-    		        	mnact.toClients(CMD_FILE);  //End of file
+    		        	client.send(CMD_FILE);  //End of file
     	        	} catch(IOException ex){
     	        		System.out.println("File exception : "+ ex);
     	        	} catch (InterruptedException e) {
@@ -262,7 +305,6 @@ public class WebServer extends WebSocketServer {
     	        		if (reader != null) {
     	        			System.out.println("Interupt caught");
     	        			try {
- //   	    	        		mnact.toClients(CMD_FILE);  //End of file
     	        				reader.close();
     	        			} catch (Exception ex) {
     	      	               return;
@@ -292,7 +334,7 @@ public class WebServer extends WebSocketServer {
         		htmlpar = new File(mnact.getFilesDir(),HTML_DIR);
         		
       //*******  This delete is here for testing now 
-       		if (htmlpar.exists())	DeleteRecursive(htmlpar); 
+       // 		if (htmlpar.exists())	DeleteRecursive(htmlpar); 
       //*************
         		
         		htmlpar.mkdirs();
@@ -333,33 +375,15 @@ public class WebServer extends WebSocketServer {
         {
 product:"FullSink",
 id:"The server name from Prefs",
-port: "12345",
-img:"the photo file"
+port: "12345",     //websocket port
 }            
         	 */
         	
-        	File serverid, photofile;
-        	byte [] xbuf = new byte[BASE_BLOCKSIZE]; 
+        	File serverid;
         	String builder;
-        	int photosize = 0;
-        	
-        	builder = "{ service:\""+ SERVICE_NAME+ "\", id:\"" + Prefs.getAcountID(mnact) + "\", port:\""+
-        				webSocketPort + "\", img:\"";
-        	
- 
-        	// Get Photofile into buffer
- //       	System.out.println("Files dir : "+mnact.getFilesDir().getPath());
-        	try {
-           		photofile = new File(mnact.getFilesDir(),HTML_DIR+"/"+SERVER_PHOTO);
-           		
-           		if (photofile.exists()) {
-	        		InputStream in = new FileInputStream(photofile);
-	        		photosize = in.read(xbuf);
-	        		in.close();
-           		}
-        	}catch (IOException e) {
-        		System.out.println( "Photo file " + e);
-        	}
+
+        	builder = "{ \"service\":\""+ SERVICE_NAME+ "\", \"id\":\"" + Prefs.getAcountID(mnact) + "\", \"port\":\""+
+    				webSocketPort;
         	
         	try {
 	        	serverid = new File(htmldir,SERVERID_JS );
@@ -367,10 +391,6 @@ img:"the photo file"
 	    		
 	    		OutputStream out = new FileOutputStream(serverid);
 	    		out.write(builder.getBytes(), 0, builder.length());
-	    		
-	    		if (photosize > 0){
-	    			out.write(xbuf,0,photosize);
-	    		}
 	    		
 	    		builder="\"}";
 	    		out.write(builder.getBytes(), 0, builder.length());

@@ -172,7 +172,7 @@ static public void logServer(MainActivity mnact, String ipadd, String handle, in
         }
     	
  		new HttpLogServer(mnact,mac).execute(ipadd, handle, String.valueOf(portsock), String.valueOf(porthttpd),
-			String.valueOf(lng), String.valueOf(lat), Prefs.getImageHash(mnact));
+			String.valueOf(lng), String.valueOf(lat));
     }
 }
 }
