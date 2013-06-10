@@ -826,7 +826,10 @@ public void fileProgressControl(final int xprog){
 
 	runOnUiThread(new Runnable() {
         public void run() {
-        	if (xprog == 0) {
+        	if (xprog == DOWNLOADERR) {
+        		progressdialog.dismiss();
+        		Toast.makeText(getBaseContext(), "Copy error. Re-try", Toast.LENGTH_LONG).show();
+        	} else if (xprog == 0) {
         		progressdialog.dismiss();
         		Toast.makeText(getBaseContext(), "Copy Complete", Toast.LENGTH_SHORT).show();
         	} else if (xprog < 0) {

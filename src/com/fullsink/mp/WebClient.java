@@ -7,14 +7,7 @@ import static com.fullsink.mp.Const.*;
 
 import android.net.Uri;
 import android.os.Environment;
-import android.util.Base64;
-
-
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -23,11 +16,10 @@ public class WebClient extends WebSocketClient {
 	MainActivity mnact = null;
 	String copyTrack = null;
 	String currentTrack = null;
-	int fileCount = 0;
 	int netlate = BASE_LATENCY;
 	String ipAddress;
 	int httpdport;
-	
+	DownloadFile fileTask = null;
 	
 	public WebClient( int websocketport, String ipAddress, int httpdport, MainActivity mnact ) throws URISyntaxException {
 	
@@ -43,11 +35,7 @@ public class WebClient extends WebSocketClient {
 	@Override
     public void onMessage( String message ) {
 
-			// Don't dump out FILE message as it is huge
-		if (! message.startsWith(CMD_FILE)){
-//			System.out.println("Client onMess: " + message );
-			mnact.textOut("Cl Mess: " + message);
-		}
+		mnact.textOut("Cl Mess: " + message);
 		
 		if (message.startsWith(CMD_SEEK)) {	
 			mnact.getTrack().seekTo(Integer.parseInt(WebServer.getArg(message)));
@@ -65,7 +53,6 @@ public class WebClient extends WebSocketClient {
 		} else if (message.startsWith(CMD_PONG)) {	
 			netlate = WebServer.calcLatency(Long.parseLong(WebServer.getArg(message)));
 		} else if (message.startsWith(CMD_FILE)){
-//			mnact.textOut("CL Mess size : " + message.length());
 			rcvTrack(message.substring(5));
 		} else if (message.startsWith(CMD_PING)) {	
         	send(CMD_PONG + WebServer.getArg(message));
@@ -94,47 +81,26 @@ public class WebClient extends WebSocketClient {
  
     
     public void startCopyFile(){
-    	
     	copyTrack = currentTrack;
-    	fileCount = 0;
     	send(CMD_COPY + copyTrack);
     }
     
     
     public void rcvTrack(String blk) {
     	
-    	byte [] xbuf;
-    	File wrfile = null;
+    	int blktot = Integer.valueOf(blk);
     	
-    	if (fileCount < 0) {
-    		return;
-    	} else if (fileCount == 0 && blk.length() < 9) {
- //   		mnact.textOut("File start : "+ blk);
-    		mnact.fileProgressControl(-(Integer.valueOf(blk)));
-    		return;
-    	} else if (blk.isEmpty()) {
-    		mnact.fileProgressControl(0);
-    		fileCount = 0;
-    		return;
-    	}
-    	
-    	try {
-    		wrfile = targetCopyFile();
-    		
-    	    FileOutputStream writer = new FileOutputStream(wrfile,fileCount > 0);
-    	    ++fileCount;
-    	    mnact.fileProgressControl(fileCount);
-    	    xbuf = Base64.decode(blk,Base64.DEFAULT);
-
-    	    writer.write(xbuf);
-    	    writer.close();
-    	} catch (IOException e) {
-    		System.out.println( "File write error " + e);
+    	if (blktot < 0) {
+			mnact.fileProgressControl(DOWNLOADERR);
+    	} else {
+			mnact.fileProgressControl(- blktot); // Set total progress
+	    	fileTask = new DownloadFile(mnact, ipAddress, httpdport, blktot);
+	    	fileTask.execute(copyTrack);
     	}
     }
 
     
-    public File targetCopyFile() {
+    static public File targetCopyFile(String copyfile) {
     	File wrfile;
 		String fileonly;
 		
@@ -144,7 +110,7 @@ public class WebClient extends WebSocketClient {
     			wrfile.mkdir();
     		}
     		
-    		fileonly = copyTrack;
+    		fileonly = copyfile;
     		int xind = fileonly.lastIndexOf("/");   		
     		if (xind >= 0){
     			 fileonly = fileonly.substring(xind+1);
@@ -154,15 +120,13 @@ public class WebClient extends WebSocketClient {
     
     
     public void cancelFileCopy() {
-
-    	send(CMD_COPY + CANCEL_COPY);
-    	android.os.SystemClock.sleep(1000);
     	
-    	if (fileCount > 0) {
-    		
-    		fileCount = -1;
+    	if (fileTask != null) {
+    		fileTask.cancel(true);
+    		fileTask = null;
     		try {
-        		targetCopyFile().delete();
+        		targetCopyFile(copyTrack).delete();
+        		copyTrack = null;
         	} catch (Exception e) {
         		System.out.println( "Copy File delete error " + e);
         	}

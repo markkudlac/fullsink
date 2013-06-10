@@ -11,8 +11,6 @@ import android.widget.ImageView;
 
 import static com.fullsink.mp.Const.*;
 
-//mnact,rec.ipAddr,rec,httpdPort,imgv
-
 public class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
 
 	MainActivity mnact;

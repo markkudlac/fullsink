@@ -11,6 +11,7 @@ public interface Const extends BaseColumns {
 	public static final int TRACK_COUNT_LIMIT = 100;
 	public static final int FILE_COPY_WAIT = 110;
 	public static final int GPS_NULL = 1810000000;
+	public static final int DOWNLOADERR = -1810000000;		// This is for file download fail
 	
 	public static final String RESOLVER_ADDRESS = "http://www.fullsink.com";
 	public static final String LOG_SERVER_PATH = "/api/";			// Add this to Resolver address
@@ -38,7 +39,7 @@ public interface Const extends BaseColumns {
 	public static final String CMD_COPY = "COPY:";
 	public static final String CMD_ZIPPREP = "ZIPPREP";
 	public static final String CMD_ZIPREADY = "ZIPREADY";
-	public static final String CANCEL_COPY = "<<!CANCEL_COPY#(?";
+//	public static final String CANCEL_COPY = "<<!CANCEL_COPY#(?";
 	
 }
 

@@ -34,7 +34,6 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
     			httpdPort = Integer.valueOf(xparam[1]);
     			servicename = xparam[2];
     			
- //   		String xurl = "http://"+ xparam[0]  + ":" + xparam[1] + "/" + HTML_DIR + "/" + xparam[2];
     		String xurl = HTML_DIR + "/" + SERVERID_JS;
     			
     		URL url = new URL(HTTP_PROT, xparam[0], httpdPort, xurl);	
