@@ -1,7 +1,5 @@
 package com.fullsink.mp;
 
-import static com.fullsink.mp.Const.SERVERID_JS;
-
 import java.util.ArrayList;
 
 import android.content.Context;

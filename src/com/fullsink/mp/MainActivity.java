@@ -50,7 +50,7 @@ public class MainActivity extends Activity implements Runnable {
 	public static NsdHelper mNsdHelper = null;
 	
 	WakeLock wakeLock;
-	private static final String[] EXTENSIONS = { ".mp3", ".mid", ".wav", ".ogg" }; //Playable Extensions , ".mp4" add later
+	private static final String[] EXTENSIONS = { ".mp3", ".mid", ".wav", ".ogg", ".m4a" }; //Playable Extensions , ".mp4" add later
 	List<String> trackNames; //Playable Track Titles
 
 	File path; //directory where music is loaded from on SD Card
@@ -170,19 +170,6 @@ public class MainActivity extends Activity implements Runnable {
  
         while (track != null) {
         	
-        	/* Was like this but I think this puts in unneeded lag
-        	 * 
-        	 
-            try {
-                Thread.sleep(1000);
-                currentPosition = getTrack().getCurrentPosition();
-            } catch (InterruptedException e) {
-                return;
-            } catch (Exception e) {
-                return;
-            }     
-            */
-        	
         	try {
                 currentPosition = getTrack().getCurrentPosition();
             } catch (Exception ex) {
@@ -286,8 +273,8 @@ public class MainActivity extends Activity implements Runnable {
     		playlist.setItemChecked(0, true);
     	}
     	
-    	debug.setOnTouchListener(gestureListener);
-    	playlist.setOnTouchListener(gestureListener);
+ //   	debug.setOnTouchListener(gestureListener);
+ //   	playlist.setOnTouchListener(gestureListener);
     	
     	 mNsdHelper = new NsdHelper(this, serveradapter);
 		 mNsdHelper.initializeNsd();
@@ -322,7 +309,7 @@ public class MainActivity extends Activity implements Runnable {
     
     
     
-    //Checks to make sure that the track to be loaded has a correct extenson
+    //Checks to make sure that the track to be loaded has a correct extension
     private boolean trackChecker(String trackToTest){
     	for(int j = 0; j < EXTENSIONS.length; j++){
 			if(trackToTest.contains(EXTENSIONS[j])){
@@ -365,8 +352,10 @@ public class MainActivity extends Activity implements Runnable {
 	   	if(temp != null){
 			for(int i = 0; i < temp.length && count < TRACK_COUNT_LIMIT; i++){
 				//Only accept files that have one of the extensions in the EXTENSIONS array
-				if(trackChecker(temp[i])){
-					System.out.println("Media file found : "+temp[i]);
+				if(trackChecker(temp[i]) && 
+						!temp[i].startsWith(".")){	// Test for hidden files as this crashes media player
+	//				System.out.println("Media file found : "+temp[i]);
+					MediaMeta.scanTitle(xdir.getAbsolutePath()+"/"+temp[i]);
 					mediafiles.add(dirPath + temp[i]);
 					++count;
 				} else if (new File(xdir,temp[i]).isDirectory()){
@@ -405,7 +394,7 @@ public class MainActivity extends Activity implements Runnable {
 	//loads a Music instance using an external resource
     private Music loadMusic(){
  
-		Music xmu;
+		Music xmu = null;
 	
 		if (getCurrentTrackName() != null && currentTrack >= 0 && currentTrack < trackNames.size()) {
 			if (WServ != null){
@@ -415,7 +404,7 @@ public class MainActivity extends Activity implements Runnable {
 			try{
 				FileInputStream fis = new FileInputStream(new File(path, getCurrentTrackName()));
 				FileDescriptor fileDescriptor = fis.getFD();
-				xmu =  new Music(fileDescriptor,this);
+				xmu =  new Music(fileDescriptor, (MainActivity)this);
 				toClients(CMD_PREP + getCurrentTrackName());	// make sure music play is loaded
 				return xmu;
 			} catch(IOException e){
@@ -779,7 +768,6 @@ public void stopHttpdServer() {
 		if (HttpdServ != null) {
 			HttpdServ.stop();
 			HttpdServ = null;
-			textOut("Before calling unregister");
 		}
 		mNsdHelper.unregisterService();
 	} catch(Exception ex ) {
@@ -796,6 +784,18 @@ public void textOut(final String xmess){
         }
     });
 }
+
+// This is not good and should be reviewed
+public void toastOut(final String xmess){
+
+	runOnUiThread(new Runnable() {
+        public void run() {
+        	Toast.makeText(getBaseContext(), xmess, Toast.LENGTH_SHORT).show();
+        
+        }
+    });
+}
+
 
 
 public void adapterOut(final boolean remove, final int item){

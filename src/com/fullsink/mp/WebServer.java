@@ -112,7 +112,7 @@ public class WebServer extends WebSocketServer {
         	String[] xdump = mnact.getFilesDir().list();
     		for (int i=0; i< xdump.length; i++){
 //    			System.out.println("Dump of cued bits : "+xdump[i]+"  : "+i);
-    			if (!xdump[i].equals(HTML_DIR)) {
+    			if (!xdump[i].equals(HTML_DIR) && !xdump[i].equals(USERHTML_DIR)) {
     				DeleteRecursive(new File(mnact.getFilesDir(),xdump[i]));
     			}
        		}
@@ -248,16 +248,19 @@ public class WebServer extends WebSocketServer {
         	try {
         		
         		byte [] xbuf = new byte[BASE_BLOCKSIZE];  
-        		File htmldest,htmlpar;
+        		File htmldest,htmlpar,userdir;
         		      		
            		//Parent directories need to be generated first
         		String[] afiles = mnact.getAssets().list(HTML_DIR);
-
+        		userdir = new File(mnact.getFilesDir(),USERHTML_DIR);
         		htmlpar = new File(mnact.getFilesDir(),HTML_DIR);
         		
       //*******  This delete is here for testing now 
        // 		if (htmlpar.exists())	DeleteRecursive(htmlpar); 
       //*************
+        		if (!userdir.exists()){
+        			userdir.mkdirs();	//Create the user directory if it doesn't exit
+        		}
         		
         		htmlpar.mkdirs();
         		generateServerId(htmlpar,webServerPort);
@@ -266,7 +269,12 @@ public class WebServer extends WebSocketServer {
         		for (int i=0; i<afiles.length; i++){
         			System.out.println("Transfer : "+afiles[i]); 
         			
-            		htmldest = new File(htmlpar, afiles[i]);
+        			if (afiles[i].equals(FLSKINDEX)) {
+        				htmldest = new File(mnact.getFilesDir(), "index.html");
+        			} else {
+        				htmldest = new File(htmlpar, afiles[i]);
+        			}
+            		
             		htmldest.createNewFile();
         		
             		InputStream in = mnact.getAssets().open(HTML_DIR+"/"+afiles[i]);    

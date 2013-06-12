@@ -7,7 +7,12 @@ import java.util.List;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import android.content.Context;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationManager;
 import android.os.AsyncTask;
+import android.widget.Toast;
 
 import org.json.JSONObject;
 import org.apache.http.HttpResponse;
@@ -41,33 +46,58 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
         HttpResponse response;
         String responseString = null;
         
+    	String provider;
+    	int lng = GPS_NULL;
+    	int lat = GPS_NULL;
+    	
+
         try {
         	HttpPut httpPut = new HttpPut(NetStrat.resolverAddress(mnact)+LOG_SERVER_PATH + macaddr + "/A");
         	
         	List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
+        		
+            LocationManager locationManager = (LocationManager) mnact.getSystemService(Context.LOCATION_SERVICE);
+            // Define the criteria how to select the locatioin provider -> use
+            // default
+            
+            if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) ||
+            		locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                Criteria criteria = new Criteria();
+                criteria.setAccuracy(Criteria.ACCURACY_COARSE);
+                criteria.setAltitudeRequired(false);
+                criteria.setBearingRequired(false);
+                criteria.setCostAllowed(false);
+                criteria.setPowerRequirement(Criteria.POWER_MEDIUM );
+                provider = locationManager.getBestProvider(criteria, true);
+                Location location = locationManager.getLastKnownLocation(provider);
 
-        	if (xparam.length > 0) {
-	        	nameValuePairs.add(new BasicNameValuePair("ipadd", xparam[0]));
-	        	nameValuePairs.add(new BasicNameValuePair("userhandle", xparam[1]));
-	            
-	            nameValuePairs.add(new BasicNameValuePair("portsock", xparam[2]));
-	            nameValuePairs.add(new BasicNameValuePair("porthttpd", xparam[3]));
-	            
-	            nameValuePairs.add(new BasicNameValuePair("longitude", xparam[4]));
-	            nameValuePairs.add(new BasicNameValuePair("latitude", xparam[5]));
-//	            nameValuePairs.add(new BasicNameValuePair("imagehash", xparam[6]));
-        	} 
-    /*    	else {
-           // Update image only
-	            byte[] xb = PhotoActivity.getPhotoByte(mnact);
-	            System.out.println("Size of photo : "+xb.length);
-	            
-	            String img = new String(xb);
-	            System.out.println("Size of photo 2 added to httpLogServer: "+img.length());
-	            nameValuePairs.add(new BasicNameValuePair("userimage", img));
+                // Initialize the location fields
+                if (location != null) {
+//                  System.out.println("Provider " + provider + " has been selected.");
+                	
+                	lat = (int) (location.getLatitude() * 10000000);
+                	lng = (int)(location.getLongitude()* 10000000);
+                	
+                    System.out.println("Latitude : " + lat);
+                    System.out.println("Longatude : " + lng);
+                  
+                } else {
+                	System.out.println("Location not available");
+                }
+            } else if (!xparam[2].equals("0")) {
+            	mnact.toastOut("Location services not enabled");
+            	System.out.println("Location services not enabled");
+            }
+            
+            nameValuePairs.add(new BasicNameValuePair("ipadd", xparam[0]));
+        	nameValuePairs.add(new BasicNameValuePair("userhandle", xparam[1]));
+            
+            nameValuePairs.add(new BasicNameValuePair("portsock", xparam[2]));
+            nameValuePairs.add(new BasicNameValuePair("porthttpd", xparam[3]));
 
-        	}
-        	*/
+            nameValuePairs.add(new BasicNameValuePair("longitude", String.valueOf(lng)));
+            nameValuePairs.add(new BasicNameValuePair("latitude", String.valueOf(lat))); 
+
             httpPut.setEntity(new UrlEncodedFormEntity(nameValuePairs));
         	
             response = httpclient.execute(httpPut);
@@ -79,12 +109,6 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
                 out.close();
                 responseString = out.toString();
                 json = new JSONObject(responseString);
-                /*
-                if (xparam.length == 0) {
-                	System.out.println("Assigh photo to false");
-                	json.put("photo", false);
-                }
-                */
             } else{
                 //Closes the connection.
                 response.getEntity().getContent().close();

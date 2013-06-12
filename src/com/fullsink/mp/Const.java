@@ -5,10 +5,9 @@ import android.provider.BaseColumns;
 
 public interface Const extends BaseColumns {
 	
-	public static final int LONG_WAIT = 7000;
 	public static final int BASE_LATENCY = 20;
 	public static final int BASE_BLOCKSIZE = 65536;
-	public static final int TRACK_COUNT_LIMIT = 100;
+	public static final int TRACK_COUNT_LIMIT = 150;
 	public static final int FILE_COPY_WAIT = 110;
 	public static final int GPS_NULL = 1810000000;
 	public static final int DOWNLOADERR = -1810000000;		// This is for file download fail
@@ -19,6 +18,8 @@ public interface Const extends BaseColumns {
 
 	public static final String HTTP_PROT = "http";
 	public static final String HTML_DIR = "FlSkHtml";
+	public static final String USERHTML_DIR = "UserHtml";
+	public static final String FLSKINDEX = "FlSkindex.html";
 	public static final String SERVERID_JS = "serverid.json";
 	public static final String MUSIC_DIR = "FullSink";
 	public static final String SERVICE_NAME = "FullSink";

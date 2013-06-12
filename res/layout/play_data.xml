@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.fullsink.mp.CheckableLinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="vertical" android:layout_alignParentLeft="true">
+
+    <com.fullsink.mp.CheckableLinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="horizontal" android:layout_alignParentLeft="true">
+    
+    <ImageView
+        android:id="@+id/image" android:src="@drawable/looping"
+        android:layout_height="wrap_content" android:layout_width="wrap_content"
+        android:adjustViewBounds = "true" android:maxHeight="60dip"
+        />
+   
+<CheckedTextView
+    android:id="@+id/title"
+    android:layout_width="match_parent"
+    android:layout_height="?android:attr/listPreferredItemHeightSmall"
+    android:textAppearance="?android:attr/textAppearanceListItemSmall"
+    android:gravity="center_vertical"
+    android:checkMark="?android:attr/listChoiceIndicatorSingle"
+/>
+
+
+</com.fullsink.mp.CheckableLinearLayout>
+
+<TextView 
+    android:id="@+id/album"
+    android:layout_width="match_parent"
+    />
+
+<TextView 
+    android:id="@+id/artist"
+    android:layout_width="match_parent"
+    />
+</com.fullsink.mp.CheckableLinearLayout>

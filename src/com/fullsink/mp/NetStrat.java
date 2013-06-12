@@ -16,31 +16,6 @@ import android.net.wifi.WifiManager;
 
 public class NetStrat {
 	
-	/*  Old function for ip address 
-	 * 
-	public String getServerIPAddress() {
-		
-		try {
-		WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
-		WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-		int ipAddress = wifiInfo.getIpAddress();
-		
-		String strIP = String.format("%d.%d.%d.%d", 		// This is bad as IPv4 only, change later
-				(ipAddress & 0xff), 
-				(ipAddress >> 8 & 0xff), 
-				(ipAddress >> 16 & 0xff),
-				(ipAddress >> 24 & 0xff));
-
-		System.out.println("Server IP : "+strIP);
-		
-		return(strIP);
-		} catch ( Exception ex ) {
-	    	   System.out.println( "WebServer ipAddress not found" + ex);
-	       }
-		return null;
-
-	}
-	*/
 
 
 static	public String getWifiApIpAddress() {
@@ -140,39 +115,37 @@ static public void logServer(MainActivity mnact, String ipadd, String handle, in
     if (mac == null) {
         System.out.println("No MAC address");
     } else {
-    	String provider;
-    	int lng = GPS_NULL;
-    	int lat = GPS_NULL;
-    	
-        LocationManager locationManager = (LocationManager) mnact.getSystemService(Context.LOCATION_SERVICE);
-        // Define the criteria how to select the locatioin provider -> use
-        // default
-        Criteria criteria = new Criteria();
-        criteria.setAccuracy(Criteria.ACCURACY_FINE);
-        criteria.setAltitudeRequired(false);
-        criteria.setBearingRequired(false);
-        criteria.setCostAllowed(true);
-        criteria.setPowerRequirement(Criteria.POWER_LOW);
-        provider = locationManager.getBestProvider(criteria, true);
-        Location location = locationManager.getLastKnownLocation(provider);
-
-        // Initialize the location fields
-        if (location != null) {
-//          System.out.println("Provider " + provider + " has been selected.");
-        	
-        	
-        	lat = (int) (location.getLatitude() * 10000000);
-        	lng = (int)(location.getLongitude()* 10000000);
-        	
-            System.out.println("Latitude : " + lat);
-            System.out.println("Longatude : " + lng);
-          
-        } else {
-        	System.out.println("Location not available");
-        }
-    	
- 		new HttpLogServer(mnact,mac).execute(ipadd, handle, String.valueOf(portsock), String.valueOf(porthttpd),
-			String.valueOf(lng), String.valueOf(lat));
+	
+ 		new HttpLogServer(mnact,mac).execute(ipadd, handle, String.valueOf(portsock), String.valueOf(porthttpd));
     }
 }
 }
+
+
+
+/*  Old function for ip address 
+ * 
+public String getServerIPAddress() {
+	
+	try {
+	WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
+	WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+	int ipAddress = wifiInfo.getIpAddress();
+	
+	String strIP = String.format("%d.%d.%d.%d", 		// This is bad as IPv4 only, change later
+			(ipAddress & 0xff), 
+			(ipAddress >> 8 & 0xff), 
+			(ipAddress >> 16 & 0xff),
+			(ipAddress >> 24 & 0xff));
+
+	System.out.println("Server IP : "+strIP);
+	
+	return(strIP);
+	} catch ( Exception ex ) {
+    	   System.out.println( "WebServer ipAddress not found" + ex);
+       }
+	return null;
+
+}
+*/
+
