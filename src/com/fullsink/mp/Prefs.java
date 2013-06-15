@@ -1,12 +1,10 @@
 package com.fullsink.mp;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.preference.*;
-//import android.view.*;
-//import android.content.Context;
+
 
 public class Prefs extends PreferenceFragment {
 
@@ -15,9 +13,7 @@ public class Prefs extends PreferenceFragment {
 	public void onCreate(Bundle savedInstanceState) {
 		
 		super.onCreate(savedInstanceState);
-		
 		addPreferencesFromResource(R.xml.settings);
-		
 	}
 
 	
@@ -67,29 +63,12 @@ public class Prefs extends PreferenceFragment {
 	}
 	
 	
-public static boolean getShuffle(Context context) {
+public static boolean getOnAir(Context context) {
 		
 		boolean xbool = PreferenceManager.
-		getDefaultSharedPreferences(context).getBoolean(context.getString(R.string.pref_shuffle),false);
+		getDefaultSharedPreferences(context).getBoolean(context.getString(R.string.pref_onair),true);
 		
 		return(xbool);
 	}
 
-
-/*
-public static void setImageHash(Context context, String hash) {
-	
-	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-	
-	prefs.edit().putString("com.fullsink.mp.imagehash", hash).commit();
-}
-
-
-public static String getImageHash(Context context) {
-	
-	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-	
-	return prefs.getString("com.fullsink.mp.imagehash","");
-}
-*/
 }

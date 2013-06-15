@@ -1,31 +1,48 @@
 package com.fullsink.mp;
 
+import android.content.CursorLoader;
 import android.database.Cursor;
-import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.provider.MediaStore;
-
+import static com.fullsink.mp.Const.*;
 
 public class MediaMeta {
 	
-static String scanTitle(String fileName) {
+static  void loadMusic(MainActivity mnact, PlayAdapter playadapter ) {
+	 
+	boolean loop;
+	String cutpath;
 	
-	System.out.println("MediaMeta input path : " + fileName);
-	MediaMetadataRetriever titleMMR = new MediaMetadataRetriever();
-	
-    titleMMR.setDataSource(fileName);
- 
-    String title;
+	Uri contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+    String[] proj = { MediaStore.Audio.Media.DATA, MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ALBUM,
+    		MediaStore.Audio.Media.ARTIST};
+    String select = MediaStore.Audio.Media.DATA + " LIKE ? ";
+    String[] args = { "%" + FILTER_MUSIC + "%" };
 
-    if(titleMMR.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM) == null)
-        title = fileName;
-    else
-        title = titleMMR.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM);
+    CursorLoader loader = new CursorLoader(mnact, contentUri, proj, select, args, null);
+    Cursor cursor = loader.loadInBackground();
+    int column_path = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
+    int column_title = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
+    int column_album = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM);
+    int column_artist = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
     
-    System.out.println("MediaMeta album title : " + title);
-    return title;
+    int offset;
+    loop = cursor.moveToFirst();
+    while (loop) {
+    	cutpath = cursor.getString(column_path);
+    	offset = cutpath.indexOf(FILTER_MUSIC);
+    	if (offset >= 0) {
+    		offset += FILTER_MUSIC.length();
+    		cutpath = cutpath.substring(offset);
+    		System.out.println("First path : "+cutpath + "  Title : " + cursor.getString(column_title) +"  Album : " +
+    				cursor.getString(column_album) + "  art: "+ cursor.getString(column_artist));
+    		
+    		playadapter.add(null, cursor.getString(column_title), cursor.getString(column_album),
+    				cursor.getString(column_artist), cutpath);
+    	}
+    	loop = cursor.moveToNext();
+    }
 }
-
 }
 
 

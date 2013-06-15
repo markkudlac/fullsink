@@ -7,9 +7,9 @@
         android:defaultValue=""/>
     
     <CheckBoxPreference
-        android:key="@string/pref_shuffle"
-        android:title="@string/pref_shuffle"
-        android:defaultValue="false" />
+        android:key="@string/pref_onair"
+        android:title="@string/pref_onair"
+        android:defaultValue="true" />
     
         <EditTextPreference
         android:key="@string/pref_srvadd"

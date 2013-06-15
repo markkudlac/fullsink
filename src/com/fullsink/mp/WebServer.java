@@ -13,6 +13,9 @@ import java.util.Collection;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
+
+import android.widget.Toast;
+
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -48,13 +51,14 @@ public class WebServer extends WebSocketServer {
 
         @Override
         public void onClose( WebSocket conn, int code, String reason, boolean remote ) {
+        	System.out.println("onClose remote flag : " + remote);
                 System.out.println("WebSocketServer client closed : " + conn);
         }
 
         @Override
         public void onMessage( WebSocket conn, String message ) {
         	// Receive messages from controller here
-          System.out.println( "onMessage server : " + conn + ": " + message );
+          System.out.println( "onMessage server : " + message );
             mnact.textOut( "onMessage server : " + message );
             
             if (message.startsWith(CMD_PING)) {	
@@ -74,7 +78,7 @@ public class WebServer extends WebSocketServer {
     		}  else if (message.startsWith(CMD_COPY)) {
     			filesizeCopyTrack(getArg(message), conn);
     		} else if (message.startsWith(CMD_CONNECT)) {
-        		mnact.textOut(getArg(message) + " has connected");
+        		mnact.toastOut(getArg(message) + " " + mnact.getResources().getString(R.string.tunedin),Toast.LENGTH_LONG);
     		} else if (message.startsWith(CMD_ZIPPREP)) {
     			zipTrack(getArg(message), conn);
     		}
@@ -267,7 +271,7 @@ public class WebServer extends WebSocketServer {
         		
         		// Copy contents of assets over to files
         		for (int i=0; i<afiles.length; i++){
-        			System.out.println("Transfer : "+afiles[i]); 
+        		//	System.out.println("Transfer : "+afiles[i]); 
         			
         			if (afiles[i].equals(FLSKINDEX)) {
         				htmldest = new File(mnact.getFilesDir(), "index.html");

@@ -47,11 +47,9 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
     		while((line=reader.readLine())!=null){
     		    result+=line;
     		}
- 
- //   		System.out.println("Get serverid.js from server HTTP 3");
     		json = new JSONObject(result);
 
-     		System.out.println("JSON id : " + json.getString("id"));
+ //    		System.out.println("JSON id : " + json.getString("id"));
     	} catch (Exception ex) { System.out.println("Exception caught : " + ex); }
 
  
@@ -61,8 +59,6 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
     	return(json);
 	}
 	
-//	 protected void onProgressUpdate(Integer... progress) {        
-//     }
 
      protected void onPostExecute(JSONObject result) {
     	 

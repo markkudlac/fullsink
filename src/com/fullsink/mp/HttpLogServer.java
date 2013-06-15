@@ -85,7 +85,7 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
                 	System.out.println("Location not available");
                 }
             } else if (!xparam[2].equals("0")) {
-            	mnact.toastOut("Location services not enabled");
+            	mnact.toastOut("Location services not enabled",Toast.LENGTH_SHORT);
             	System.out.println("Location services not enabled");
             }
             

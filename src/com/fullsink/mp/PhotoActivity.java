@@ -190,7 +190,7 @@ public class PhotoActivity extends Activity {
     private void clearPhoto() {
     	
     	new File(getFilesDir(),HTML_DIR + "/"+SERVER_PHOTO).delete();
-    	photoimageview.setImageResource(R.drawable.looping);    //This needs to be changed
+    	photoimageview.setImageResource(R.drawable.ic_menu_invite);    //This needs to be changed
     }
     
     

@@ -6,20 +6,20 @@
     <string name="serverbutOn">ON</string>
     <string name="clientbutOff">CONNECT</string>
     <string name="clientbutOn">UNPLUG</string>
-    <string name="clientbutMute">MUTE</string>
-    <string name="clientbutMuted">MUTED</string>
     <string name="clientbutCopy">COPY</string>
     <string name="action_settings">Settings</string>
     <string name="pref_acntid">Account ID</string>
 	<string name="pref_sockport">Socket Port</string>
-	<string name="default_sockport">0</string>
+	<string name="default_sockport">8887</string>
 	<!-- Resolver is for testing this is if length <= 12  then call http://www.fullsink.com  -->
 	<string name="pref_srvadd">Resolver lt=18 Addr:Port</string>
 	<string name="pref_httpdport">HTTPD Port</string>
-	<string name="default_httpdport">0</string>
-	<string name="pref_shuffle">Shuffle</string>
+	<string name="default_httpdport">8080</string>
+	<string name="pref_onair">Start On Air</string>
 	
 	<string name="action_photo">Pick Photo</string>
 	<string name="photobutpick">Pick</string>
 	<string name="photobutclear">Clear</string>
+	<string name="tunedin">has tuned in</string>
+	<string name="tunedout">has tuned out</string>
 </resources>

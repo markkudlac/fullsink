@@ -2,6 +2,7 @@ package com.fullsink.mp;
 
 import java.util.ArrayList;
 
+import android.view.ViewGroup.LayoutParams;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.view.LayoutInflater;
@@ -10,8 +11,9 @@ import android.view.ViewGroup;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.CheckedTextView;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 
@@ -31,32 +33,47 @@ public class PlayAdapter extends ArrayAdapter<PlayData> implements OnItemClickLi
 	
     public View getView(int position, View convertView, ViewGroup parent) {
         View view = convertView;
-        CheckedTextView  chktextView;
+        TextView textv;
+        String albart;
         
         if (view == null) {
             LayoutInflater inflater = (LayoutInflater) mnact.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             view = inflater.inflate(R.layout.play_data, null);
         }
-
-  //      ((CheckableLinearLayout) view).setChecked(false);
         
         PlayData rec = items.get(position);
         
         if (rec != null) {
-//        	String item = rec.id + " : " + rec.ipAddr;
         	
-            // My layout has only one TextView
-        	chktextView = (CheckedTextView) view.findViewById(R.id.title);
-            if (chktextView != null) {
-            	chktextView.setText(rec.title);
-            }
+        	//Need to reset the wrap for display or it grows to max album name
+        	RelativeLayout.LayoutParams layoutp = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT,
+        			LayoutParams.WRAP_CONTENT);		
+        	
+        	textv = (TextView) view.findViewById(R.id.title);
+            textv.setText(rec.title);
            
-            ImageView imgv = (ImageView) view.findViewById(R.id.image);
-            imgv.setImageBitmap(rec.img);
-            TextView textv = (TextView) view.findViewById(R.id.album);
-            textv.setText(rec.album);
-            textv = (TextView) view.findViewById(R.id.artist);
-            textv.setText(rec.artist);
+            if (rec.img != null) {
+            	ImageView imgv = (ImageView) view.findViewById(R.id.image);
+            	imgv.setImageBitmap(rec.img);
+            }
+            
+          if (rec.artist.indexOf("<unknown>") == -1 && rec.artist.indexOf("Unknown") == -1) {
+        	albart = rec.artist;
+          } else {
+          	albart = "";
+          }
+          
+          if (albart.length() > 0) {
+        	  if (rec.album.length() > 0) {
+        		  albart = rec.album +"    " + albart;
+        	  }
+          } else {
+        	  albart = rec.album;
+          }
+            textv = (TextView) view.findViewById(R.id.album);
+            textv.setText(albart);
+            textv.setLayoutParams(layoutp);
+
          }
         return view;
     }
@@ -90,6 +107,7 @@ public class PlayAdapter extends ArrayAdapter<PlayData> implements OnItemClickLi
     	PlayData xdata = ((PlayData)(adapter.getItemAtPosition(position)));
     	
 	   	System.out.println("Got item click: "+ xdata.path + "pos : "+position);
+	   	mnact.onPlayClick(position);
 
 	   }
     

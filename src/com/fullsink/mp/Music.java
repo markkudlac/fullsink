@@ -12,11 +12,11 @@ import android.media.MediaPlayer.OnSeekCompleteListener;
 import static com.fullsink.mp.Const.*;
 
 
-
 public class Music extends MediaPlayer implements OnCompletionListener, OnPreparedListener, OnSeekCompleteListener {
 
 	MainActivity mnact = null;
-
+	static boolean mute = false;
+	
 	public Music(AssetFileDescriptor assetDescriptor, MainActivity xmnact){
 		
 		try{
@@ -89,13 +89,14 @@ public void onPrepared(MediaPlayer mp) {
 	
 	
 	public void play() {
-		System.out.println("In play");
+//		System.out.println("In play");
 		if (isPlaying()){
 			return;
 		}
 		
 		try{
-				start();
+			resetMuted();
+			start();
 		} catch(IllegalStateException ex){
 			ex.printStackTrace();
 		} catch(Exception ex){
@@ -114,6 +115,31 @@ public void onPrepared(MediaPlayer mp) {
 		if(isPlaying()){
 			stop();
 		}
+		
 		release();
 	}
+	
+	
+	public boolean isMuted() {
+		return mute;
+	}
+	
+	
+	
+	public void onMuted() {
+		mute = true;
+		setVolume(0f,0f);
+	}
+	
+	
+	public void resetMuted(){
+		
+		if (isMuted()) onMuted();
+	}
+	
+	public void clearMuted() {
+		mute = false;
+		setVolume(1f,1f);
+	}
+	
 }
