@@ -120,14 +120,18 @@ public void onPrepared(MediaPlayer mp) {
 	}
 	
 	
-	public boolean isMuted() {
+	public static boolean isMuted() {
 		return mute;
 	}
 	
 	
+	public static void setMuted(boolean flg) {
+		mute = flg;
+	}
+	
 	
 	public void onMuted() {
-		mute = true;
+		setMuted(true);
 		setVolume(0f,0f);
 	}
 	
@@ -138,7 +142,7 @@ public void onPrepared(MediaPlayer mp) {
 	}
 	
 	public void clearMuted() {
-		mute = false;
+		setMuted(false);
 		setVolume(1f,1f);
 	}
 	

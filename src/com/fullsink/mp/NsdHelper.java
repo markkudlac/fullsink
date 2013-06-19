@@ -23,7 +23,8 @@ public class NsdHelper {
 
     public static final String SERVICE_TYPE = "_http._tcp.";
 
-    public String mServiceName = null;		
+    
+    public String mServiceName = SERVICE_NAME;		
     ServerAdapter serveradapter;
     boolean fsregistered = false;
     
@@ -45,54 +46,59 @@ public class NsdHelper {
 
             @Override
             public void onDiscoveryStarted(String regType) {
-                mnact.textOut("Service discovery started");
+            	System.out.println("Service discovery started");
             }
 
             @Override
             public void onServiceFound(NsdServiceInfo service) {
-            	System.out.println( "Service discovery success" + service);
-                
+            	System.out.println( "Service discovery success " + service);
+            	System.out.println( "Service discovery mServicename " + mServiceName);
                 if (!service.getServiceType().equals(SERVICE_TYPE)) {
-                    mnact.textOut( "Unknown Service Type: " + service.getServiceType());
-                } else if (service.getServiceName().equals(mServiceName)) {
-                	mnact.textOut( "Same machine no resolver call: " + mServiceName);
+                	System.out.println( "Unknown Service Type: " + service.getServiceType());
+ //               } else if (service.getServiceName().equals(mServiceName)) {
+  //              	System.out.println( "Same machine no resolver call: " + mServiceName);
                 } else if (service.getServiceName().contains(mServiceName)){
-                	mnact.textOut( "Call the resolver for contains name  : " + service.getServiceName());
+                	System.out.println( "Call the resolver for contains name  : " + service.getServiceName());
                     mNsdManager.resolveService(service, mResolveListener);
                 }
                 else {
                 	mNsdManager.resolveService(service, mResolveListener); 
                 }
-                
             }
 
+            
             @Override
             public void onServiceLost(NsdServiceInfo service) {
             	
+            System.out.println("Service Lost - good : "+ service.getServiceName())	;
+            
                 if (!service.getServiceType().equals(SERVICE_TYPE)) {
                 	System.out.println( "Unknown Service Type: " + service.getServiceType());
-                } else if (service.getServiceName().contains(mServiceName)){
+ //               } else if (service.getServiceName().contains(mServiceName)){
+                } else if (service.getServiceName().contains(SERVICE_NAME)){	
+                	System.out.println("*** Call to remove from serverlist  *****");
                     new Thread(new ServerRemove(mnact, serveradapter,service.getServiceName())).start();
+                } else {
+                	System.out.println("*** Lost but no Call to remove from serverlist : "+mServiceName);
                 }
-
             }
             
             
             @Override
             public void onDiscoveryStopped(String serviceType) {
-                mnact.textOut( "Discovery stopped: " + serviceType);        
+            	System.out.println( "Discovery stopped: " + serviceType);        
             }
 
             
             @Override
             public void onStartDiscoveryFailed(String serviceType, int errorCode) {
-                mnact.textOut( "Discovery failed: Error code:" + errorCode);
+                System.out.print( "Discovery failed: Error code:" + errorCode);
                 mNsdManager.stopServiceDiscovery(this);
             }
 
             @Override
             public void onStopDiscoveryFailed(String serviceType, int errorCode) {
-                mnact.textOut( "Discovery failed: Error code:" + errorCode);
+                System.out.println( "Discovery failed: Error code : " + errorCode);
                 mNsdManager.stopServiceDiscovery(this);
             }
         };
@@ -103,18 +109,18 @@ public class NsdHelper {
 
             @Override
             public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
-                mnact.textOut( "Resolve failed" + errorCode);
+                System.out.println( "Resolve failed error: " + errorCode);
             }
 
             @Override
             public void onServiceResolved(NsdServiceInfo serviceInfo) {
-                mnact.textOut( "Resolve Succeeded. " + serviceInfo);
-
+            	System.out.println( "Resolve Succeeded  " + serviceInfo);
+/*
                 if (serviceInfo.getServiceName().equals(mServiceName)) {
-                    mnact.textOut( "Same IP/name : " + serviceInfo.getServiceName());
+                    System.out.println( "Same IP/name : " + serviceInfo.getServiceName());
                     return;
                 }
-                
+ */               
                 String addr = serviceInfo.getHost().getHostAddress();
  /*               
                 mnact.textOut( "Service resolved");
@@ -125,9 +131,12 @@ public class NsdHelper {
                 System.out.println( "Service get host : " + addr);
                 System.out.println( "Service get port : " + serviceInfo.getPort());
  */               
-                new Thread(new ServerSearch(mnact, serveradapter, addr,
+                if (!addr.equals(NetStrat.getWifiApIpAddress())) {
+                	new Thread(new ServerSearch(mnact, serveradapter, addr,
                 		serviceInfo.getPort(),serviceInfo.getServiceName())).start();
-                
+                } else {
+        			System.out.println("Finding my own ip address for servce. not added : "+ addr);
+        		}
             }
         };
     }
@@ -138,25 +147,24 @@ public class NsdHelper {
             @Override
             public void onServiceRegistered(NsdServiceInfo NsdServiceInfo) {
                 mServiceName = NsdServiceInfo.getServiceName();
-                mnact.textOut( "Service registered : " + mServiceName);
+                System.out.println( "Service registered : " + mServiceName);
                 fsregistered = true;
             }
             
             @Override
             public void onRegistrationFailed(NsdServiceInfo arg0, int arg1) {
-            	mnact.textOut( "Service register FAILED : " + arg0.getServiceName());
+            	System.out.println( "Service register FAILED : " + arg0.getServiceName());
             }
 
             @Override
             public void onServiceUnregistered(NsdServiceInfo arg0) {
-            	mnact.textOut( "Service unregistered : " + arg0.getServiceName());
-               	mServiceName = null;
+            	System.out.println( "Service unregistered : " + arg0.getServiceName());
             	fsregistered = false;
             }
             
             @Override
             public void onUnregistrationFailed(NsdServiceInfo serviceInfo, int errorCode) {
-            	mnact.textOut( "Service unregistered error : " + errorCode);
+            	System.out.println( "Service unregistered error : " + errorCode);
             }
             
         };
@@ -164,36 +172,38 @@ public class NsdHelper {
 
     public void registerService(int port) {
     	
-    	if (!fsregistered) {
+//    	if (!fsregistered) {
     	
-	    	mServiceName = SERVICE_NAME;
+//	    	mServiceName = SERVICE_NAME;
 	        NsdServiceInfo serviceInfo  = new NsdServiceInfo();
 	        serviceInfo.setPort(port);
-	        serviceInfo.setServiceName(mServiceName);
+//	        serviceInfo.setServiceName(mServiceName);
+	        serviceInfo.setServiceName(SERVICE_NAME);
 	        serviceInfo.setServiceType(SERVICE_TYPE);
         
         	mNsdManager.registerService(
                 serviceInfo, NsdManager.PROTOCOL_DNS_SD, mRegistrationListener);
-        }
+ //       }
     }
 
     
     public void unregisterService() {
     	 
-    	if (fsregistered) {
+ //   	if (fsregistered) {
     		mNsdManager.unregisterService(mRegistrationListener);
-    	}
+ //   	}
+    	
     }
  
     
     public void discoverServices() {
-    	mServiceName = SERVICE_NAME.substring(0, SERVICE_NAME.length()-1);
+ //   	mServiceName = SERVICE_NAME.substring(0, SERVICE_NAME.length()-1);
         mNsdManager.discoverServices(
                 SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
     }
     
     public void stopDiscovery() {
-    	mServiceName = null;
+ //   	mServiceName = null;
         mNsdManager.stopServiceDiscovery(mDiscoveryListener);
     }
  
@@ -213,7 +223,7 @@ class ServerSearch implements Runnable {
 	   		this.serveradapter = serveradapter;
 	   		this.addr = addr;
 	   		this.port = port;
-	   		this.servicename = servicename;
+	   		this.servicename = servicename.replaceAll("k..032", "k ");
 	   	}
 	   
 	   
@@ -240,7 +250,7 @@ class ServerRemove implements Runnable {
 	   		
 	   		this.mnact = mnact;
 	   		this.serveradapter = serveradapter;
-	   		this.servicename = servicename;
+	   		this.servicename = servicename.replaceAll("k..032", "k ");
 	   	}
 	   
 	   
@@ -248,6 +258,7 @@ class ServerRemove implements Runnable {
 	   public void run() {
 		    
 				int clearitem = serveradapter.removeFromServerList(servicename);
+			
 				mnact.adapterOut(true, clearitem);
 	    	    return;
 	   }

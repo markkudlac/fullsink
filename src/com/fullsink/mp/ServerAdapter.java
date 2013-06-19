@@ -36,14 +36,16 @@ public class ServerAdapter extends ArrayAdapter<ServerData> implements OnItemCli
             LayoutInflater inflater = (LayoutInflater) mnact.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             view = inflater.inflate(R.layout.server_data, null);
         }
-
-  //      ((CheckableLinearLayout) view).setChecked(false);
         
         ServerData rec = items.get(position);
         
         if (rec != null) {
-        	String item = rec.id + " : " + rec.ipAddr;
+        	String item = rec.id;
         	
+			if (rec.title != null && rec.title.length() > 0) {
+				item = item + " - " + rec.title;
+			}
+        			
             // My layout has only one TextView
         	chktextView = (CheckedTextView) view.findViewById(R.id.text1);
             if (chktextView != null) {
@@ -73,9 +75,40 @@ public class ServerAdapter extends ArrayAdapter<ServerData> implements OnItemCli
     }
     
     
-    public void add(String id, String ipAddr, int httpdPort, int webSockPort, String servicename, Bitmap img){
+    public void updateSongData(int pos, String title) {
+    	
+    	ServerData xdata = (ServerData) getItem(pos);
+    	if (xdata != null) {
+	    	xdata.title = title;
+	    	mnact.adapterOut(false, pos);
+    	}
+    	return;
+    }
+
+    
+public String[] getSongData(int pos) {
+    	
+	String[] xval = {"","",""};
+	
+    	ServerData xdata = (ServerData) getItem(pos);
+    	if (xdata != null) {
+	    	xval[0] = xdata.title;
+    	}
+    	return(xval);
+    }
+
+    
+    public void clearSongData() {
+    	
+    	for (int i=0; i < getCount(); i++) {
+    		updateSongData(i, "");
+    	}
+    }
+    
+    
+    public synchronized void add(String id, String ipAddr, int httpdPort, int webSockPort, String servicename, Bitmap img){
  
-    	items.add(new ServerData(id, ipAddr, httpdPort, webSockPort, servicename, img));
+    		items.add(new ServerData(id, ipAddr, httpdPort, webSockPort, servicename, img));	
     }
     
     
@@ -85,13 +118,14 @@ public class ServerAdapter extends ArrayAdapter<ServerData> implements OnItemCli
     	ServerData xdata = ((ServerData)(adapter.getItemAtPosition(position)));
     	
 //	   	System.out.println("Got item click: "+ xdata.ipAddr + "pos : "+position);
+    	clearSongData();
 	   	mnact.clearCurrentTrack();
 	   	mnact.startSockClient(xdata.webSockPort, xdata.ipAddr, xdata.httpdPort) ;
 	   }
     
     
     
-    public boolean inServerList(String addr) {
+    public synchronized boolean inServerList(String addr) {
     	
     	for (int i=0; i < getCount(); i++){
     		if ( ((ServerData) getItem(i)).ipAddr.equals(addr) ) {
@@ -103,11 +137,13 @@ public class ServerAdapter extends ArrayAdapter<ServerData> implements OnItemCli
     }
     
      
-    public int removeFromServerList(String servicename) {
+    public synchronized int removeFromServerList(String servicename) {
     	
     
     	for (int i=0; i < getCount(); i++){
-    		if ( ((ServerData) getItem(i)).servicename.equals(servicename) ) {  
+    		System.out.println("removefromService list name : " + ((ServerData) getItem(i)).servicename +
+    				"  nsd name : " + servicename);
+    		if (  ((ServerData) getItem(i)).servicename.equals(servicename) ) {  
     			
     			setNotifyOnChange(false);   // This delays redraw so that it is on main thread
     			remove(getItem(i));
@@ -130,7 +166,7 @@ final class ServerData {
 	public int webSockPort;
 	public String servicename;
 	public Bitmap img;
-	
+	public String title;
 	
 	public ServerData(String id, String ipAddr, int httpdPort, int webSockPort, String servicename, Bitmap img) {
 		this.id = id;
@@ -139,6 +175,7 @@ final class ServerData {
 		this.webSockPort = webSockPort;
 		this.servicename = servicename;
 		this.img = img;
+		this.title = "";
 	}
 }
 

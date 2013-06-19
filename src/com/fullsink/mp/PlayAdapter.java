@@ -104,9 +104,9 @@ public class PlayAdapter extends ArrayAdapter<PlayData> implements OnItemClickLi
     @Override
     public void onItemClick(AdapterView<?> adapter, View v, int position, long id) {
 
-    	PlayData xdata = ((PlayData)(adapter.getItemAtPosition(position)));
+ //   	PlayData xdata = ((PlayData)(adapter.getItemAtPosition(position)));
     	
-	   	System.out.println("Got item click: "+ xdata.path + "pos : "+position);
+//	   	System.out.println("Got item click: "+ xdata.path + "pos : "+position);
 	   	mnact.onPlayClick(position);
 
 	   }
@@ -122,6 +122,19 @@ public class PlayAdapter extends ArrayAdapter<PlayData> implements OnItemClickLi
     		}
     	}
     	return false;
+    }
+    
+    
+    public String[] getTAA(int pos) {
+    	String[] xTTA = new String[3];
+    	
+    	PlayData xdata = (PlayData) getItem(pos);
+    	if (xdata != null) {
+	    	xTTA[0] = xdata.title;
+	    	xTTA[1] = xdata.album;
+	    	xTTA[2] = xdata.artist;
+    	}
+    	return xTTA;
     }
 }
 

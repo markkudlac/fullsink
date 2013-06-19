@@ -42,6 +42,7 @@ static  void loadMusic(MainActivity mnact, PlayAdapter playadapter ) {
     	}
     	loop = cursor.moveToNext();
     }
+    cursor.close();
 }
 }
 

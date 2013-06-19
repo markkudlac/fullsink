@@ -12,19 +12,48 @@
     android:paddingTop="@dimen/activity_vertical_margin"		
      -->
      	
-	<LinearLayout android:id="@+id/netbuts" style="?android:attr/buttonBarStyle"
-    		android:orientation="horizontal" android:layout_alignParentTop="true"  android:gravity="center"
-    		android:background="#FFAFAF" android:layout_width="fill_parent" android:layout_height="wrap_content" >	
-				    
-		<Button android:id="@+id/btnShare" style="?android:attr/buttonBarButtonStyle"
-        	android:layout_margin="10dip" android:layout_width="0dip" android:layout_height="wrap_content"
-        	android:layout_weight="1" android:background="#BBBBBB" android:onClick="click" 
-        	android:text="@string/serverbutOff" />
-			   
-		<Button android:id="@+id/btnConnect" style="?android:attr/buttonBarButtonStyle"
-        	android:layout_margin="10dip" android:layout_width="0dip" android:layout_height="wrap_content"
-        	android:layout_weight="1" android:background="#BBBBBB"  android:onClick="click" 
-        	android:text="@string/clientbutOff" />			
+	<LinearLayout android:id="@+id/topMenu" style="?android:attr/buttonBarStyle"
+	    android:background="@drawable/border" android:weightSum="0.0"
+	    android:baselineAligned="false" android:paddingTop="8dip" android:paddingBottom="12dip"
+    	android:orientation="horizontal" android:layout_alignParentTop="true"  android:gravity="center"
+    	android:layout_width="match_parent" android:layout_height="wrap_content" >	
+    	
+   		<RelativeLayout android:id="@+id/viewServer"
+        android:layout_width="0dip" android:layout_height="wrap_content"
+        android:layout_marginLeft="2dip" android:layout_marginRight="10dip" 
+        android:layout_weight="1" > 
+			<Button  android:id="@+id/btnServer" android:layout_width="match_parent" 
+				android:layout_height="30dip" android:background="@drawable/buttonblack"
+				android:onClick="click" style="?android:attr/buttonBarButtonStyle"/>		
+			<ImageView android:id="@+id/imgServer"
+	      		android:src="@drawable/ic_media_route_off_holo_dark" android:layout_centerHorizontal="true"
+	      		android:layout_height="30dip" android:layout_width="wrap_content" 
+	      		android:layout_centerVertical="true"/>
+	  	</RelativeLayout>
+	  	
+   		<Button android:id="@+id/btnSongs" style="?android:attr/buttonBarButtonStyle"
+        	android:layout_width="0dip" android:layout_height="30dip"
+        	android:layout_marginLeft="5dip" android:layout_marginRight="5dip" 
+        	android:layout_weight="2"  android:onClick="click" 
+        	android:text="@string/menuSongs" android:textColor="#111" />
+   			
+   		<Button android:id="@+id/btnAlbums" style="?android:attr/buttonBarButtonStyle"
+        	android:layout_width="0dip" android:layout_height="30dip"
+        	android:layout_marginLeft="5dip" android:layout_marginRight="5dip" 
+        	android:layout_weight="2"  android:onClick="click" 
+        	android:text="@string/menuAlbums" android:textColor="#AAA" />	
+   		
+   		<Button android:id="@+id/btnArtists" style="?android:attr/buttonBarButtonStyle"
+        	android:layout_width="0dip" android:layout_height="30dip"
+        	android:layout_marginLeft="5dip" android:layout_marginRight="5dip" 
+        	android:layout_weight="2"  android:onClick="click" 
+        	android:text="@string/menuArtists" android:textColor="#AAA" />	
+   		
+   		<Button android:id="@+id/btnLocal" style="?android:attr/buttonBarButtonStyle"
+        	android:layout_width="0dip" android:layout_height="30dip"
+        	android:layout_marginLeft="5dip" android:layout_marginRight="2dip" 
+        	android:layout_weight="2"  android:onClick="click" 
+        	android:text="@string/clientbutOff" android:textColor="#111" />			
 	</LinearLayout>		
 	
 	<LinearLayout android:id="@+id/seekpar" android:layout_width="fill_parent"  android:layout_height="wrap_content" 
@@ -42,164 +71,120 @@
 		
 		<LinearLayout android:id="@+id/mediabuts" android:orientation="horizontal"
 	    	android:background="@drawable/border" android:weightSum="0.0"
-	    	android:baselineAligned="false" android:paddingTop="3dip"
+	    	android:baselineAligned="false" android:paddingTop="8dip" android:paddingBottom="12dip"
 			style="?android:attr/buttonBarStyle" android:gravity="center" 
 			android:layout_width="match_parent" android:layout_height="wrap_content" >
 			
 		     <RelativeLayout android:id="@+id/viewMute"
-		        android:layout_width="0dip" android:layout_height="35dip"
-		        android:layout_marginTop="3dip" android:layout_marginBottom="3dip" 
-		        android:layout_marginRight="8dip" android:layout_marginLeft="2dip" 
+		        android:layout_width="0dip" android:layout_height="wrap_content"
+		        android:layout_marginLeft="2dip" android:layout_marginRight="8dip" 
 		        android:layout_weight="1" > 
-				<Button  android:id="@+id/btnMute" android:layout_width="fill_parent" 
-				android:layout_height="match_parent" android:background="@drawable/buttonblack"
+				<Button  android:id="@+id/btnMute" android:layout_width="match_parent" 
+				android:layout_height="35dip" android:background="@drawable/buttonblack"
 				android:onClick="click" style="?android:attr/buttonBarButtonStyle"/>		
 				<ImageView android:id="@+id/imgVolMute"
         		android:src="@drawable/ic_volume_small" android:layout_centerHorizontal="true"
-        		android:layout_height="wrap_content" android:layout_width="wrap_content" 
+        		android:layout_height="35dip" android:layout_width="wrap_content" 
         		android:layout_centerVertical="true"/>
 			  </RelativeLayout>
 			  
 		    <RelativeLayout android:layout_width="0dip" android:layout_height="wrap_content"
-		        android:layout_marginTop="3dip" android:layout_marginBottom="3dip" 
 		        android:layout_marginLeft="7dip" android:layout_marginRight="7dip" 
 		        android:layout_weight="2" >
-				<Button android:id="@+id/btnPrevious" android:layout_width="fill_parent" android:layout_height="wrap_content" 
+				<Button android:id="@+id/btnPrevious" android:layout_width="match_parent" android:layout_height="35dip" 
 				android:background="@drawable/buttonblack" 
 				android:onClick="click" style="?android:attr/buttonBarButtonStyle"/>		
 				<ImageView
         			android:src="@drawable/ic_media_previous" android:layout_centerHorizontal="true"
-        			android:layout_height="wrap_content" android:layout_width="wrap_content" android:layout_centerVertical="true"/>
+        			android:layout_height="35dip" android:layout_width="wrap_content" android:layout_centerVertical="true"/>
 			 </RelativeLayout>
 
 		    <RelativeLayout android:layout_width="0dip" android:layout_height="wrap_content"
-		        android:layout_marginTop="3dip" android:layout_marginBottom="3dip" 
 		        android:layout_marginLeft="7dip" android:layout_marginRight="7dip" 
 		        android:layout_weight="2" >
-				<Button android:id="@+id/btnPlay" android:layout_width="fill_parent" 
-				android:layout_height="wrap_content" 
+				<Button android:id="@+id/btnPlay" android:layout_width="match_parent" 
+				android:layout_height="35dip" 
 				android:background="@drawable/buttonblack" 
 				android:onClick="click" style="?android:attr/buttonBarButtonStyle"/>		
 				<ImageView android:id="@+id/imgPlayPause"
         		android:src="@drawable/ic_media_play" android:layout_centerHorizontal="true"
-        		android:layout_height="wrap_content" android:layout_width="wrap_content" 
+        		android:layout_height="35dip" android:layout_width="wrap_content" 
         		android:layout_centerVertical="true" />
 			  </RelativeLayout>
 
 		    <RelativeLayout android:layout_width="0dip" android:layout_height="wrap_content"
-		        android:layout_marginTop="3dip" android:layout_marginBottom="3dip" 
 		        android:layout_marginLeft="7dip" android:layout_marginRight="7dip" 
 		        android:layout_weight="2" >
-			<Button android:id="@+id/btnNext" android:layout_width="fill_parent" android:layout_height="wrap_content" 
+			<Button android:id="@+id/btnNext" android:layout_width="match_parent" android:layout_height="35dip" 
 				android:background="@drawable/buttonblack"
 				android:onClick="click" style="?android:attr/buttonBarButtonStyle"/>		
 				<ImageView
         		android:src="@drawable/ic_media_next" android:layout_centerHorizontal="true"
-        		android:layout_height="wrap_content" android:layout_width="wrap_content" 
+        		android:layout_height="35dip" android:layout_width="wrap_content" 
         		android:layout_centerVertical="true"/>
 			  </RelativeLayout>
 			  
-		    <RelativeLayout android:layout_width="0dip" android:layout_height="35dip"
-		        android:layout_marginTop="3dip" android:layout_marginBottom="3dip" 
+		    <RelativeLayout android:layout_width="0dip" android:layout_height="wrap_content"
 		        android:layout_marginRight="4dip" android:layout_marginLeft="8dip"  
 		        android:layout_weight="1" >
 				<Button android:id="@+id/btnShuffleLoop" 
-				android:layout_width="fill_parent" android:layout_height="match_parent" 
+				android:layout_width="match_parent" android:layout_height="35dip" 
 				android:background="@drawable/buttonblack"
 				android:onClick="click" style="?android:attr/buttonBarButtonStyle"/>		
-				<ImageView
+				<ImageView android:id="@+id/imgShuffleLoop" 
         		android:src="@drawable/ic_menu_refresh" android:layout_centerHorizontal="true"
-        		android:layout_height="wrap_content" android:layout_width="wrap_content" 
+        		android:layout_height="35dip" android:layout_width="wrap_content" 
         		android:layout_centerVertical="true"/>
 			  </RelativeLayout>
-			  
-		</LinearLayout>
+			</LinearLayout>
 
-		<!--  Hidden initially
-		<LinearLayout android:id="@+id/clientbuts" style="?android:attr/buttonBarStyle" 
-	    	android:visibility="gone" android:orientation="horizontal" android:gravity="center"
-	    	android:background="#FFAFAF" android:layout_width="fill_parent" android:layout_height="wrap_content" >	
-						   
-			<Button
-			    android:id="@+id/btnclientCopy" style="?android:attr/buttonBarButtonStyle"
-	        	android:layout_margin="10dip" android:layout_width="0dip" android:layout_height="wrap_content"
-	        	android:layout_weight="1" android:background="#BBBBBB"  android:onClick="click" 
-	        	android:text="@string/clientbutCopy" />			
-		</LinearLayout>	
-		-->
-				<LinearLayout android:id="@+id/clientbuts" android:orientation="horizontal"
+			<LinearLayout android:id="@+id/clientbuts" android:orientation="horizontal"
 	    	android:background="@drawable/border" android:weightSum="8.0"
-	    	android:baselineAligned="false" android:paddingTop="3dip"
+	    	android:baselineAligned="false" android:paddingTop="8dip" android:paddingBottom="12dip"
 			style="?android:attr/buttonBarStyle" android:gravity="center" 
 			android:layout_width="match_parent" android:layout_height="wrap_content"
 			android:visibility="gone" >
-<!-- 	
+	  
 		     <RelativeLayout
-		        android:layout_width="0dip" android:layout_height="35dip"
-		        android:layout_marginTop="3dip" android:layout_marginBottom="3dip" 
-		        android:layout_marginRight="8dip" android:layout_marginLeft="2dip" 
-		        android:layout_weight="3" > 
-				<Button android:id="@+id/btnMute2" android:layout_width="fill_parent" android:layout_height="match_parent" 
-				android:background="@drawable/buttonblack"
-				android:onClick="click" style="?android:attr/buttonBarButtonStyle"/>		
-				<ImageView android:id="@+id/imgVolMute"
-        		android:src="@drawable/ic_volume_small" android:layout_centerHorizontal="true"
-        		android:layout_height="wrap_content" android:layout_width="wrap_content" 
-        		android:layout_centerVertical="true"/>
-			  </RelativeLayout>
-	 -->				  
-		     <RelativeLayout
-		        android:layout_width="0dip" android:layout_height="35dip"
-		        android:layout_marginTop="3dip" android:layout_marginBottom="3dip" 
-		        android:layout_marginRight="7dip" android:layout_marginLeft="7dip" 
-		        android:layout_weight="2" android:clickable="false" > 
-				<Button android:layout_width="fill_parent" android:layout_height="match_parent" 
+		        android:layout_width="0dip" android:layout_height="wrap_content"
+		        android:layout_marginRight="8dip" android:layout_marginLeft="8dip" 
+		        android:layout_weight="2"  > 
+				<Button android:layout_width="match_parent" android:layout_height="35dip" 
 				android:background="@drawable/buttongrey" android:clickable="false"
 				android:onClick="click" style="?android:attr/buttonBarButtonStyle" />		
-				<ImageView android:id="@+id/imgEcho" android:clickable="false"
-        		android:layout_centerHorizontal="true"
-        		android:layout_height="wrap_content" android:layout_width="wrap_content" 
+				<ImageView android:id="@+id/imgServerIndicator"
+        		android:src="@drawable/ic_media_stop" android:layout_centerHorizontal="true"
+        		android:layout_height="35dip" android:layout_width="wrap_content" 
         		android:layout_centerVertical="true"/>
 			  </RelativeLayout>
 		     
 		      <RelativeLayout
-		        android:layout_width="0dip" android:layout_height="35dip"
-		        android:layout_marginTop="3dip" android:layout_marginBottom="3dip" 
-		        android:layout_marginRight="2dip" android:layout_marginLeft="8dip" 
+		        android:layout_width="0dip" android:layout_height="wrap_content"
+		        android:layout_marginLeft="8dip" android:layout_marginRight="8dip" 
 		        android:layout_weight="3" > 
-				<Button android:id="@+id/btnclientCopy" android:layout_width="fill_parent" android:layout_height="match_parent" 
-				android:background="@drawable/buttonblack"
+				<Button android:id="@+id/btnclientCopy" 
+				android:layout_width="match_parent" android:layout_height="35dip" 
+				android:background="@drawable/buttongrey" android:clickable="false"
 				android:onClick="click" style="?android:attr/buttonBarButtonStyle"/>		
 				<ImageView
         		android:src="@drawable/stat_sys_download" android:layout_centerHorizontal="true"
-        		android:layout_height="wrap_content" android:layout_width="wrap_content" 
+        		android:layout_height="35dip" android:layout_width="wrap_content" 
         		android:layout_centerVertical="true"/>
 			  </RelativeLayout>
 			</LinearLayout>	  
 	</LinearLayout>
 	
-  	<RelativeLayout android:id="@+id/midfield" android:layout_width="fill_parent"  android:layout_height="0dip" 
+  	<RelativeLayout android:id="@+id/midfield" android:layout_width="match_parent"  android:layout_height="0dip" 
     		android:layout_alignParentLeft="true" android:fillViewport="true"
-    		android:layout_below="@+id/netbuts" android:layout_above="@+id/seekpar"
+    		android:layout_below="@+id/topMenu" android:layout_above="@+id/seekpar"
     		android:layout_marginBottom="5dip" android:layout_marginTop="5dip" >
-		
-	    	<ScrollView android:id="@+id/debug"
-	    android:visibility="gone"
-	    android:layout_width="fill_parent"
-		    android:orientation="vertical" android:layout_height="fill_parent"
-		    android:background="#CFCFFF">
 
-			<TextView android:id="@+id/textout" android:layout_width="fill_parent" android:layout_height="wrap_content" 
-				    android:textSize="16sp" android:background="#FFFFFF">
-			</TextView>
-		</ScrollView>
-	
 	    <ListView android:id="@+id/playlist"
 	        android:scrollbars="vertical" android:layout_marginRight="5dip"
  			android:scrollbarAlwaysDrawVerticalTrack="true"
  			android:scrollbarStyle="outsideOverlay"
  			android:fadeScrollbars="false" android:scrollbarSize="5dip"
-        	android:layout_width="wrap_content" android:layout_height="fill_parent"
+        	android:layout_width="wrap_content" android:layout_height="match_parent"
         	android:choiceMode="singleChoice" android:drawSelectorOnTop="true" />
 	</RelativeLayout>
 </RelativeLayout>

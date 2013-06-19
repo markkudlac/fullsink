@@ -42,7 +42,15 @@ public interface Const extends BaseColumns {
 	public static final String CMD_COPY = "COPY:";
 	public static final String CMD_ZIPPREP = "ZIPPREP";
 	public static final String CMD_ZIPREADY = "ZIPREADY";
+	public static final String CMD_PLAYING = "PLAYING:";
+	public static final String CMD_WHATPLAY = "WHATPLAY";
 	
+	public static final int MODE_PAUSE = 1;
+	public static final int MODE_PLAY = 2;
+	public static final int MODE_STOP = 3;
+	public static final int MODE_NORMAL = 0;
+	public static final int MODE_SHUFFLE = 1;
+	public static final int MODE_LOOP = 2;
 }
 
 

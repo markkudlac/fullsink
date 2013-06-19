@@ -7,6 +7,8 @@ import static com.fullsink.mp.Const.*;
 
 import android.net.Uri;
 import android.os.Environment;
+import android.widget.ListView;
+
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -46,12 +48,15 @@ public class WebClient extends WebSocketClient {
 		} else if (message.startsWith(CMD_RESUME)) {	
 			mnact.playStream(Integer.parseInt(WebServer.getArg(message)));
 		} else if (message.startsWith(CMD_PAUSE)) {	
+			mnact.setServerIndicator(MODE_PLAY);
 			mnact.getTrack().pause();
 		} else if (message.startsWith(CMD_STOP)) {	
 			mnact.getTrack().dispose();
 			mnact.setStreamTrack(null);
 		} else if (message.startsWith(CMD_PONG)) {	
 			netlate = WebServer.calcLatency(Long.parseLong(WebServer.getArg(message)));
+		} else if (message.startsWith(CMD_PLAYING)) {
+			setSongData(WebServer.getArg(message));
 		} else if (message.startsWith(CMD_FILE)){
 			rcvTrack(message.substring(5));
 		} else if (message.startsWith(CMD_PING)) {	
@@ -145,6 +150,35 @@ public class WebClient extends WebSocketClient {
 
     }
 
+    
+    public void setSongData(String songdat) {
+        	
+    	// songdata has format title:album:artist
+    	
+    	String[] sdat = songdat.split(":",3);
+    	int pos = mnact.serverlist.getCheckedItemPosition();
+ 
+		if (pos != ListView.INVALID_POSITION ) {
+			mnact.serveradapter.updateSongData(pos, sdat[0]);
+		}
+    }
+    
+    
+    public String[] getSongData() {
+    	
+    	// songdata has format title:album:artist
+    	String[] rtn = {"","",""};
+    	int pos = mnact.serverlist.getCheckedItemPosition();
+ 
+		if (pos != ListView.INVALID_POSITION ) {
+			rtn = mnact.serveradapter.getSongData(pos);
+		} 
+		
+		return(rtn);
+		
+    }
+    
+    
 }
 
 

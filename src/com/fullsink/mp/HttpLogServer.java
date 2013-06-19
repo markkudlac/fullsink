@@ -1,7 +1,6 @@
 package com.fullsink.mp;
 
 
-import java.net.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.ByteArrayOutputStream;
@@ -132,12 +131,7 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
     		 try {
  
     			 System.out.println("PostExecuteHttpLogServer  rtn : " + result.getBoolean("rtn"));
-  /*  			 
-    			 if (result.getBoolean("photo")){
-    				 // Update the photo
-    				 new HttpLogServer(mnact,macaddr).execute();
-    			 }
-    */
+ 
     		 } catch (Exception ex) { System.out.println("Exception caught : " + ex); }
     	 }
      }

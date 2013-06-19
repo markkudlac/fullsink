@@ -6,8 +6,8 @@
 
     <ImageView
         android:id="@+id/image1" android:src="@drawable/ic_menu_invite"
-        android:layout_height="wrap_content" android:layout_width="wrap_content"
-        android:adjustViewBounds = "true" android:maxHeight="60dip"
+        android:layout_height="wrap_content" android:layout_width="60dip"
+        android:adjustViewBounds = "true" android:maxHeight="80dip"
         android:layout_margin="5dip" 
         />
    
@@ -23,12 +23,3 @@
 />
 
 </com.fullsink.mp.CheckableLinearLayout>
-
-<!-- 
-xmlns:custom="http://schemas.android.com/apk/res/com.fullsink.mp"
-Taken out of CheckedText as requires leve 17
-    android:paddingStart="?android:attr/listPreferredItemPaddingStart"
-    android:paddingEnd="?android:attr/listPreferredItemPaddingEnd"
-    
-    android:id="@android:id/text1"
- -->

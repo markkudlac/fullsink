@@ -14,6 +14,7 @@ import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 
+import android.widget.ListView;
 import android.widget.Toast;
 
 import java.util.zip.ZipEntry;
@@ -72,7 +73,9 @@ public class WebServer extends WebSocketServer {
             		} else {
             			conn.send(CMD_SEEK + mnact.track.getCurrentPosition());
             		}
-            		
+            		conn.send(CMD_PLAYING + currentTrackTAA());
+            } else if (message.startsWith(CMD_WHATPLAY)) {
+            	conn.send(CMD_PLAYING + currentTrackTAA());
         	} else if (message.startsWith(CMD_PONG)) {	
     			netlate = calcLatency(Long.parseLong(getArg(message)));
     		}  else if (message.startsWith(CMD_COPY)) {
@@ -333,6 +336,27 @@ port: "12345",     //websocket port
         	} catch (IOException e) {
         		System.out.println( "File I/O error " + e);
         	}
+        }
+        
+        
+        public String currentTrackTAA() {
+        	String rtn;
+        	
+        	int pos = mnact.playlist.getCheckedItemPosition();
+        			
+    		if (pos != ListView.INVALID_POSITION ) {
+    			
+    			String[] xx = mnact.playadapter.getTAA(pos);
+    			
+    			rtn = "";
+    			for (int i=0; i < xx.length; i++){
+    				if (i > 0) rtn = rtn + ":";
+    				rtn = rtn + xx[i];
+    			}
+    		} else {
+    			rtn = "::";
+    		}
+    		return(rtn);	
         }
 }
 

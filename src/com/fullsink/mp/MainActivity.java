@@ -16,13 +16,17 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
+import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.GestureDetector.SimpleOnGestureListener;
+import android.view.ViewGroup.LayoutParams;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -47,13 +51,11 @@ public class MainActivity extends Activity implements Runnable {
 	public static WebClient WClient = null;
 	public static NsdHelper mNsdHelper = null;
 	
-	private static int ShuffleLoop = 0;
+	private static int ShuffleLoop = MODE_NORMAL;
 	WakeLock wakeLock;
 
 	Music track; //currently loaded track
 
-	TextView textout;  // message window
-	ScrollView debug;
 	ListView playlist;
 	ListView serverlist;
 	
@@ -63,10 +65,6 @@ public class MainActivity extends Activity implements Runnable {
 	SeekBar seekbar;
 	ProgressBar progressbar;
 	ProgressDialog progressdialog = null;
-	
-	ImageView imgPlayPause; //The play button will need to change from 'play' to 'pause'
-	ImageView imgVolMute;
-	Button btnShuffleLoop;
 	
 	boolean isTuning; //is user currently jammin out, if so automatically start playing the next track
 
@@ -96,10 +94,7 @@ public class MainActivity extends Activity implements Runnable {
     public void onResume(){
     	super.onResume();
     	wakeLock.acquire();
-
-    	if (inClient()) {
-    		mNsdHelper.discoverServices();
-    	}
+    	mNsdHelper.discoverServices(); // Look at this later potential extra items
     }
 	
     
@@ -107,9 +102,7 @@ public class MainActivity extends Activity implements Runnable {
 	public void onPause(){
 		super.onPause();
 		wakeLock.release();
-		if (inClient()) {
-			mNsdHelper.stopDiscovery();
-		}
+		mNsdHelper.stopDiscovery();		// Look at this later potential extra items
 		
 		if (isFinishing()){
 			clearCurrentTrack();
@@ -121,11 +114,9 @@ public class MainActivity extends Activity implements Runnable {
     @Override
 	public void onDestroy() {
 		super.onDestroy();
-		mNsdHelper.unregisterService();
 		stopSockServer();
 		stopHttpdServer();
 		stopSockClient();
-		
 	}
     
     
@@ -166,7 +157,7 @@ public class MainActivity extends Activity implements Runnable {
     public void run() {
         int currentPosition= 0;
  
-        while (track != null) {
+        while (isTrack()) {
         	
         	try {
                 currentPosition = getTrack().getCurrentPosition();
@@ -194,8 +185,6 @@ public class MainActivity extends Activity implements Runnable {
     
     private void initialize(){
 
-    	textout = (TextView) findViewById(R.id.textout);
-    	debug = (ScrollView) findViewById(R.id.debug);
     	playlist= (ListView) findViewById(R.id.playlist);
     	
     	serverlist = (ListView) View.inflate(this,R.layout.server_adapter, null);
@@ -209,10 +198,6 @@ public class MainActivity extends Activity implements Runnable {
     	playlist.setOnItemClickListener(playadapter);
     	playlist.setAdapter(playadapter);
     	
-        imgPlayPause = (ImageView) findViewById(R.id.imgPlayPause);
-        imgVolMute = (ImageView) findViewById(R.id.imgVolMute);
-        btnShuffleLoop = (Button) findViewById(R.id.btnShuffleLoop);
-        
         seekbar = (SeekBar) findViewById(R.id.seekbar);
         progressbar = (ProgressBar) findViewById(R.id.progressbar);
         
@@ -250,11 +235,16 @@ public class MainActivity extends Activity implements Runnable {
     		loadTrack();
     	}
     	
- //   	debug.setOnTouchListener(gestureListener);
+ //   	serverlist.setOnTouchListener(gestureListener);
  //   	playlist.setOnTouchListener(gestureListener);
     	
     	 mNsdHelper = new NsdHelper(this, serveradapter);
 		 mNsdHelper.initializeNsd();
+		 
+		 setActiveMenu(R.id.btnSongs);
+		 if (Prefs.getOnAir(this)) turnServerOn();
+		 
+		 mNsdHelper.discoverServices();
 		 
     	System.out.println("Out Initialize");
     }
@@ -263,19 +253,60 @@ public class MainActivity extends Activity implements Runnable {
     public void setStreamTrack(Music xtrk) {
     	synchronized(this) {		// May not be needed not sure on Sync
     		track = xtrk;
+    		
+    		if (!isTrack())	setServerIndicator(MODE_STOP);
     	}
     }
     
     
-    
     public void clearCurrentTrack() {
   
-    	if (track != null){
+    	if (isTrack()){
     		track.dispose();
     		track = null;
     	}
     }
     
+    
+    private void setDownload(final boolean enable){
+ 
+    	runOnUiThread(new Runnable() {
+            public void run() {
+		    	Button copybut = (Button) findViewById(R.id.btnclientCopy);
+		    	
+		    	if (enable) {
+			    	copybut.setBackgroundResource(R.drawable.buttonblack);
+			    	copybut.setClickable(true);
+		    	} else {
+		    		copybut.setBackgroundResource(R.drawable.buttongrey);
+			    	copybut.setClickable(false);
+		    	}
+            }
+        });
+    }
+    
+    
+    public void setServerIndicator(final int mode){
+    	 
+    	runOnUiThread(new Runnable() {
+            public void run() {
+		    	ImageView imgbut = (ImageView) findViewById(R.id.imgServerIndicator);
+		    	
+		    	if (mode == MODE_PAUSE) {
+			    	imgbut.setImageResource(R.drawable.ic_media_pause);
+		    	} else if (mode == MODE_PLAY) {
+		    		imgbut.setImageResource(R.drawable.ic_media_play);
+		    	} else {
+		    		imgbut.setImageResource(R.drawable.ic_media_stop);
+		    	}
+            }
+        });
+    }
+    
+    
+    public boolean isTrack() {
+    	return track != null;
+    }
     
     
     public Music getTrack() {
@@ -296,7 +327,7 @@ public class MainActivity extends Activity implements Runnable {
 	    		dirpath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
 	
 			} else{
-				Toast.makeText(getBaseContext(), "SD Card is either mounted elsewhere or is unusable", Toast.LENGTH_LONG).show();
+				Toast.makeText(getBaseContext(), "SD Card is unreachable", Toast.LENGTH_LONG).show();
 			}
     	} catch(Exception ex) {
     		System.out.println("Exception in loadFromSD : "+ex);
@@ -359,7 +390,7 @@ public class MainActivity extends Activity implements Runnable {
  		loadTrack();
  		if (!isTuning) {
  			isTuning = true;
- 			imgPlayPause.setImageResource(R.drawable.ic_media_pause);
+ 			((ImageView) findViewById(R.id.imgPlayPause)).setImageResource(R.drawable.ic_media_pause);
  		}
  		playTrack(false);
  
@@ -369,12 +400,13 @@ public class MainActivity extends Activity implements Runnable {
     public void playStream(int offset) {
     	textOut("in playStream offset : " + offset);
     	
-    	if (track != null){
+    	if (isTrack()){
         	try {
         		getTrack().seekTo(offset);
         		progressbar.setMax(track.getDuration());
         		getTrack().play();
-        	   	
+        	   	setServerIndicator(MODE_PAUSE);
+        	   	setDownload(true);
         	   	new Thread(this).start();
 
         	} catch (Exception e) {
@@ -382,103 +414,144 @@ public class MainActivity extends Activity implements Runnable {
             }   
     	}	
     }
-
     
+    
+    
+    public void clearStream() {
+    	
+    	clearCurrentTrack();
+    	prepClientScreen();
+    }
+    
+    
+    public void prepClientScreen() {
+       	progressbar.setProgress(0);
+    	setDownload(false);
+    	setServerIndicator(MODE_STOP);
+    }
+    
+    
+    public void turnServerOn() {
+		String ipadd = NetStrat.getWifiApIpAddress();
+		int httpdPort = NetStrat.getHttpdPort(this);
+		startHttpdServer(httpdPort, ipadd);
+		
+		int webSockPort = NetStrat.getSocketPort(this);
+		System.out.println("WebSock Port : " + webSockPort + "  IPADD : " + ipadd);
+		startSockServer(webSockPort,ipadd);
+
+		NetStrat.logServer(this, ipadd, Prefs.getAcountID(this), webSockPort, httpdPort );
+		((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_on_holo_dark);
+    }
  
+    
+    
     /*****************************************  LOOK HERE *******************************/
     
     public void click(View view){
 		int id = view.getId();
+		
 		switch(id){
-		case R.id.btnShare:	
+		case R.id.btnServer:	
 			
-			if (((Button) view).getText().equals(
-					getResources().getString(R.string.serverbutOff))) {
-				
-				String ipadd = NetStrat.getWifiApIpAddress();
-				int httpdPort = NetStrat.getHttpdPort(this);
-				startHttpdServer(httpdPort, ipadd);
-				
-				int webSockPort = NetStrat.getSocketPort(this);
-				
-				System.out.println("WebSock Port : " + webSockPort + "  IPADD : " + ipadd);
-				startSockServer(webSockPort,ipadd);
-				
-				((Button) view).setText(getResources().getString(R.string.serverbutOn));
-				findViewById(R.id.btnConnect).setEnabled(false);
-				NetStrat.logServer(this, ipadd, Prefs.getAcountID(this), webSockPort, httpdPort );
+			if (!isSockServerOn()) {
+				turnServerOn();
 			} else {
-				NetStrat.logServer(this,SERVER_OFFLINE);	//Server is turned off
-				stopSockServer();
 				stopHttpdServer();
-			
-				((Button) view).setText(getResources().getString(R.string.serverbutOff));
-				findViewById(R.id.btnConnect).setEnabled(true);
+				stopSockServer();
+				
+				((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_off_holo_dark);
+				NetStrat.logServer(this,SERVER_OFFLINE);	//Server is turned off
 			}
 			return;
 			
-		case R.id.btnConnect:	
+
 			
-			RelativeLayout viewMute;
-			LinearLayout parentbuts;
+		case R.id.btnSongs:
+			{
+				RelativeLayout viewMute;
+				LinearLayout parentbuts;
 			
-			if (((Button) view).getText().equals(
-					getResources().getString(R.string.clientbutOff))) {
+				// Put mute button back
+				viewMute = (RelativeLayout) findViewById(R.id.viewMute);
+				parentbuts = (LinearLayout) findViewById(R.id.clientbuts);
 				
+				parentbuts.removeView(viewMute);
+				
+				LinearLayout.LayoutParams layoutp = new LinearLayout.LayoutParams(0,
+						LayoutParams.WRAP_CONTENT,1.0f);
+				layoutp.setMargins(FS_Util.scaleDipPx(this, 2), 0, FS_Util.scaleDipPx(this, 8), 0);
+				viewMute.setLayoutParams(layoutp);
+				viewMute.setLayoutParams(layoutp);
+				parentbuts = (LinearLayout) findViewById(R.id.mediabuts);
+				parentbuts.addView(viewMute,0);
+				
+				
+
+				setActiveMenu(R.id.btnSongs);
+				findViewById(R.id.seekbar).setVisibility(View.VISIBLE);
+				findViewById(R.id.progressbar).setVisibility(View.GONE);
+				findViewById(R.id.mediabuts).setVisibility(View.VISIBLE);
+				findViewById(R.id.clientbuts).setVisibility(View.GONE);
+				findViewById(R.id.playlist).setVisibility(View.VISIBLE);
+				findViewById(R.id.serverlist).setVisibility(View.GONE);
+				
+				if (inClient()){	// a stream was started so restart track
+					isTuning = false;
+					((ImageView) findViewById(R.id.imgPlayPause)).setImageResource(R.drawable.ic_media_play);
+					seekbar.setProgress(0);
+					loadTrack();
+				}
+				
+				stopSockClient();
+				serverlist.clearChoices();
+			}
+			return;
+
+			
+		case R.id.btnLocal:	
+			{
+				RelativeLayout viewMute;
+				LinearLayout parentbuts;
+			
 				// Move the mute button
 				viewMute = (RelativeLayout) findViewById(R.id.viewMute);
 				parentbuts = (LinearLayout) findViewById(R.id.mediabuts);
 				parentbuts.removeView(viewMute);
 				parentbuts = (LinearLayout) findViewById(R.id.clientbuts);
-				viewMute.
+				LinearLayout.LayoutParams layoutp = new LinearLayout.LayoutParams(0,
+						LayoutParams.WRAP_CONTENT,3.0f);
+				layoutp.setMargins(FS_Util.scaleDipPx(this, 8), 0, FS_Util.scaleDipPx(this, 8), 0);
+				viewMute.setLayoutParams(layoutp);
 				parentbuts.addView(viewMute,0);
 				
-				((Button) view).setText(getResources().getString(R.string.clientbutOn));
-				clearStream();
-				findViewById(R.id.btnShare).setEnabled(false);
+				setActiveMenu(R.id.btnLocal);
+				prepClientScreen();
 				findViewById(R.id.seekbar).setVisibility(View.GONE);
 				
 				findViewById(R.id.progressbar).setVisibility(View.VISIBLE);
 				findViewById(R.id.mediabuts).setVisibility(View.GONE);
 				findViewById(R.id.clientbuts).setVisibility(View.VISIBLE);
 				findViewById(R.id.playlist).setVisibility(View.GONE);
-//				findViewById(R.id.debug).setVisibility(View.VISIBLE);
 				findViewById(R.id.serverlist).setVisibility(View.VISIBLE);						
-				
-				mNsdHelper.discoverServices();
-
-				
-			} else {
-				mNsdHelper.stopDiscovery();
-				stopSockClient();
-				serverlist.clearChoices();
-				serveradapter.clear();
-				((Button) view).setText(getResources().getString(R.string.clientbutOff));
-				findViewById(R.id.btnShare).setEnabled(true);
-				findViewById(R.id.seekbar).setVisibility(View.VISIBLE);
-				findViewById(R.id.progressbar).setVisibility(View.GONE);
-				findViewById(R.id.mediabuts).setVisibility(View.VISIBLE);
-				findViewById(R.id.clientbuts).setVisibility(View.GONE);
-				findViewById(R.id.playlist).setVisibility(View.VISIBLE);
-				findViewById(R.id.debug).setVisibility(View.GONE);
-				findViewById(R.id.serverlist).setVisibility(View.GONE);
-				
-				isTuning = false;
-				imgPlayPause.setImageResource(R.drawable.ic_media_play);
-				seekbar.setProgress(0);
-				loadTrack();
 			}
 			return;
-
 			
+				
 		case R.id.btnMute:
-			if (track != null) {
-				if (!track.isMuted()) {
-					imgVolMute.setImageResource(R.drawable.ic_audio_vol_mute);
+			if (!Music.isMuted()) {
+				((ImageView) findViewById(R.id.imgVolMute)).setImageResource(R.drawable.ic_audio_vol_mute);
+				if (track != null) {
 					track.onMuted();
 				} else {
-					imgVolMute.setImageResource(R.drawable.ic_volume_small);
+					Music.setMuted(true);
+				}
+			} else {
+				((ImageView) findViewById(R.id.imgVolMute)).setImageResource(R.drawable.ic_volume_small);
+				if (track != null) {
 					track.clearMuted();
+				} else {
+					Music.setMuted(false);
 				}
 			}
 			return;
@@ -497,11 +570,11 @@ public class MainActivity extends Activity implements Runnable {
 				if(isTuning){
 					toClients(CMD_PAUSE);
 					isTuning = false;
-					imgPlayPause.setImageResource(R.drawable.ic_media_play);
+					((ImageView) findViewById(R.id.imgPlayPause)).setImageResource(R.drawable.ic_media_play);
 					track.pause();
 				} else{
 					isTuning = true;
-					imgPlayPause.setImageResource(R.drawable.ic_media_pause);
+					((ImageView) findViewById(R.id.imgPlayPause)).setImageResource(R.drawable.ic_media_pause);
 					playTrack(true);
 				}
 			}
@@ -509,44 +582,57 @@ public class MainActivity extends Activity implements Runnable {
 			
 			
 		case R.id.btnNext:
-			butNext();
+			butNext(1);
 			return;
 			
 			
 		case R.id.btnShuffleLoop:
-			if (ShuffleLoop == 0) {
-				ShuffleLoop = 1;
+	        Button btnShuffleLoop = (Button) findViewById(R.id.btnShuffleLoop);
+	        ImageView imgShuffleLoop = (ImageView) findViewById(R.id.imgShuffleLoop);
+	        
+			if (ShuffleLoop == MODE_NORMAL) {
+				ShuffleLoop = MODE_SHUFFLE;
 				btnShuffleLoop.setBackgroundResource(R.drawable.buttonblue);
+			} else if (ShuffleLoop == MODE_SHUFFLE) {
+				imgShuffleLoop.setImageResource(R.drawable.ic_menu_revert);
+				ShuffleLoop = MODE_LOOP;
 			} else {
-				ShuffleLoop = 0;
+				ShuffleLoop = MODE_NORMAL;
 				btnShuffleLoop.setBackgroundResource(R.drawable.buttonblack);
+				imgShuffleLoop.setImageResource(R.drawable.ic_menu_refresh);
 			}
 			return;
 			
 				
 		case R.id.btnclientCopy:
-			progressdialog = new ProgressDialog(this);
-			progressdialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
 			
-			progressdialog.setMax(100);
-			progressdialog.setProgress(0);
-			
-			progressdialog.setMessage("Copying : " + WClient.currentTrack);
-			progressdialog.setCancelable(false);
-			
-			progressdialog.setButton(DialogInterface.BUTTON_NEGATIVE, "Cancel", new DialogInterface.OnClickListener() {
-			    @Override
-			    public void onClick(DialogInterface dialog, int which) {
-			    	WClient.cancelFileCopy();
-			        dialog.dismiss();
-			        Toast.makeText(getBaseContext(), "Copy Cancelled", Toast.LENGTH_SHORT).show();
-			    }
-			});
-			
-			progressdialog.show();
-
-			WClient.startCopyFile();
-			return;
+			if (isTrack()) {
+				((Button) view).setClickable(false); 	//Click only once
+				progressdialog = new ProgressDialog(this);
+				progressdialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+				
+				progressdialog.setMax(100);
+				progressdialog.setProgress(0);
+				
+				progressdialog.setMessage(getResources().getString(R.string.download) +
+						" : " + WClient.getSongData()[0]);
+				progressdialog.setCancelable(false);
+				
+				progressdialog.setButton(DialogInterface.BUTTON_NEGATIVE,
+						getResources().getString(R.string.cancel), new DialogInterface.OnClickListener() {
+				    @Override
+				    public void onClick(DialogInterface dialog, int which) {
+				    	WClient.cancelFileCopy();
+				        dialog.dismiss();
+				        downloadClickable();
+				        Toast.makeText(getBaseContext(), R.string.downcanc, Toast.LENGTH_SHORT).show();
+				    }
+				});
+				
+				progressdialog.show();
+				WClient.startCopyFile();
+			}
+		return;
 			
 		default:
 			return;
@@ -554,17 +640,14 @@ public class MainActivity extends Activity implements Runnable {
 	}
     
     
-    public void clearStream() {
-    	
-    	clearCurrentTrack();
-    	progressbar.setProgress(0);
+    public void downloadClickable() {
+    	 ((Button) findViewById(R.id.btnclientCopy)).setClickable(true);
     }
+
     
-    
-    
-    private void butNext() {
+    private void butNext(int offset) {
     	
-    	setTrack(1);
+    	setTrack(offset);
 		loadTrack();
 		playTrack(false);
     }
@@ -581,22 +664,21 @@ public class MainActivity extends Activity implements Runnable {
         	else {
         		pos = 0;
         	}
-    	} else if (ShuffleLoop == 1 && playadapter.getCount() > 3){
-    			int temp = new Random().nextInt(playadapter.getCount());
-    			int safety = 0;
-    			while (safety < 20){
-    				if(temp != pos){
-    					pos = temp;
-    					break;
-    				}
-    				temp++;
-    				if(temp > playadapter.getCount()-1){
-    					temp = 0;
-    				}
-    				++safety;
-    			}
-    		}
-    	else if (direction == -1){
+    	} else if (ShuffleLoop == MODE_SHUFFLE && playadapter.getCount() > 3){
+			int temp = new Random().nextInt(playadapter.getCount());
+			int safety = 0;
+			while (safety < 20){
+				if(temp != pos){
+					pos = temp;
+					break;
+				}
+				temp++;
+				if(temp > playadapter.getCount()-1){
+					temp = 0;
+				}
+				++safety;
+			}
+		} else if (direction == -1){
     		pos--;
 			if (pos < 0){
 				 pos = playadapter.getCount()-1;
@@ -610,8 +692,7 @@ public class MainActivity extends Activity implements Runnable {
     	playlist.setItemChecked(pos, true);
     	playlist.smoothScrollToPosition(pos);
     }
-    
-    
+     
     
     //Plays the Track
     private void playTrack(boolean resume){
@@ -620,6 +701,7 @@ public class MainActivity extends Activity implements Runnable {
        		if (WServ != null && resume) {
            		toClients(CMD_RESUME + track.getCurrentPosition());
        			android.os.SystemClock.sleep(WServ.netlate);
+       			toClients(CMD_PLAYING + WServ.currentTrackTAA());	//Send Title Album Art
        		} 
        		
 			track.play();
@@ -639,12 +721,33 @@ public class MainActivity extends Activity implements Runnable {
     }
     
     
+    public void setActiveMenu(int select) {
+    	
+    	Button tbtn;
+    	ViewGroup menu = (ViewGroup)findViewById(R.id.topMenu);
+    	for (int i=1; i<menu.getChildCount(); i++) {
+    		tbtn = (Button) menu.getChildAt(i);
+    		tbtn.setPaintFlags(0);
+    		tbtn.setTypeface(Typeface.DEFAULT);
+    		tbtn.setClickable(true);
+    	}
+    	
+    	tbtn = (Button) findViewById(select);
+    	tbtn.setTypeface(Typeface.DEFAULT_BOLD);
+    	tbtn.setPaintFlags(Paint.UNDERLINE_TEXT_FLAG);
+    	tbtn.setClickable(false);
+    }
+    
     
 public void playNextTrack() {
 	
 	if (!inClient()) {
 		textOut("In playNextTrack should not be client");
-		butNext();
+		if (ShuffleLoop == MODE_LOOP) {
+			butNext(0);
+		} else {
+			butNext(1);
+		}
 	}
 }
 
@@ -684,6 +787,12 @@ public void stopSockServer() {
 	   System.out.println( "WebSockServer stop error" + ex);
    }
 }
+
+
+public boolean isSockServerOn() {
+	return(WServ != null);
+}
+
 
 public void startSockClient(int webSockPort, String ipadd, int httpdPort){
 	WebSocketImpl.DEBUG = false;		//This was true originally
@@ -735,7 +844,7 @@ public void startHttpdServer(int httpdPort, String ipadd) {
     textOut("HttpdServ started");
     textOut("Address : " + ipadd + "  Port : "+httpdPort);
    } catch ( Exception ex ) {
-	   System.out.println( "HttpdServer error : " + ex);
+	   System.out.println( "HttpdServer error  : " + ex);
    }
   }
 
@@ -744,24 +853,23 @@ public void stopHttpdServer() {
 	
 	try {
 		if (HttpdServ != null) {
+			mNsdHelper.unregisterService();
+			System.out.println("Closing HttpServ");
 			HttpdServ.stop();
 			HttpdServ = null;
 		}
-		mNsdHelper.unregisterService();
+		
 	} catch(Exception ex ) {
 	   System.out.println( "HttpdServer stop : " + ex);
    }
 }
 
-	
-public void textOut(final String xmess){
 
-	runOnUiThread(new Runnable() {
-        public void run() {
-        	textout.append(xmess + "\n");
-        }
-    });
+public void textOut(String xmess){
+
+		System.out.println(xmess);
 }
+
 
 // This is not good and should be reviewed
 public void toastOut(final String xmess, final int length){
@@ -769,7 +877,6 @@ public void toastOut(final String xmess, final int length){
 	runOnUiThread(new Runnable() {
         public void run() {
         	Toast.makeText(getBaseContext(), xmess, length).show();
-        
         }
     });
 }
@@ -783,7 +890,11 @@ public void adapterOut(final boolean remove, final int item){
         	
         	if (remove ) {
         		serveradapter.setNotifyOnChange(true);	//turn auto upadte back on
-        		if (item >= 0 ) serverlist.setItemChecked(item,false);	// This is dumb and should not be required
+        		if (item >= 0 ) {		// it is in the list else just leave
+        			serverlist.setItemChecked(item,false);	// This is dumb and should not be required
+        		} else {
+        			return;
+        		}
         	}
         	
         	serveradapter.notifyDataSetChanged();
@@ -805,9 +916,12 @@ public void fileProgressControl(final int xprog){
 	runOnUiThread(new Runnable() {
         public void run() {
         	if (xprog == DOWNLOADERR) {
+           		downloadClickable();			// Can download again
         		progressdialog.dismiss();
         		Toast.makeText(getBaseContext(), "Copy error. Re-try", Toast.LENGTH_LONG).show();
+        		
         	} else if (xprog == 0) {
+        		downloadClickable();
         		progressdialog.dismiss();
         		Toast.makeText(getBaseContext(), "Copy Complete", Toast.LENGTH_SHORT).show();
         	} else if (xprog < 0) {
