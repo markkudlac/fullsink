@@ -15,7 +15,8 @@ public interface Const extends BaseColumns {
 	public static final String RESOLVER_ADDRESS = "http://www.fullsink.com";
 	public static final String LOG_SERVER_PATH = "/api/";			// Add this to Resolver address
 	public static final String SERVER_OFFLINE = "OFF";
-
+	public static final int INSTALL_AUTO = 200;
+	
 //	public static final String[] EXTENSIONS = {".mp3", ".mid", ".wav", ".ogg", ".m4a"}; //Playable Extensions
 	public static final String HTTP_PROT = "http";
 	public static final String HTML_DIR = "FlSkHtml";
@@ -39,11 +40,13 @@ public interface Const extends BaseColumns {
 	public static final String CMD_PONG = "PONG:";
 	public static final String CMD_CONNECT = "CONNECT:";
 	public static final String CMD_FILE = "FILE:";
+	public static final String CMD_DOWNEN = "DOWNEN:";
 	public static final String CMD_COPY = "COPY:";
 	public static final String CMD_ZIPPREP = "ZIPPREP";
 	public static final String CMD_ZIPREADY = "ZIPREADY";
 	public static final String CMD_PLAYING = "PLAYING:";
 	public static final String CMD_WHATPLAY = "WHATPLAY";
+	public static final String CMD_JUKE = "JUKE:";
 	
 	public static final int MODE_PAUSE = 1;
 	public static final int MODE_PLAY = 2;

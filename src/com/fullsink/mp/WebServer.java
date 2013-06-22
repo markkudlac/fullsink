@@ -47,6 +47,11 @@ public class WebServer extends WebSocketServer {
         public void onOpen( WebSocket conn, ClientHandshake handshake ) {
  //               this.sendToAll( "CMD:MESS : new connection: " + handshake.getResourceDescriptor() );
         	conn.send(CMD_PING + System.currentTimeMillis());
+        	String down;
+        	
+        	if (Prefs.getDownload(mnact)) down = "T";
+        	else down = "F";
+        	conn.send(CMD_DOWNEN + down);
                 System.out.println("WebSocketServer client connected : " + conn.getRemoteSocketAddress().getAddress().getHostAddress());
         }
 
@@ -60,7 +65,7 @@ public class WebServer extends WebSocketServer {
         public void onMessage( WebSocket conn, String message ) {
         	// Receive messages from controller here
           System.out.println( "onMessage server : " + message );
-            mnact.textOut( "onMessage server : " + message );
+            System.out.println( "onMessage server : " + message );
             
             if (message.startsWith(CMD_PING)) {	
             	conn.send(CMD_PONG + getArg(message));
@@ -128,6 +133,8 @@ public class WebServer extends WebSocketServer {
     
         
  static   void DeleteRecursive(File fileOrDirectory) {
+	 
+	 System.out.println("IN deleteRecursive : " + fileOrDirectory.getAbsolutePath());
             if (fileOrDirectory.isDirectory())
                 for (File child : fileOrDirectory.listFiles())
                     DeleteRecursive(child);
@@ -320,7 +327,7 @@ port: "12345",     //websocket port
         	File serverid;
         	String builder;
 
-        	builder = "{ \"service\":\""+ SERVICE_NAME+ "\", \"id\":\"" + Prefs.getAcountID(mnact) + "\", \"port\":\""+
+        	builder = "{ \"service\":\""+ SERVICE_NAME+ "\", \"id\":\"" + Prefs.getName(mnact) + "\", \"port\":\""+
     				webSocketPort;
         	
         	try {
@@ -346,7 +353,7 @@ port: "12345",     //websocket port
         			
     		if (pos != ListView.INVALID_POSITION ) {
     			
-    			String[] xx = mnact.playadapter.getTAA(pos);
+    			String[] xx = mnact.playcuradapter.getTAA(pos);
     			
     			rtn = "";
     			for (int i=0; i < xx.length; i++){
@@ -358,6 +365,7 @@ port: "12345",     //websocket port
     		}
     		return(rtn);	
         }
+        
 }
 
    

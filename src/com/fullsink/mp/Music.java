@@ -66,7 +66,6 @@ public class Music extends MediaPlayer implements OnCompletionListener, OnPrepar
 	@Override
 public void onPrepared(MediaPlayer mp) {
 	
-		mnact.textOut( "IN onPrepare send READY");
 		MainActivity.WClient.send(CMD_READY);
     }
     
@@ -74,7 +73,6 @@ public void onPrepared(MediaPlayer mp) {
 	@Override
 	public void onCompletion(MediaPlayer mediaPlayer) {
 
-		mnact.textOut( "IN onCompletion");
 		mnact.playNextTrack();
 	}
 
@@ -82,7 +80,7 @@ public void onPrepared(MediaPlayer mp) {
 	@Override
 	public void onSeekComplete(MediaPlayer mediaPlayer) {
 		
-		mnact.textOut( "Seek complete listener");
+//		Syste.out.println( "Seek complete listener");
 
 	}
 		

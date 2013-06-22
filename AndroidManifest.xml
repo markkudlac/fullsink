@@ -42,7 +42,15 @@
         
         <activity
             android:name="com.fullsink.mp.PhotoActivity"
-            android:label="@string/action_photo" 
+            android:label="@string/action_photo"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:parentActivityName="com.fullsink.mp.MainActivity" >
+       </activity>
+       
+        <activity
+            android:name="com.fullsink.mp.IPAddressActivity"
+            android:label="@string/action_ipaddress"
+            android:configChanges="orientation|keyboardHidden|screenSize"
             android:parentActivityName="com.fullsink.mp.MainActivity" >
        </activity>
     </application>

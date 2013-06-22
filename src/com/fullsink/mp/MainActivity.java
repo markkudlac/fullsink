@@ -60,7 +60,7 @@ public class MainActivity extends Activity implements Runnable {
 	ListView serverlist;
 	
 	ServerAdapter serveradapter;
-	PlayAdapter playadapter;
+	PlayCurAdapter playcuradapter;
 	
 	SeekBar seekbar;
 	ProgressBar progressbar;
@@ -94,15 +94,18 @@ public class MainActivity extends Activity implements Runnable {
     public void onResume(){
     	super.onResume();
     	wakeLock.acquire();
-    	mNsdHelper.discoverServices(); // Look at this later potential extra items
+    	System.out.println("In RESUME");
+//    	mNsdHelper.discoverServices(); Keep out was problems
     }
 	
     
     @Override
 	public void onPause(){
 		super.onPause();
+		
+		System.out.println("In PAUSE");
 		wakeLock.release();
-		mNsdHelper.stopDiscovery();		// Look at this later potential extra items
+//		mNsdHelper.stopDiscovery();		Keep out was problems
 		
 		if (isFinishing()){
 			clearCurrentTrack();
@@ -151,6 +154,15 @@ public class MainActivity extends Activity implements Runnable {
         Intent intent = new Intent(this,PhotoActivity.class);
         startActivity(intent);
 	}
+   
+	
+	public void toIPAddress(MenuItem item) {
+		
+		if (!onServer()) turnServerOn();
+		
+        Intent intent = new Intent(this,IPAddressActivity.class);
+        startActivity(intent);
+	}
     
 	
     @Override
@@ -194,9 +206,9 @@ public class MainActivity extends Activity implements Runnable {
     	serverlist.setOnItemClickListener(serveradapter);
     	serverlist.setAdapter(serveradapter);
     	
-    	playadapter = new PlayAdapter(this);
-    	playlist.setOnItemClickListener(playadapter);
-    	playlist.setAdapter(playadapter);
+       	playcuradapter = new PlayCurAdapter(this, MediaMeta.getMusicCursor(this));
+    	playlist.setOnItemClickListener(playcuradapter);
+    	playlist.setAdapter(playcuradapter);
     	
         seekbar = (SeekBar) findViewById(R.id.seekbar);
         progressbar = (ProgressBar) findViewById(R.id.progressbar);
@@ -210,8 +222,7 @@ public class MainActivity extends Activity implements Runnable {
                         }
 
                         public void onStartTrackingTouch(SeekBar seekBar)
-                        {
-                        	textOut("SeekBar start touch "); 
+                        { 
                         	toClients(CMD_PAUSE);
                         	track.pause();
                         }
@@ -221,7 +232,6 @@ public class MainActivity extends Activity implements Runnable {
                         	int xseek;
                         	
                         	xseek = seekBar.getProgress();
-                        	textOut("SeekBar end touch progress val: " + xseek); 
                         	track.seekTo(xseek);
                         	toClients(CMD_RESUME + xseek);
                         	track.play();
@@ -229,10 +239,10 @@ public class MainActivity extends Activity implements Runnable {
 });
         
        	isTuning = false;
-        MediaMeta.loadMusic(this, playadapter);
-    	if (!playadapter.isEmpty()) {
+
+    	if (!playcuradapter.isEmpty()) {
     		playlist.setItemChecked(0, true);
-    		loadTrack();
+    		loadTrack(null);
     	}
     	
  //   	serverlist.setOnTouchListener(gestureListener);
@@ -246,10 +256,18 @@ public class MainActivity extends Activity implements Runnable {
 		 
 		 mNsdHelper.discoverServices();
 		 
+		 incrementLoadCount();
+		 int cnt = Prefs.getLoadCount(this);
+		 if (cnt <= INSTALL_AUTO) {
+			 
+			 PhotoActivity.setNamePhoto(this);
+			 WebClient.autoSelect(this, INSTALL_AUTO - cnt);
+		 }
     	System.out.println("Out Initialize");
     }
     
     
+   
     public void setStreamTrack(Music xtrk) {
     	synchronized(this) {		// May not be needed not sure on Sync
     		track = xtrk;
@@ -268,7 +286,7 @@ public class MainActivity extends Activity implements Runnable {
     }
     
     
-    private void setDownload(final boolean enable){
+    public void setDownload(final boolean enable){
  
     	runOnUiThread(new Runnable() {
             public void run() {
@@ -337,11 +355,15 @@ public class MainActivity extends Activity implements Runnable {
 
     
     //Loads the track by calling loadMusic
-    private boolean loadTrack(){
+    private boolean loadTrack(String prevtrack){
     	if (track != null){
     		toClients(CMD_STOP);
     		track.dispose();
     		track = null;
+    		
+    		if (prevtrack != null && WServ != null){		//Cleanup server cue
+    			WebServer.DeleteRecursive(new File(getFilesDir(), prevtrack));
+    		}
     	}
     	
     	track = loadMusic();
@@ -356,6 +378,7 @@ public class MainActivity extends Activity implements Runnable {
 		if (getCurrentTrackName() != null) {
 			if (WServ != null){
 				WServ.cueTrack(getMusicDirectory(), getCurrentTrackName());
+				playcuradapter.setCurrentTrack(getCurrentTrackName());  // Logg file for removal when next song up
 			}
 	
 			try{
@@ -363,6 +386,7 @@ public class MainActivity extends Activity implements Runnable {
 				FileDescriptor fileDescriptor = fis.getFD();
 				xmu =  new Music(fileDescriptor, (MainActivity)this);
 				toClients(CMD_PREP + getCurrentTrackName());	// make sure music play is loaded
+				
 			} catch(IOException e){
 				e.printStackTrace();
 				Toast.makeText(getBaseContext(), "Error Loading " + getCurrentTrackName(), Toast.LENGTH_LONG).show();
@@ -378,16 +402,16 @@ public class MainActivity extends Activity implements Runnable {
     	
     	pos = playlist.getCheckedItemPosition();
     	if (pos != ListView.INVALID_POSITION) {
-    		track = playadapter.getItem(pos).path;	//Path to song in music dir
+    		track = playcuradapter.getTrackPath(pos);	//Path to song in music dir
     	}
     	
     	return(track);
     }
     
     
-	public void onPlayClick(int pos) {
+	public void onPlayClick(String prevFile) {
 			   	
- 		loadTrack();
+ 		loadTrack(prevFile);
  		if (!isTuning) {
  			isTuning = true;
  			((ImageView) findViewById(R.id.imgPlayPause)).setImageResource(R.drawable.ic_media_pause);
@@ -398,7 +422,6 @@ public class MainActivity extends Activity implements Runnable {
 	
 	
     public void playStream(int offset) {
-    	textOut("in playStream offset : " + offset);
     	
     	if (isTrack()){
         	try {
@@ -406,11 +429,11 @@ public class MainActivity extends Activity implements Runnable {
         		progressbar.setMax(track.getDuration());
         		getTrack().play();
         	   	setServerIndicator(MODE_PAUSE);
-        	   	setDownload(true);
+        	   	setDownload(WClient.getDownload());
         	   	new Thread(this).start();
 
         	} catch (Exception e) {
-                    textOut("Thread exception : "+ e); 
+                    System.out.println("Thread exception : "+ e); 
             }   
     	}	
     }
@@ -418,7 +441,6 @@ public class MainActivity extends Activity implements Runnable {
     
     
     public void clearStream() {
-    	
     	clearCurrentTrack();
     	prepClientScreen();
     }
@@ -440,10 +462,37 @@ public class MainActivity extends Activity implements Runnable {
 		System.out.println("WebSock Port : " + webSockPort + "  IPADD : " + ipadd);
 		startSockServer(webSockPort,ipadd);
 
-		NetStrat.logServer(this, ipadd, Prefs.getAcountID(this), webSockPort, httpdPort );
+		NetStrat.logServer(this, ipadd, Prefs.getName(this), webSockPort, httpdPort );
 		((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_on_holo_dark);
     }
  
+    
+    
+    public void callLocal() {
+		RelativeLayout viewMute;
+		LinearLayout parentbuts;
+	
+		// Move the mute button
+		viewMute = (RelativeLayout) findViewById(R.id.viewMute);
+		parentbuts = (LinearLayout) findViewById(R.id.mediabuts);
+		parentbuts.removeView(viewMute);
+		parentbuts = (LinearLayout) findViewById(R.id.clientbuts);
+		LinearLayout.LayoutParams layoutp = new LinearLayout.LayoutParams(0,
+				LayoutParams.WRAP_CONTENT,3.0f);
+		layoutp.setMargins(FS_Util.scaleDipPx(this, 8), 0, FS_Util.scaleDipPx(this, 8), 0);
+		viewMute.setLayoutParams(layoutp);
+		parentbuts.addView(viewMute,0);
+		
+		setActiveMenu(R.id.btnLocal);
+		prepClientScreen();
+		findViewById(R.id.seekbar).setVisibility(View.GONE);
+		
+		findViewById(R.id.progressbar).setVisibility(View.VISIBLE);
+		findViewById(R.id.mediabuts).setVisibility(View.GONE);
+		findViewById(R.id.clientbuts).setVisibility(View.VISIBLE);
+		findViewById(R.id.playlist).setVisibility(View.GONE);
+		findViewById(R.id.serverlist).setVisibility(View.VISIBLE);	
+    }
     
     
     /*****************************************  LOOK HERE *******************************/
@@ -500,7 +549,7 @@ public class MainActivity extends Activity implements Runnable {
 					isTuning = false;
 					((ImageView) findViewById(R.id.imgPlayPause)).setImageResource(R.drawable.ic_media_play);
 					seekbar.setProgress(0);
-					loadTrack();
+					loadTrack(null);
 				}
 				
 				stopSockClient();
@@ -511,29 +560,7 @@ public class MainActivity extends Activity implements Runnable {
 			
 		case R.id.btnLocal:	
 			{
-				RelativeLayout viewMute;
-				LinearLayout parentbuts;
-			
-				// Move the mute button
-				viewMute = (RelativeLayout) findViewById(R.id.viewMute);
-				parentbuts = (LinearLayout) findViewById(R.id.mediabuts);
-				parentbuts.removeView(viewMute);
-				parentbuts = (LinearLayout) findViewById(R.id.clientbuts);
-				LinearLayout.LayoutParams layoutp = new LinearLayout.LayoutParams(0,
-						LayoutParams.WRAP_CONTENT,3.0f);
-				layoutp.setMargins(FS_Util.scaleDipPx(this, 8), 0, FS_Util.scaleDipPx(this, 8), 0);
-				viewMute.setLayoutParams(layoutp);
-				parentbuts.addView(viewMute,0);
-				
-				setActiveMenu(R.id.btnLocal);
-				prepClientScreen();
-				findViewById(R.id.seekbar).setVisibility(View.GONE);
-				
-				findViewById(R.id.progressbar).setVisibility(View.VISIBLE);
-				findViewById(R.id.mediabuts).setVisibility(View.GONE);
-				findViewById(R.id.clientbuts).setVisibility(View.VISIBLE);
-				findViewById(R.id.playlist).setVisibility(View.GONE);
-				findViewById(R.id.serverlist).setVisibility(View.VISIBLE);						
+				callLocal();
 			}
 			return;
 			
@@ -558,8 +585,7 @@ public class MainActivity extends Activity implements Runnable {
 			
 		
 		case R.id.btnPrevious:
-			setTrack(-1);
-			loadTrack();
+			loadTrack(setTrack(-1));
 			playTrack(false);
 			return;
 			
@@ -647,25 +673,32 @@ public class MainActivity extends Activity implements Runnable {
     
     private void butNext(int offset) {
     	
-    	setTrack(offset);
-		loadTrack();
+		loadTrack(setTrack(offset));
 		playTrack(false);
     }
     
     
-    private void setTrack(int direction){
+    private String setTrack(int direction){
     
     	int pos = 0;
+    	String prevtrack = null;
     	
     	// Get current position and if none check, should not happen, got to top
     	pos = playlist.getCheckedItemPosition();
     	if (pos == ListView.INVALID_POSITION) {
-        	if (playadapter.isEmpty()) return;
+        	if (playcuradapter.isEmpty()){
+        		pos = -1;
+        	}
         	else {
         		pos = 0;
         	}
-    	} else if (ShuffleLoop == MODE_SHUFFLE && playadapter.getCount() > 3){
-			int temp = new Random().nextInt(playadapter.getCount());
+        	return(prevtrack);
+    	}
+    	
+    	prevtrack = getCurrentTrackName();
+    	
+    	if (ShuffleLoop == MODE_SHUFFLE && playcuradapter.getCount() > 3){
+			int temp = new Random().nextInt(playcuradapter.getCount());
 			int safety = 0;
 			while (safety < 20){
 				if(temp != pos){
@@ -673,7 +706,7 @@ public class MainActivity extends Activity implements Runnable {
 					break;
 				}
 				temp++;
-				if(temp > playadapter.getCount()-1){
+				if(temp > playcuradapter.getCount()-1){
 					temp = 0;
 				}
 				++safety;
@@ -681,16 +714,17 @@ public class MainActivity extends Activity implements Runnable {
 		} else if (direction == -1){
     		pos--;
 			if (pos < 0){
-				 pos = playadapter.getCount()-1;
+				 pos = playcuradapter.getCount()-1;
 			}
     	} else if(direction == 1){
     		pos++;
-			if (pos > playadapter.getCount()-1){
+			if (pos > playcuradapter.getCount()-1){
 				pos = 0;
 			}
     	}  
     	playlist.setItemChecked(pos, true);
     	playlist.smoothScrollToPosition(pos);
+    	return(prevtrack);
     }
      
     
@@ -712,13 +746,11 @@ public class MainActivity extends Activity implements Runnable {
 	    		new Thread(this).start();
 
 	    	} catch (Exception e) {
-	                textOut("Thread exception : "+ e); 
+	                System.out.println("Thread exception : "+ e); 
 	            }   
-	    	
-//			Toast.makeText(getBaseContext(), "Playing " + getCurrentTrackName().substring(0,
-//					getCurrentTrackName().length()-4), Toast.LENGTH_SHORT).show();
 		}
     }
+    
     
     
     public void setActiveMenu(int select) {
@@ -742,7 +774,6 @@ public class MainActivity extends Activity implements Runnable {
 public void playNextTrack() {
 	
 	if (!inClient()) {
-		textOut("In playNextTrack should not be client");
 		if (ShuffleLoop == MODE_LOOP) {
 			butNext(0);
 		} else {
@@ -765,8 +796,7 @@ public void startSockServer(int port, String ipadd) {
     WServ.start();       
 
     System.out.println( "WebSockServ started on port: " + WServ.getPort() );
-    textOut("WebSockServ started");
-    textOut("Address : " + WServ.getAddress());
+    System.out.println("WebSockServ start Add : " + WServ.getAddress());
     WServ.initHTML(WServ.getPort());
     		
    } catch ( Exception ex ) {
@@ -779,7 +809,7 @@ public void startSockServer(int port, String ipadd) {
 public void stopSockServer() {
 	
 	try {
-		if (WServ != null) {
+		if (onServer()) {
 			WServ.stop();
 			WServ = null;
 		}
@@ -797,10 +827,10 @@ public boolean isSockServerOn() {
 public void startSockClient(int webSockPort, String ipadd, int httpdPort){
 	WebSocketImpl.DEBUG = false;		//This was true originally
 	try {
+		System.out.println( "In startSockClient");
 		stopSockClient();
 		 WClient = new WebClient(webSockPort, ipadd, httpdPort,  MainActivity.this);
 		 WClient.connect();
-
 		 
 	} catch ( Exception ex ) {
 		   System.out.println( "WebClient error : " + ex);
@@ -810,7 +840,7 @@ public void startSockClient(int webSockPort, String ipadd, int httpdPort){
 
 public void toClients(String mess){
 	
-	if (WServ != null){
+	if (onServer()){
 		WServ.sendToAll(mess);
 	}
 }
@@ -834,6 +864,12 @@ public boolean inClient() {
 }
 
 
+
+public boolean onServer() {
+	return(WServ != null);
+}
+
+
 public void startHttpdServer(int httpdPort, String ipadd) {
     
    try {
@@ -841,8 +877,8 @@ public void startHttpdServer(int httpdPort, String ipadd) {
     HttpdServ = new SimpleWebServer( ipadd, httpdPort, getFilesDir() ); 
     HttpdServ.start();  
     mNsdHelper.registerService(httpdPort);
-    textOut("HttpdServ started");
-    textOut("Address : " + ipadd + "  Port : "+httpdPort);
+    System.out.println("HttpdServ started Add : " + ipadd + "  Port : "+httpdPort);
+    NetStrat.storeHttpdPort(httpdPort);
    } catch ( Exception ex ) {
 	   System.out.println( "HttpdServer error  : " + ex);
    }
@@ -857,6 +893,7 @@ public void stopHttpdServer() {
 			System.out.println("Closing HttpServ");
 			HttpdServ.stop();
 			HttpdServ = null;
+			NetStrat.storeHttpdPort(0);
 		}
 		
 	} catch(Exception ex ) {
@@ -864,11 +901,6 @@ public void stopHttpdServer() {
    }
 }
 
-
-public void textOut(String xmess){
-
-		System.out.println(xmess);
-}
 
 
 // This is not good and should be reviewed
@@ -933,5 +965,12 @@ public void fileProgressControl(final int xprog){
     });
 }
 
+
+private void incrementLoadCount() {
+	
+	int cnt = Prefs.getLoadCount(this) + 1;
+	System.out.println("Increment loadcount : "+cnt);
+	Prefs.setLoadCount(this, cnt); 
+}
 
 }

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent" android:layout_height="match_parent"
+        android:orientation="vertical" android:gravity="center" 
+        android:weightSum="1.0">
+        
+         <LinearLayout 
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:orientation="vertical" android:gravity="left" 
+        android:layout_weight="0.4">
+        
+         <TextView 
+		     android:layout_width="wrap_content"  
+		    android:layout_height="wrap_content"  android:textSize="12pt"
+		    android:text="@string/action_ipaddress"  android:textColor="#CCC">  
+		</TextView> 
+		
+     <TextView  android:id="@+id/ipaddress"  
+		     android:layout_width="wrap_content"  
+		    android:layout_height="wrap_content"  android:textSize="16pt"
+		    android:text="Address">  
+		</TextView> 
+		
+     </LinearLayout>
+  </LinearLayout>

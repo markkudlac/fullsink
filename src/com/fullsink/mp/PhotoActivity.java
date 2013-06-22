@@ -4,22 +4,30 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-//import java.security.MessageDigest;
 
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.ContactsContract;
+import android.provider.ContactsContract.CommonDataKinds.Email;
+import android.provider.ContactsContract.CommonDataKinds.Photo;
 import android.provider.ContactsContract.Contacts; 
-import android.util.Base64;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageView;
+
 import android.widget.Toast;
 import android.app.Activity;
 import android.content.ContentUris;
 import android.content.Context;
+import android.content.CursorLoader;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+
 
 import static com.fullsink.mp.Const.*;
 
@@ -27,6 +35,8 @@ public class PhotoActivity extends Activity {
 	
 	private static final int CONTACT_PICKER_RESULT = 1001;
 	ImageView photoimageview;
+	private EditText editname;
+	
 	
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,11 +47,27 @@ public class PhotoActivity extends Activity {
         photoimageview = (ImageView) findViewById(R.id.photoimage);
         
         Bitmap bm = getPhotoBitmap(this);
-        
         if (bm != null)	photoimageview.setImageBitmap(bm);
         
+        addKeyListener(this);
+        
+//        
     }
 	
+    
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        // Checks the orientation of the screen
+        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+        	System.out.println("Got configuration change : Landscape");
+        } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT){
+        	System.out.println("Got configuration change : Portrait");
+        }
+    }
+ 
+    
     
     public void doLaunchContactPicker(View view) {  
         Intent contactPickerIntent = new Intent(Intent.ACTION_PICK,  
@@ -60,8 +86,7 @@ public class PhotoActivity extends Activity {
 
                 try {
                     Uri result = data.getData();
-                    System.out.println( "Got a contact result: "
-                            + result.toString());
+                  
                     // get the contact id from the Uri
                     String id = result.getLastPathSegment();
                     // query for everything photo
@@ -85,7 +110,7 @@ public class PhotoActivity extends Activity {
 	                    	ImageView img = (ImageView) findViewById(R.id.photoimage);
 	                    	img.setImageBitmap(bm);
                         
-                    		storePhoto(photoblob);
+                    		storePhoto(this, photoblob);
                         } else {
                         	System.out.println( "No photo Blob");
                         }
@@ -125,12 +150,12 @@ public class PhotoActivity extends Activity {
     
     
     // Contact photo is stored on FS_html
-    private void storePhoto(byte[] photoblob) {
+    static public void storePhoto(Activity pact, byte[] photoblob) {
     	
        	try {
 	    		File photodest;
 	      		
-	    		photodest = new File(getFilesDir(),HTML_DIR);
+	    		photodest = new File(pact.getFilesDir(),HTML_DIR);
 	    		photodest.mkdirs();
 	    			
         		photodest = new File(photodest, SERVER_PHOTO);
@@ -154,7 +179,6 @@ public class PhotoActivity extends Activity {
     	
 		xbyte = getPhotoByte(context);
 		if (xbyte != null && xbyte.length > 0) {
-			xbyte = Base64.decode(xbyte,Base64.DEFAULT);
 	    	bm = BitmapFactory.decodeByteArray(xbyte, 0, xbyte.length);
 		}
         return(bm);
@@ -195,6 +219,163 @@ public class PhotoActivity extends Activity {
     
     
     
+    public void addKeyListener(final Context context) {
+    	 
+    	editname = (EditText) findViewById(R.id.nameField);
+    	editname.setText(Prefs.getName(context));
+    	System.out.println("Addkeykistener text : "+Prefs.getName(context));
+    	// add a keylistener to keep track user input
+    	editname.addTextChangedListener(new TextWatcher() {
+    		 
+    	    @Override
+    	    public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+    	 
+    	    }
+    	 
+    	    @Override
+    	    public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+    	 
+    	    }
+    	 
+    	    @Override
+    	    public void afterTextChanged(Editable editable) {
+    	       //here, after we introduced something in the EditText we get the string from it
+    	       String name = editname.getText().toString();
+
+    	       	name = name.trim();
+    	       
+    	       	if (name.matches(".*[<>\"\'].*")) {
+    	       		Toast.makeText(getBaseContext(), "Invalid character <,> or quotes", Toast.LENGTH_SHORT).show();
+    	  //     		System.out.println("The invalid string from EditText");
+    	       	} else {
+    	 //      		System.out.println("The string from EditText is: "+name);
+    	       		Prefs.setName(context, name);  // Save in prefs
+    	       	}
+    	        
+    	    }
+    	});
+    }
+    
+    
+    static public boolean setNamePhoto(Activity pact){
+    	
+    	boolean nameupdated = false;
+    	final String[] projection = new String[] {
+    			ContactsContract.Contacts.DISPLAY_NAME_PRIMARY,  // the name of the contact
+    			ContactsContract.Contacts.Photo.PHOTO_ID,       // the data table for the image
+    			ContactsContract.Contacts._ID
+    			};
+
+    	if (Prefs.getName(pact).length() > 0) {
+    		System.out.println("Name is already set");
+    		return nameupdated;
+    	}
+    	
+     CursorLoader loader = new CursorLoader(pact,
+    			                Contacts.CONTENT_URI,
+    			                projection,
+    			                null, null, ContactsContract.Contacts._ID +" ASC");
+     Cursor cursor = loader.loadInBackground();
+     
+    	 if (cursor.moveToFirst()) {
+    		final String name = cursor.getString(
+    		    cursor.getColumnIndex(Contacts.DISPLAY_NAME_PRIMARY));
+    		System.out.println("Got contact name : "+ name);
+    		
+    		String xname = name.split("@",2)[0];	//Split out @ if it is email returned
+    		Prefs.setName(pact, xname);		//Save the name
+    		nameupdated = true;
+    		String photoid = cursor.getString(cursor.getColumnIndex(
+    				ContactsContract.Contacts.Photo.PHOTO_ID));
+            if (photoid != null) {
+            	System.out.println( "Got photo ID");
+            	setPhoto(pact, photoid);
+            	
+            } else {
+            	System.out.println("Photo ID is null");		// Scan for a photo that matches this primary either email or name
+            	setEmailPhoto(pact, name);
+            }
+    	 } else {
+    		System.out.println("Got contact FAIL");
+    	}
+    	
+    	cursor.close();
+    	return(nameupdated);
+    }
+    
+    
+   static public void setEmailPhoto(Activity pact,String emailname){
+    	
+    	final String[] projection = new String[] {
+    			ContactsContract.Contacts.DISPLAY_NAME_PRIMARY,		// This is here for testing
+    			Email.ADDRESS,       // the data table for the image
+    			ContactsContract.Contacts.Photo.PHOTO_ID
+    			};
+
+     CursorLoader loader = new CursorLoader(pact,		// Match name or email
+    			                Email.CONTENT_URI,
+    			                projection,
+    			                Email.ADDRESS + "=? OR "+ContactsContract.Contacts.DISPLAY_NAME_PRIMARY+"=?", 
+    			                new String[]{ emailname, emailname }, null);
+     Cursor cursor = loader.loadInBackground();
+     
+   boolean loop = cursor.moveToFirst();
+   int i = 0;	//safety
+    	 while (loop && i < 500) {
+    		 ++i;
+    		
+    		final String name = cursor.getString(
+    		    cursor.getColumnIndex(Contacts.DISPLAY_NAME_PRIMARY));
+    		System.out.println("Got email contact name : "+ name);
+    		
+    		String photoid = cursor.getString(cursor.getColumnIndex(
+    				ContactsContract.Contacts.Photo.PHOTO_ID));
+            if (photoid != null) {
+            	System.out.println( "Got Email photo ID");
+            	setPhoto(pact, photoid);
+            	break;
+            } else {
+            	System.out.println("Email Photo ID is null");
+            }
+            loop = cursor.moveToNext();
+    	 }
+    	
+    	cursor.close();
+    }
+    
+    
+    static public void setPhoto(Activity pact, String photoid) {
+    	
+      	final String[] projection = new String[] {
+    			ContactsContract.Contacts.Photo.PHOTO, 
+    			};
+
+     CursorLoader loader = new CursorLoader(pact,
+    		 					ContactsContract.Data.CONTENT_URI,
+    			                projection,
+    			                ContactsContract.Data._ID + "=?", new String[]{photoid}, null);
+     Cursor cursor = loader.loadInBackground();
+     
+    	if (cursor.moveToFirst()) {
+    		
+    		byte[] photoblob = cursor.getBlob(cursor.getColumnIndex(ContactsContract.Contacts.Photo.PHOTO));
+            if (photoblob != null) {
+            	System.out.println( "Got photo Blob");
+        		storePhoto(pact, photoblob);
+            } else {
+            	System.out.println( "Photo Blob is null");
+            }
+    	} else {
+    		System.out.println("Got contact Photo FAIL");
+    	}
+    	
+    	cursor.close();
+    }
+}
+
+
+
+
     /*  
     static private Bitmap getPhotoBitmap() {
     	
@@ -247,6 +428,5 @@ public class PhotoActivity extends Activity {
         return null;
     }
     */
-}
 
 

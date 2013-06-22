@@ -8,15 +8,13 @@ import java.net.ServerSocket;
 import java.net.SocketException;
 import java.util.Enumeration;
 
+import android.app.Activity;
 import android.content.Context;
-import android.location.Criteria;
-import android.location.Location;
-import android.location.LocationManager;
 import android.net.wifi.WifiManager;
 
 public class NetStrat {
 	
-
+static int httpdPort = 0;
 
 static	public String getWifiApIpAddress() {
 	    try {
@@ -59,7 +57,7 @@ static public int getNextSocket() {
 }
 
 
-static public int getSocketPort(MainActivity mnact) {
+static public int getSocketPort(Activity mnact) {
 	
 	int sock = -1;
 
@@ -72,7 +70,7 @@ static public int getSocketPort(MainActivity mnact) {
 }
 
 
-static public int getHttpdPort(MainActivity mnact) {
+static public int getHttpdPort(Activity mnact) {
 	
 	int sock = -1;
 
@@ -80,7 +78,7 @@ static public int getHttpdPort(MainActivity mnact) {
 	if (sock <= 1024) {
 		sock = getNextSocket();
 	}
-	System.out.println("In getHttpdPort port : " + sock);
+//	System.out.println("In getHttpdPort port : " + sock);
 	return sock;
 }
 
@@ -95,7 +93,7 @@ static public String getMacAddress(MainActivity mnact ) {
 
 static public void logServer(MainActivity mnact, String offline) {
 
- logServer(mnact, offline, Prefs.getAcountID(mnact), 0, 0 );
+ logServer(mnact, offline, Prefs.getName(mnact), 0, 0 );
 }
 
 
@@ -119,33 +117,18 @@ static public void logServer(MainActivity mnact, String ipadd, String handle, in
  		new HttpLogServer(mnact,mac).execute(ipadd, handle, String.valueOf(portsock), String.valueOf(porthttpd));
     }
 }
+
+
+static public void storeHttpdPort(int port) {
+	httpdPort = port;
+}
+ 
+
+static public int getHttpdPort() {
+	return httpdPort;
+}
+
 }
 
 
-
-/*  Old function for ip address 
- * 
-public String getServerIPAddress() {
-	
-	try {
-	WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
-	WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-	int ipAddress = wifiInfo.getIpAddress();
-	
-	String strIP = String.format("%d.%d.%d.%d", 		// This is bad as IPv4 only, change later
-			(ipAddress & 0xff), 
-			(ipAddress >> 8 & 0xff), 
-			(ipAddress >> 16 & 0xff),
-			(ipAddress >> 24 & 0xff));
-
-	System.out.println("Server IP : "+strIP);
-	
-	return(strIP);
-	} catch ( Exception ex ) {
-    	   System.out.println( "WebServer ipAddress not found" + ex);
-       }
-	return null;
-
-}
-*/
 

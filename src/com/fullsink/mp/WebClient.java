@@ -7,7 +7,12 @@ import static com.fullsink.mp.Const.*;
 
 import android.net.Uri;
 import android.os.Environment;
+import android.os.SystemClock;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.net.URI;
@@ -15,13 +20,14 @@ import java.net.URISyntaxException;
 
 public class WebClient extends WebSocketClient {
 	
-	MainActivity mnact = null;
-	String copyTrack = null;
-	String currentTrack = null;
-	int netlate = BASE_LATENCY;
-	String ipAddress;
-	int httpdport;
-	DownloadFile fileTask = null;
+	private MainActivity mnact;
+	private String copyTrack;
+	private String currentTrack;
+	private int netlate;
+	private String ipAddress;
+	private int httpdport;
+	private DownloadFile fileTask;
+ 	private boolean downloadEnabled;
 	
 	public WebClient( int websocketport, String ipAddress, int httpdport, MainActivity mnact ) throws URISyntaxException {
 	
@@ -32,12 +38,17 @@ public class WebClient extends WebSocketClient {
         this.mnact = mnact;
         this.ipAddress = ipAddress;
         this.httpdport = httpdport;
+        copyTrack = null;
+        currentTrack = null;
+        netlate = BASE_LATENCY;
+        fileTask = null;
+        downloadEnabled = true;
 }
 	
 	@Override
     public void onMessage( String message ) {
 
-		mnact.textOut("Cl Mess: " + message);
+		System.out.println("Cl Mess: " + message);
 		
 		if (message.startsWith(CMD_SEEK)) {	
 			mnact.getTrack().seekTo(Integer.parseInt(WebServer.getArg(message)));
@@ -61,14 +72,20 @@ public class WebClient extends WebSocketClient {
 			rcvTrack(message.substring(5));
 		} else if (message.startsWith(CMD_PING)) {	
         	send(CMD_PONG + WebServer.getArg(message));
+        } else if (message.startsWith(CMD_DOWNEN)) {	
+        	boolean tdown;
+        	tdown = WebServer.getArg(message).equals("T");
+        	if (downloadEnabled && !tdown) mnact.toastOut("Server disabled downloading",Toast.LENGTH_LONG);
+        	downloadEnabled = tdown;
+        	mnact.setDownload(downloadEnabled);
         }
     }
-
+	
     @Override
     public void onOpen( ServerHandshake handshake ) {
     	System.out.println( "You are connected to WebServer: " + getURI() );
    	
-    	send(CMD_CONNECT + Prefs.getAcountID(mnact));
+    	send(CMD_CONNECT + Prefs.getName(mnact));
     	send(CMD_PING + System.currentTimeMillis());
     	send(CMD_INIT);
     }
@@ -83,7 +100,21 @@ public class WebClient extends WebSocketClient {
     	System.out.println( "Exception occured:\n" + ex );
     }
     
- 
+    
+    public boolean getDownload() {
+    	return downloadEnabled;
+    }
+ /*
+    public void setDownload(boolean isenabled) {
+    	if (isenabled) {
+    		mnact.findViewById(R.id.btnclientCopy).setClickable(false);
+    		((ImageView) mnact.findViewById(R.id.btnclientCopy)).setImageResource(R.drawable.buttongrey);
+    	} else {
+    		mnact.findViewById(R.id.btnclientCopy).setClickable(true);
+    		((ImageView) mnact.findViewById(R.id.btnclientCopy)).setImageResource(R.drawable.buttonblack);
+    	}
+    }
+  */  
     
     public void startCopyFile(){
     	copyTrack = currentTrack;
@@ -178,6 +209,44 @@ public class WebClient extends WebSocketClient {
 		
     }
     
+    
+    public static void autoSelect(final MainActivity mnact, final int cnt) {
+    	System.out.println("In autoSel");
+    	
+    	new Thread(new Runnable() {
+
+            public void run() {
+        		try {
+	            	System.out.println("Before sleep in autoSel");
+	            	
+	            	Thread.sleep(3000);
+	            	System.out.println("After sleep in autoSel");
+	            	if (mnact.serverlist.getCount() > 0) {
+	            		mnact.runOnUiThread(new Runnable() {
+	            	        public void run() {
+	            	        	String xtime = "time";
+	            	        	if (cnt > 1) xtime += "s";
+	            	        	if (cnt > 0) {
+	            	        	Toast.makeText(mnact.getBaseContext(), "Client will auto connect "+cnt+
+	            	        			" more "+xtime, Toast.LENGTH_LONG).show();
+	            	        	}
+	            	        	mnact.callLocal();
+	            	        	mnact.serverlist.setItemChecked(0, true);
+	            	        	mnact.serveradapter.serverSelected(0);	//This is bad but performClick didn't work
+	            	        											// as onClickItem works though
+	            	        }
+	            		});
+	            		System.out.println("Items in list");
+	            	} else {
+	            		System.out.println("NO Items in list");
+	            	}
+           
+        		} catch(Exception ex) {
+        			System.out.println("Select thread exception : "+ex);
+        		}
+            }
+        }).start();
+    }
     
 }
 

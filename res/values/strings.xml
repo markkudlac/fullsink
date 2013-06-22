@@ -7,7 +7,6 @@
     <string name="menuArtists">Artists</string>
     <string name="clientbutOff">Local</string>
     <string name="action_settings">Settings</string>
-    <string name="pref_acntid">Account ID</string>
 	<string name="pref_sockport">Socket Port</string>
 	<string name="default_sockport">8887</string>
 	<!-- Resolver is for testing this is if length <= 12  then call http://www.fullsink.com  -->
@@ -15,10 +14,14 @@
 	<string name="pref_httpdport">HTTPD Port</string>
 	<string name="default_httpdport">8080</string>
 	<string name="pref_onair">Start On Air</string>
+	<string name="pref_download">Allow Downloads</string>
 	
-	<string name="action_photo">Pick Photo</string>
-	<string name="photobutpick">Pick</string>
-	<string name="photobutclear">Clear</string>
+	<string name="action_photo">Name and Photo</string>
+	<string name="photobutpick">Pick Photo</string>
+	<string name="photobutclear">Clear Photo</string>
+	
+	<string name="action_ipaddress">Server Address</string>
+	
 	<string name="tunedin">has tuned in</string>
 	<string name="tunedout">has tuned out</string>
 	<string name="download">Downloading</string>

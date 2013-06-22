@@ -65,7 +65,8 @@
    			android:max="100" android:progress="0" />
 
 		<!--  Hidden initially -->			
-		<ProgressBar android:id="@+id/progressbar" android:layout_width="fill_parent" android:layout_height="wrap_content"
+		<ProgressBar android:id="@+id/progressbar" android:layout_width="fill_parent" 
+		    android:layout_height="wrap_content"
    			android:layout_margin="5dip" android:max="100" android:progress="0"
    			style="@android:style/Widget.ProgressBar.Horizontal" android:visibility="gone" />
 		
@@ -166,7 +167,7 @@
 				android:layout_width="match_parent" android:layout_height="35dip" 
 				android:background="@drawable/buttongrey" android:clickable="false"
 				android:onClick="click" style="?android:attr/buttonBarButtonStyle"/>		
-				<ImageView
+				<ImageView android:id="@+id/imgclientCopy" 
         		android:src="@drawable/stat_sys_download" android:layout_centerHorizontal="true"
         		android:layout_height="35dip" android:layout_width="wrap_content" 
         		android:layout_centerVertical="true"/>

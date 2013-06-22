@@ -119,11 +119,22 @@ public String[] getSongData(int pos) {
     	
 //	   	System.out.println("Got item click: "+ xdata.ipAddr + "pos : "+position);
     	clearSongData();
+    	
 	   	mnact.clearCurrentTrack();
 	   	mnact.startSockClient(xdata.webSockPort, xdata.ipAddr, xdata.httpdPort) ;
 	   }
     
     
+    public void serverSelected( int pos){
+    	
+    	ServerData xdata = ((ServerData)(items.get(pos)));
+    	
+//	   	System.out.println("Got Selected: "+ xdata.ipAddr + "pos : "+pos);
+    	
+	   	mnact.clearCurrentTrack();
+	   	mnact.startSockClient(xdata.webSockPort, xdata.ipAddr, xdata.httpdPort) ;
+    	
+    }
     
     public synchronized boolean inServerList(String addr) {
     	
