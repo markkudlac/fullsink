@@ -70,7 +70,7 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
     	 			 
     			 serveradapter.add(result.getString("id"), addr, httpdPort, result.getInt("port"), servicename,
 					 null);
-    			 new DownloadImageTask(mnact, addr, httpdPort, serveradapter, null).execute(HTML_DIR + "/" + SERVER_PHOTO);
+    			 new DownloadImageTask(mnact, addr, httpdPort, serveradapter, null).execute(USERHTML_DIR + "/" + SERVER_PHOTO);
     			 mnact.adapterOut(false,-1);
     		 } catch (Exception ex) { System.out.println("Exception caught : " + ex); }
     	 }

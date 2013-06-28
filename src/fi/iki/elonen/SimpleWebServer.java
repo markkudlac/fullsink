@@ -1,7 +1,7 @@
 package fi.iki.elonen;
 
 import static com.fullsink.mp.Const.BASE_BLOCKSIZE;
-import static com.fullsink.mp.Const.HTML_DIR;
+import static com.fullsink.mp.Const.USERHTML_DIR;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.StringTokenizer;
+
 
 public class SimpleWebServer extends NanoHTTPD {
     /**
@@ -290,13 +291,13 @@ public class SimpleWebServer extends NanoHTTPD {
     
     public void copyFile(String targ, String dest) {
     	
-    	System.out.println(" Copy temp file HTTPD in: " + targ + "  out : " + dest);
+ //   	System.out.println(" Copy temp file HTTPD in: " + targ + "  out : " + dest);
     	
     	try {
     		byte [] xbuf = new byte[BASE_BLOCKSIZE];  
     		File fl_dest;
 
-    		fl_dest = new File(rootDir, HTML_DIR + "/"+dest);
+    		fl_dest = new File(rootDir, USERHTML_DIR + "/"+dest);
     		fl_dest.createNewFile();
     		// Copy contents of temp over to files
     		
@@ -318,32 +319,5 @@ public class SimpleWebServer extends NanoHTTPD {
     	}
     }
     
-    
-    
-    /**
-     * Starts as a standalone file server and waits for Enter.
 
-    public static void main(String[] args) {
-
-        // Defaults
-        int port = 8080;
-        String host = "127.0.0.1";
-        File wwwroot = new File(".").getAbsoluteFile();
-
-        // Show licence if requested
-        for (int i = 0; i < args.length; ++i)
-            if (args[i].equalsIgnoreCase("-h"))
-                host = args[i + 1];
-            else if (args[i].equalsIgnoreCase("-p"))
-                port = Integer.parseInt(args[i + 1]);
-            else if (args[i].equalsIgnoreCase("-d"))
-                wwwroot = new File(args[i + 1]).getAbsoluteFile();
-            else if (args[i].toLowerCase().endsWith("licence")) {
- //               System.out.println(LICENCE + "\n");
-                break;
-            }
-
-        ServerRunner.executeInstance(new SimpleWebServer(host, port, wwwroot));
-    }
-    */
 }

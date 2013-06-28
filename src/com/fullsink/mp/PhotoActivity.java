@@ -155,7 +155,7 @@ public class PhotoActivity extends Activity {
        	try {
 	    		File photodest;
 	      		
-	    		photodest = new File(pact.getFilesDir(),HTML_DIR);
+	    		photodest = new File(pact.getFilesDir(),USERHTML_DIR);
 	    		photodest.mkdirs();
 	    			
         		photodest = new File(photodest, SERVER_PHOTO);
@@ -191,7 +191,7 @@ public class PhotoActivity extends Activity {
 		int flsz;
       	try {
 	    		File photofl;
-	    		photofl = new File(context.getFilesDir(),HTML_DIR + "/"+SERVER_PHOTO);
+	    		photofl = new File(context.getFilesDir(),USERHTML_DIR + "/"+SERVER_PHOTO);
 	    		if (photofl.exists()){
 		    	    FileInputStream reader = new FileInputStream(photofl);
 		    	    flsz = reader.read(xbuf);
@@ -213,7 +213,7 @@ public class PhotoActivity extends Activity {
     
     private void clearPhoto() {
     	
-    	new File(getFilesDir(),HTML_DIR + "/"+SERVER_PHOTO).delete();
+    	new File(getFilesDir(),USERHTML_DIR + "/"+SERVER_PHOTO).delete();
     	photoimageview.setImageResource(R.drawable.ic_menu_invite);    //This needs to be changed
     }
     

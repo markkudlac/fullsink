@@ -103,4 +103,21 @@ public static int getLoadCount(Context context) {
 	return prefs.getInt("com.fullsink.mp.loadcount", 0);	//Start count at zero
 }
 
+
+
+public static void setVersionNumber(Context context, int count) {
+
+	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+
+	prefs.edit().putInt("com.fullsink.mp.versionnumber", count).commit();
+}
+
+
+public static int getVersionNumber(Context context) {
+
+	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+
+	return prefs.getInt("com.fullsink.mp.versionnumber", 0);	//Start count at zero
+}
+
 }

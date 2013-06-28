@@ -73,11 +73,7 @@ public class WebClient extends WebSocketClient {
 		} else if (message.startsWith(CMD_PING)) {	
         	send(CMD_PONG + WebServer.getArg(message));
         } else if (message.startsWith(CMD_DOWNEN)) {	
-        	boolean tdown;
-        	tdown = WebServer.getArg(message).equals("T");
-        	if (downloadEnabled && !tdown) mnact.toastOut("Server disabled downloading",Toast.LENGTH_LONG);
-        	downloadEnabled = tdown;
-        	mnact.setDownload(downloadEnabled);
+        	manageDisableDownload(WebServer.getArg(message));
         }
     }
 	
@@ -101,20 +97,29 @@ public class WebClient extends WebSocketClient {
     }
     
     
+    public void manageDisableDownload(String dwncode){
+    	
+    	boolean tdown;
+    	tdown = dwncode.equals("T");
+    	
+    	if (downloadEnabled != tdown) {
+    		
+    		String state;
+    		
+    		if (!tdown)  state = "disabled";
+    		else state = "enabled";
+    		
+    		mnact.toastOut("Server "+state+" download",Toast.LENGTH_LONG);
+    		downloadEnabled = tdown;
+        	mnact.setDownload(downloadEnabled);
+    	}
+    }
+    
+    
     public boolean getDownload() {
     	return downloadEnabled;
     }
- /*
-    public void setDownload(boolean isenabled) {
-    	if (isenabled) {
-    		mnact.findViewById(R.id.btnclientCopy).setClickable(false);
-    		((ImageView) mnact.findViewById(R.id.btnclientCopy)).setImageResource(R.drawable.buttongrey);
-    	} else {
-    		mnact.findViewById(R.id.btnclientCopy).setClickable(true);
-    		((ImageView) mnact.findViewById(R.id.btnclientCopy)).setImageResource(R.drawable.buttonblack);
-    	}
-    }
-  */  
+ 
     
     public void startCopyFile(){
     	copyTrack = currentTrack;
@@ -187,11 +192,22 @@ public class WebClient extends WebSocketClient {
     	// songdata has format title:album:artist
     	
     	String[] sdat = songdat.split(":",3);
+    	
+    	for (int i=0; i<sdat.length; i++){
+    		sdat[i] = mapColonSub(sdat[i]);
+    	}
+    	
     	int pos = mnact.serverlist.getCheckedItemPosition();
  
 		if (pos != ListView.INVALID_POSITION ) {
 			mnact.serveradapter.updateSongData(pos, sdat[0]);
 		}
+    }
+    
+    
+    private String mapColonSub(String str) {
+    	
+    	return(str.replaceAll(COLON_SUB,":"));
     }
     
     

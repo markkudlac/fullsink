@@ -1,6 +1,9 @@
 package com.fullsink.mp;
 
 import java.io.File;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -13,12 +16,18 @@ import java.util.Collection;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
+import org.kamranzafar.jtar.TarEntry;
+import org.kamranzafar.jtar.TarInputStream;
 
 import android.widget.ListView;
 import android.widget.Toast;
 
+import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+
+
 
 import static com.fullsink.mp.Const.*;
 /**
@@ -47,11 +56,7 @@ public class WebServer extends WebSocketServer {
         public void onOpen( WebSocket conn, ClientHandshake handshake ) {
  //               this.sendToAll( "CMD:MESS : new connection: " + handshake.getResourceDescriptor() );
         	conn.send(CMD_PING + System.currentTimeMillis());
-        	String down;
         	
-        	if (Prefs.getDownload(mnact)) down = "T";
-        	else down = "F";
-        	conn.send(CMD_DOWNEN + down);
                 System.out.println("WebSocketServer client connected : " + conn.getRemoteSocketAddress().getAddress().getHostAddress());
         }
 
@@ -65,7 +70,6 @@ public class WebServer extends WebSocketServer {
         public void onMessage( WebSocket conn, String message ) {
         	// Receive messages from controller here
           System.out.println( "onMessage server : " + message );
-            System.out.println( "onMessage server : " + message );
             
             if (message.startsWith(CMD_PING)) {	
             	conn.send(CMD_PONG + getArg(message));
@@ -78,9 +82,9 @@ public class WebServer extends WebSocketServer {
             		} else {
             			conn.send(CMD_SEEK + mnact.track.getCurrentPosition());
             		}
-            		conn.send(CMD_PLAYING + currentTrackTAA());
+            		sendTrackData(conn);
             } else if (message.startsWith(CMD_WHATPLAY)) {
-            	conn.send(CMD_PLAYING + currentTrackTAA());
+            	sendTrackData(conn);
         	} else if (message.startsWith(CMD_PONG)) {	
     			netlate = calcLatency(Long.parseLong(getArg(message)));
     		}  else if (message.startsWith(CMD_COPY)) {
@@ -89,7 +93,9 @@ public class WebServer extends WebSocketServer {
         		mnact.toastOut(getArg(message) + " " + mnact.getResources().getString(R.string.tunedin),Toast.LENGTH_LONG);
     		} else if (message.startsWith(CMD_ZIPPREP)) {
     			zipTrack(getArg(message), conn);
-    		}
+    		}else if (message.startsWith(CMD_REMOTE)) {
+        		mnact.manageRemote(getArg(message));
+    		} 
         }
 
         @Override
@@ -119,12 +125,35 @@ public class WebServer extends WebSocketServer {
         }
         
         
+        public void sendTrackData(WebSocket conn){
+        	
+        	if (conn == null) {
+        		mnact.toClients(CMD_PLAYING + currentTrackTAA());	//Send Title Album Art
+        		mnact.toClients(CMD_DOWNEN + downLoadEnabledCode());
+        	} else {
+        		conn.send(CMD_PLAYING + currentTrackTAA());
+        		conn.send(CMD_DOWNEN + downLoadEnabledCode());
+        	}
+        }
+        
+        
+        public String downLoadEnabledCode() {
+        	String down;
+        	
+        	if (Prefs.getDownload(mnact)) down = "T";
+        	else down = "F";
+        	
+        	return down;
+        }
+        
+        
         public void deleteCues(){
         	
         	String[] xdump = mnact.getFilesDir().list();
     		for (int i=0; i< xdump.length; i++){
 //    			System.out.println("Dump of cued bits : "+xdump[i]+"  : "+i);
-    			if (!xdump[i].equals(HTML_DIR) && !xdump[i].equals(USERHTML_DIR)) {
+    			if (!xdump[i].equals(HTML_DIR) && !xdump[i].equals(USERHTML_DIR) &&
+    					!xdump[i].equals("index.html")) {
     				DeleteRecursive(new File(mnact.getFilesDir(),xdump[i]));
     			}
        		}
@@ -258,52 +287,36 @@ public class WebServer extends WebSocketServer {
         	
        	// Put this back later after testing complete
 //       	if (! new File(mnact.getFilesDir(),HTML_DIR).isDirectory()) {
-        	 
+        	
         	try {
         		
-        		byte [] xbuf = new byte[BASE_BLOCKSIZE];  
-        		File htmldest,htmlpar,userdir;
+        		File htmlpar,userdir;
+//        		File rootpack;
         		      		
-           		//Parent directories need to be generated first
-        		String[] afiles = mnact.getAssets().list(HTML_DIR);
         		userdir = new File(mnact.getFilesDir(),USERHTML_DIR);
         		htmlpar = new File(mnact.getFilesDir(),HTML_DIR);
         		
       //*******  This delete is here for testing now 
-       // 		if (htmlpar.exists())	DeleteRecursive(htmlpar); 
+       // 		if (userdir.exists())	DeleteRecursive(userdir); 
       //*************
         		if (!userdir.exists()){
         			userdir.mkdirs();	//Create the user directory if it doesn't exit
         		}
         		
-        		htmlpar.mkdirs();
-        		generateServerId(htmlpar,webServerPort);
+        		System.out.println("The version number is : "+FS_Util.getVersionNumber(mnact));
         		
-        		// Copy contents of assets over to files
-        		for (int i=0; i<afiles.length; i++){
-        		//	System.out.println("Transfer : "+afiles[i]); 
-        			
-        			if (afiles[i].equals(FLSKINDEX)) {
-        				htmldest = new File(mnact.getFilesDir(), "index.html");
-        			} else {
-        				htmldest = new File(htmlpar, afiles[i]);
-        			}
-            		
-            		htmldest.createNewFile();
-        		
-            		InputStream in = mnact.getAssets().open(HTML_DIR+"/"+afiles[i]);    
-            		OutputStream out = new FileOutputStream(htmldest);
-        	    
-        	    // Transfer bytes from in to out
-            		int len;
-            		while ((len = in.read(xbuf)) > 0) {
-            			out.write(xbuf, 0, len);
-            		}
-            		in.close();
-            		out.close();
+        //		if (FS_Util.changedVersionNumber(mnact)) {
+        			if (true) {
+        			System.out.println("The version number changed");
+        			if (htmlpar.exists())	DeleteRecursive(htmlpar); 
+        			untarTGzFile();
+        		} else {
+        			System.out.println("The ver num is the same");
         		}
+  
+        		generateServerId(htmlpar,webServerPort);
         	    
-        	} catch (IOException e) {
+        	} catch (Exception e) {
         		System.out.println( "File I/O error " + e);
         	}
 
@@ -358,13 +371,68 @@ port: "12345",     //websocket port
     			rtn = "";
     			for (int i=0; i < xx.length; i++){
     				if (i > 0) rtn = rtn + ":";
-    				rtn = rtn + xx[i];
+    				rtn = rtn + mapColon(xx[i]);
     			}
     		} else {
     			rtn = "::";
     		}
     		return(rtn);	
         }
+        
+        
+        
+        private String mapColon(String str) {
+        	
+        	return(str.replaceAll(":",COLON_SUB));
+        }
+        
+        
+
+        
+        public void untarTGzFile() throws IOException {
+        	
+    		String destFolder = mnact.getFilesDir().getAbsolutePath();
+    		FileInputStream zis = (mnact.getAssets().openFd("rootpack.targz")).createInputStream();
+
+    		TarInputStream tis = new TarInputStream(new BufferedInputStream(new GZIPInputStream(zis)));
+    		tis.setDefaultSkip(true);
+    		untar(tis, destFolder);
+
+    		tis.close();
+    	}
+        
+        
+        
+        private void untar(TarInputStream tis, String destFolder) throws IOException {
+    		BufferedOutputStream dest = null;
+
+    		TarEntry entry;
+    		while ((entry = tis.getNextEntry()) != null) {
+    			System.out.println("Extracting: " + entry.getName());
+    			int count;
+    			byte data[] = new byte[BASE_BLOCKSIZE];
+
+    			if (entry.isDirectory()) {
+    				new File(destFolder + "/" + entry.getName()).mkdirs();
+    				continue;
+    			} else {
+    				int di = entry.getName().lastIndexOf('/');
+    				if (di != -1) {
+    					new File(destFolder + "/" + entry.getName().substring(0, di)).mkdirs();
+    				}
+    			}
+
+    			FileOutputStream fos = new FileOutputStream(destFolder + "/" + entry.getName());
+    			dest = new BufferedOutputStream(fos);
+
+    			while ((count = tis.read(data)) != -1) {
+    				dest.write(data, 0, count);
+    			}
+
+    			dest.flush();
+    			dest.close();
+    		}
+    	}
         
 }
 

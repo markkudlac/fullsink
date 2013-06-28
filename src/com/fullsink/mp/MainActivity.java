@@ -95,6 +95,7 @@ public class MainActivity extends Activity implements Runnable {
     	super.onResume();
     	wakeLock.acquire();
     	System.out.println("In RESUME");
+    	if (onServer()) WServ.sendTrackData(null);	// Will update changes in settings
 //    	mNsdHelper.discoverServices(); Keep out was problems
     }
 	
@@ -158,7 +159,7 @@ public class MainActivity extends Activity implements Runnable {
 	
 	public void toIPAddress(MenuItem item) {
 		
-		if (!onServer()) turnServerOn();
+		if (!onServer()) turnServerOn(this);
 		
         Intent intent = new Intent(this,IPAddressActivity.class);
         startActivity(intent);
@@ -252,7 +253,7 @@ public class MainActivity extends Activity implements Runnable {
 		 mNsdHelper.initializeNsd();
 		 
 		 setActiveMenu(R.id.btnSongs);
-		 if (Prefs.getOnAir(this)) turnServerOn();
+		 if (Prefs.getOnAir(this)) turnServerOn(this);
 		 
 		 mNsdHelper.discoverServices();
 		 
@@ -453,17 +454,36 @@ public class MainActivity extends Activity implements Runnable {
     }
     
     
-    public void turnServerOn() {
+    public void turnServerOn(final MainActivity mnact) {
+    	
+    	
+    	new Thread(new Runnable() {
+            public void run() {
+        		try {
 		String ipadd = NetStrat.getWifiApIpAddress();
-		int httpdPort = NetStrat.getHttpdPort(this);
+		int httpdPort = NetStrat.getHttpdPort(mnact);
 		startHttpdServer(httpdPort, ipadd);
 		
-		int webSockPort = NetStrat.getSocketPort(this);
+		int webSockPort = NetStrat.getSocketPort(mnact);
 		System.out.println("WebSock Port : " + webSockPort + "  IPADD : " + ipadd);
 		startSockServer(webSockPort,ipadd);
 
-		NetStrat.logServer(this, ipadd, Prefs.getName(this), webSockPort, httpdPort );
-		((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_on_holo_dark);
+		NetStrat.logServer(mnact, ipadd, Prefs.getName(mnact), webSockPort, httpdPort );
+		
+        		} catch(Exception ex) {
+        			System.out.println("Select thread exception : "+ex);
+        		}
+           
+            
+            runOnUiThread(new Runnable() {
+                public void run() {
+                	((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_on_holo_blue);
+                }
+            });
+            }     	
+        }).start();
+    	
+		
     }
  
     
@@ -504,7 +524,7 @@ public class MainActivity extends Activity implements Runnable {
 		case R.id.btnServer:	
 			
 			if (!isSockServerOn()) {
-				turnServerOn();
+				turnServerOn(this);
 			} else {
 				stopHttpdServer();
 				stopSockServer();
@@ -514,7 +534,9 @@ public class MainActivity extends Activity implements Runnable {
 			}
 			return;
 			
-
+		case R.id.btnRemote:
+			toClients(CMD_REMOTE+"S");		// Make me the current station on client
+			return;
 			
 		case R.id.btnSongs:
 			{
@@ -618,14 +640,15 @@ public class MainActivity extends Activity implements Runnable {
 	        
 			if (ShuffleLoop == MODE_NORMAL) {
 				ShuffleLoop = MODE_SHUFFLE;
-				btnShuffleLoop.setBackgroundResource(R.drawable.buttonblue);
+				//btnShuffleLoop.setBackgroundResource(R.drawable.buttonblue);
+				imgShuffleLoop.setImageResource(R.drawable.ic_media_shuffle_blue);
 			} else if (ShuffleLoop == MODE_SHUFFLE) {
-				imgShuffleLoop.setImageResource(R.drawable.ic_menu_revert);
+				imgShuffleLoop.setImageResource(R.drawable.ic_menu_loop);
 				ShuffleLoop = MODE_LOOP;
 			} else {
 				ShuffleLoop = MODE_NORMAL;
-				btnShuffleLoop.setBackgroundResource(R.drawable.buttonblack);
-				imgShuffleLoop.setImageResource(R.drawable.ic_menu_refresh);
+		//		btnShuffleLoop.setBackgroundResource(R.drawable.buttonblack);
+				imgShuffleLoop.setImageResource(R.drawable.ic_media_shuffle_dark);
 			}
 			return;
 			
@@ -732,12 +755,13 @@ public class MainActivity extends Activity implements Runnable {
     private void playTrack(boolean resume){
     	if(isTuning && track != null){
     				 		
-       		if (WServ != null && resume) {
+       		if (onServer() && resume) {
            		toClients(CMD_RESUME + track.getCurrentPosition());
        			android.os.SystemClock.sleep(WServ.netlate);
-       			toClients(CMD_PLAYING + WServ.currentTrackTAA());	//Send Title Album Art
        		} 
        		
+       		if (onServer()) WServ.sendTrackData(null);
+      
 			track.play();
 			
 	    	seekbar.setMax(track.getDuration());
@@ -757,7 +781,7 @@ public class MainActivity extends Activity implements Runnable {
     	
     	Button tbtn;
     	ViewGroup menu = (ViewGroup)findViewById(R.id.topMenu);
-    	for (int i=1; i<menu.getChildCount(); i++) {
+    	for (int i=2; i<menu.getChildCount(); i++) {
     		tbtn = (Button) menu.getChildAt(i);
     		tbtn.setPaintFlags(0);
     		tbtn.setTypeface(Typeface.DEFAULT);
@@ -972,5 +996,27 @@ private void incrementLoadCount() {
 	System.out.println("Increment loadcount : "+cnt);
 	Prefs.setLoadCount(this, cnt); 
 }
+
+
+public void manageRemote(final String arg){
+			
+	runOnUiThread(new Runnable() {
+        public void run() {
+       
+			if (arg.equals("T")) {
+				findViewById(R.id.viewRemote).setVisibility(View.VISIBLE);
+			} else if (arg.equals("F")) {
+				findViewById(R.id.viewRemote).setVisibility(View.GONE);
+				((ImageView) findViewById(R.id.imgRemote)).setImageResource(R.drawable.fs_remote_white);
+			} else if (NetStrat.getWifiApIpAddress().indexOf(arg) >= 0){
+				((ImageView) findViewById(R.id.imgRemote)).setImageResource(R.drawable.fs_remote_blue);
+			} else {
+				((ImageView) findViewById(R.id.imgRemote)).setImageResource(R.drawable.fs_remote_white);
+			}
+        }
+        
+    });
+}
+
 
 }
