@@ -283,48 +283,45 @@ public class WebServer extends WebSocketServer {
        
 
  
-        public void initHTML(int webServerPort) {
+        public static void versionChangeHTML(MainActivity mnact ) {
         	
-       	// Put this back later after testing complete
-//       	if (! new File(mnact.getFilesDir(),HTML_DIR).isDirectory()) {
+       		if (FS_Util.changedVersionNumber(mnact)) {
+//    		if (true) {
         	
-        	try {
-        		
-        		File htmlpar,userdir;
-//        		File rootpack;
-        		      		
-        		userdir = new File(mnact.getFilesDir(),USERHTML_DIR);
-        		htmlpar = new File(mnact.getFilesDir(),HTML_DIR);
-        		
-      //*******  This delete is here for testing now 
-       // 		if (userdir.exists())	DeleteRecursive(userdir); 
-      //*************
-        		if (!userdir.exists()){
-        			userdir.mkdirs();	//Create the user directory if it doesn't exit
-        		}
-        		
-        		System.out.println("The version number is : "+FS_Util.getVersionNumber(mnact));
-        		
-        //		if (FS_Util.changedVersionNumber(mnact)) {
-        			if (true) {
+	        	try {
+	        		
+	        		File htmlpar,userdir;
+	        		      		
+	        		userdir = new File(mnact.getFilesDir(),USERHTML_DIR);
+	        		htmlpar = new File(mnact.getFilesDir(),HTML_DIR);
+	        		
+	      //*******  This delete is here for testing now 
+	       // 		if (userdir.exists())	DeleteRecursive(userdir); 
+	      //*************
+	        		
+	        		if (!userdir.exists()){
+	        			userdir.mkdirs();	//Create the user directory if it doesn't exit
+	        		}
+	        		
+	        		System.out.println("The version number is : "+FS_Util.getVersionNumber(mnact));
+	        		
         			System.out.println("The version number changed");
         			if (htmlpar.exists())	DeleteRecursive(htmlpar); 
-        			untarTGzFile();
-        		} else {
-        			System.out.println("The ver num is the same");
-        		}
-  
-        		generateServerId(htmlpar,webServerPort);
-        	    
-        	} catch (Exception e) {
-        		System.out.println( "File I/O error " + e);
-        	}
-
- //      	}
+        			untarTGzFile(mnact);
+	        	
+	        	} catch (Exception e) {
+	        		System.out.println( "File I/O error " + e);
+	        	}
+        	
+       		} else {
+    			System.out.println("The ver num is the same");
+    		}
         }
         
         
-        private void generateServerId(File htmldir, int webSocketPort) {
+        
+        
+        public void generateServerId(int webSocketPort) {
         	
         	/*
         	 * 
@@ -337,13 +334,18 @@ port: "12345",     //websocket port
 }            
         	 */
         	
-        	File serverid;
+        	File serverid, htmldir;
         	String builder;
+        	
+        	
 
         	builder = "{ \"service\":\""+ SERVICE_NAME+ "\", \"id\":\"" + Prefs.getName(mnact) + "\", \"port\":\""+
     				webSocketPort;
         	
         	try {
+        		
+        		htmldir = new File(mnact.getFilesDir(),HTML_DIR);
+        		
 	        	serverid = new File(htmldir,SERVERID_JS );
 	    		serverid.createNewFile();
 	    		
@@ -389,21 +391,21 @@ port: "12345",     //websocket port
         
 
         
-        public void untarTGzFile() throws IOException {
+        public static void untarTGzFile(MainActivity mnact) throws IOException {
         	
     		String destFolder = mnact.getFilesDir().getAbsolutePath();
     		FileInputStream zis = (mnact.getAssets().openFd("rootpack.targz")).createInputStream();
 
     		TarInputStream tis = new TarInputStream(new BufferedInputStream(new GZIPInputStream(zis)));
     		tis.setDefaultSkip(true);
-    		untar(tis, destFolder);
+    		untar(mnact, tis, destFolder);
 
     		tis.close();
     	}
         
         
         
-        private void untar(TarInputStream tis, String destFolder) throws IOException {
+        private static void untar(MainActivity mnact, TarInputStream tis, String destFolder) throws IOException {
     		BufferedOutputStream dest = null;
 
     		TarEntry entry;

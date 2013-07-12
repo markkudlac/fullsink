@@ -3,18 +3,22 @@ package com.fullsink.mp;
 import static com.fullsink.mp.Const.*;
 
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.SocketException;
 import java.util.Enumeration;
 
 import android.app.Activity;
 import android.content.Context;
 import android.net.wifi.WifiManager;
+import android.os.Looper;
 
 public class NetStrat {
 	
 static int httpdPort = 0;
+static String macAddress = null;
 
 static	public String getWifiApIpAddress() {
 	    try {
@@ -84,9 +88,11 @@ static public int getHttpdPort(Activity mnact) {
 
 
 static public String getMacAddress(MainActivity mnact ) {
-    WifiManager wimanager = (WifiManager) mnact.getSystemService(Context.WIFI_SERVICE);
-    String macAddress = wimanager.getConnectionInfo().getMacAddress();
-
+	
+	if (macAddress == null) {
+	    WifiManager wimanager = (WifiManager) mnact.getSystemService(Context.WIFI_SERVICE);
+	    macAddress = wimanager.getConnectionInfo().getMacAddress();
+	}
     return macAddress;
 }
 
@@ -94,6 +100,7 @@ static public String getMacAddress(MainActivity mnact ) {
 static public void logServer(MainActivity mnact, String offline) {
 
  logServer(mnact, offline, Prefs.getName(mnact), 0, 0 );
+
 }
 
 
@@ -113,7 +120,7 @@ static public void logServer(MainActivity mnact, String ipadd, String handle, in
     if (mac == null) {
         System.out.println("No MAC address");
     } else {
-	
+    	System.out.println("Call HttpLogServer");
  		new HttpLogServer(mnact,mac).execute(ipadd, handle, String.valueOf(portsock), String.valueOf(porthttpd));
     }
 }
@@ -127,6 +134,7 @@ static public void storeHttpdPort(int port) {
 static public int getHttpdPort() {
 	return httpdPort;
 }
+
 
 }
 

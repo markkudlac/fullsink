@@ -107,14 +107,27 @@ public String[] getSongData(int pos) {
     
     
     public synchronized void add(String id, String ipAddr, int httpdPort, int webSockPort, String servicename, Bitmap img){
- 
-    		items.add(new ServerData(id, ipAddr, httpdPort, webSockPort, servicename, img));	
+    	items.add(new ServerData(id, ipAddr, httpdPort, webSockPort, servicename, img));	
+    /*	
+    try {
+    	System.out.println( "In Adapter add SockClient");
+    	WebClient webclient = new WebClient(webSockPort, ipAddr, httpdPort,  mnact);
+   		 webclient.connect();
+    	items.add(new ServerData(id, ipAddr, httpdPort, webSockPort, servicename, img, webclient));	
+    } catch ( Exception ex ) {
+		   System.out.println( "WebClient add in ServerAdapter error : " + ex);
+	   }
+	   */
     }
     
     
     @Override
     public void onItemClick(AdapterView<?> adapter, View v, int position, long id) {
 
+    	if (mnact.isSockServerOn()) {
+			mnact.turnServerOff(mnact);
+		} 
+    	
     	ServerData xdata = ((ServerData)(adapter.getItemAtPosition(position)));
     	
 //	   	System.out.println("Got item click: "+ xdata.ipAddr + "pos : "+position);
@@ -141,6 +154,7 @@ public String[] getSongData(int pos) {
     	for (int i=0; i < getCount(); i++){
     		if ( ((ServerData) getItem(i)).ipAddr.equals(addr) ) {
     			System.out.println("Duplicate Address in ServerAdapter");
+    			((ServerData) getItem(i)).alive = true;
     			return true;
     		}
     	}
@@ -165,6 +179,15 @@ public String[] getSongData(int pos) {
     	}
     	return -1;
     }
+    
+    
+    public void clearAlive() {
+    	
+    	for (int i=0; i < getCount(); i++){
+    		((ServerData) getItem(i)).alive = false;
+    	}
+    }
+ 
 }
 
 
@@ -178,8 +201,11 @@ final class ServerData {
 	public String servicename;
 	public Bitmap img;
 	public String title;
+	public boolean alive;
+
 	
-	public ServerData(String id, String ipAddr, int httpdPort, int webSockPort, String servicename, Bitmap img) {
+	public ServerData(String id, String ipAddr, int httpdPort, int webSockPort, String servicename, 
+			Bitmap img) {
 		this.id = id;
 		this.ipAddr = ipAddr;
 		this.httpdPort = httpdPort;
@@ -187,6 +213,7 @@ final class ServerData {
 		this.servicename = servicename;
 		this.img = img;
 		this.title = "";
+		this.alive = true;
 	}
 }
 

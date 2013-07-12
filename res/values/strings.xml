@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">FullSink</string>
+    <string name="app_name">Fullsink</string>
     <string name="menuSongs">Songs</string>
     <string name="menuAlbums">Albums</string>
     <string name="menuArtists">Artists</string>
-    <string name="clientbutOff">Local</string>
     <string name="action_settings">Settings</string>
 	<string name="pref_sockport">Socket Port</string>
 	<string name="default_sockport">8887</string>

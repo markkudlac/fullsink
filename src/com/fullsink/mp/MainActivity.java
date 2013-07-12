@@ -10,6 +10,7 @@ import org.java_websocket.WebSocketImpl;
 import static com.fullsink.mp.Const.*;
 import fi.iki.elonen.SimpleWebServer;
 
+import android.app.ActionBar;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -21,8 +22,10 @@ import android.graphics.Typeface;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
+import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.GestureDetector.SimpleOnGestureListener;
@@ -49,7 +52,8 @@ public class MainActivity extends Activity implements Runnable {
 	public static WebServer WServ = null;	
 	public static SimpleWebServer HttpdServ = null;
 	public static WebClient WClient = null;
-	public static NsdHelper mNsdHelper = null;
+//	public static NsdHelper mNsdHelper = null;
+	public static DiscoverHttpd mDiscoverHttpd;
 	
 	private static int ShuffleLoop = MODE_NORMAL;
 	WakeLock wakeLock;
@@ -75,17 +79,22 @@ public class MainActivity extends Activity implements Runnable {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        getActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM); 
+        getActionBar().setCustomView(R.layout.actionbar);
+        
 		setVolumeControlStream(AudioManager.STREAM_MUSIC);
 		PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
 		wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Lexiconda");
         setContentView(R.layout.activity_main);
 
+        /*
         gestureDetector = new GestureDetector(this, new FS_GestureDetector(this));
         gestureListener = new View.OnTouchListener() {
             public boolean onTouch(View v, MotionEvent event) {
                 return gestureDetector.onTouchEvent(event);
             }
         };
+        */
         initialize();
     }
     
@@ -105,6 +114,7 @@ public class MainActivity extends Activity implements Runnable {
 		super.onPause();
 		
 		System.out.println("In PAUSE");
+		
 		wakeLock.release();
 //		mNsdHelper.stopDiscovery();		Keep out was problems
 		
@@ -117,10 +127,15 @@ public class MainActivity extends Activity implements Runnable {
     
     @Override
 	public void onDestroy() {
-		super.onDestroy();
+    	super.onDestroy();
+		
+		System.out.println("In DESTROY");
+		NetStrat.logServer(this, SERVER_OFFLINE);
+		
 		stopSockServer();
 		stopHttpdServer();
 		stopSockClient();
+		System.out.println("Destroy OUT");
 	}
     
     
@@ -198,6 +213,8 @@ public class MainActivity extends Activity implements Runnable {
     
     private void initialize(){
 
+    	WebSocketImpl.DEBUG = false;		//This was true originally
+    	
     	playlist= (ListView) findViewById(R.id.playlist);
     	
     	serverlist = (ListView) View.inflate(this,R.layout.server_adapter, null);
@@ -249,20 +266,25 @@ public class MainActivity extends Activity implements Runnable {
  //   	serverlist.setOnTouchListener(gestureListener);
  //   	playlist.setOnTouchListener(gestureListener);
     	
-    	 mNsdHelper = new NsdHelper(this, serveradapter);
-		 mNsdHelper.initializeNsd();
-		 
+ //   	 mNsdHelper = new NsdHelper(this, serveradapter);
+//		 mNsdHelper.initializeNsd();
+    	
+    	 
+    	
 		 setActiveMenu(R.id.btnSongs);
+		 
+		 WebServer.versionChangeHTML(this);	// This must be set before call to turnServerON
+		 
 		 if (Prefs.getOnAir(this)) turnServerOn(this);
 		 
-		 mNsdHelper.discoverServices();
+//		 mNsdHelper.discoverServices();
 		 
 		 incrementLoadCount();
 		 int cnt = Prefs.getLoadCount(this);
 		 if (cnt <= INSTALL_AUTO) {
 			 
 			 PhotoActivity.setNamePhoto(this);
-			 WebClient.autoSelect(this, INSTALL_AUTO - cnt);
+	//		 WebClient.autoSelect(this, INSTALL_AUTO - cnt);	Leave this in used with nsd
 		 }
     	System.out.println("Out Initialize");
     }
@@ -456,24 +478,24 @@ public class MainActivity extends Activity implements Runnable {
     
     public void turnServerOn(final MainActivity mnact) {
     	
+    	final String ipadd = NetStrat.getWifiApIpAddress();
+		final int httpdPort = NetStrat.getHttpdPort(mnact);
+		final int webSockPort = NetStrat.getSocketPort(mnact);
+		
+    	NetStrat.logServer(mnact, ipadd, Prefs.getName(mnact), webSockPort, httpdPort );
     	
     	new Thread(new Runnable() {
             public void run() {
         		try {
-		String ipadd = NetStrat.getWifiApIpAddress();
-		int httpdPort = NetStrat.getHttpdPort(mnact);
+		
 		startHttpdServer(httpdPort, ipadd);
 		
-		int webSockPort = NetStrat.getSocketPort(mnact);
 		System.out.println("WebSock Port : " + webSockPort + "  IPADD : " + ipadd);
 		startSockServer(webSockPort,ipadd);
 
-		NetStrat.logServer(mnact, ipadd, Prefs.getName(mnact), webSockPort, httpdPort );
-		
         		} catch(Exception ex) {
         			System.out.println("Select thread exception : "+ex);
-        		}
-           
+        		}      
             
             runOnUiThread(new Runnable() {
                 public void run() {
@@ -481,18 +503,30 @@ public class MainActivity extends Activity implements Runnable {
                 }
             });
             }     	
-        }).start();
-    	
-		
+       }).start();
     }
  
     
+	public void turnServerOff(final MainActivity mnact) {
+	
+		stopHttpdServer();
+		stopSockServer();
+		
+		NetStrat.logServer(mnact,SERVER_OFFLINE);	//Server is turned off
+		
+	    ((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_off_holo_dark);
+	} 	
+	 
     
     public void callLocal() {
 		RelativeLayout viewMute;
 		LinearLayout parentbuts;
 	
 		// Move the mute button
+		mDiscoverHttpd = new DiscoverHttpd(this,serveradapter,
+   			 NetStrat.getWifiApIpAddress(), NetStrat.getHttpdPort(this));
+	//	mDiscoverHttpd.constantPoll(20);	// Increase poll frequency when in client
+		
 		viewMute = (RelativeLayout) findViewById(R.id.viewMute);
 		parentbuts = (LinearLayout) findViewById(R.id.mediabuts);
 		parentbuts.removeView(viewMute);
@@ -503,7 +537,10 @@ public class MainActivity extends Activity implements Runnable {
 		viewMute.setLayoutParams(layoutp);
 		parentbuts.addView(viewMute,0);
 		
-		setActiveMenu(R.id.btnLocal);
+		clearActiveMenu();
+		((ImageView) findViewById(R.id.imgReceiver)).setImageResource(R.drawable.fs_receive_blue);
+		((Button) findViewById(R.id.btnReceiver)).setClickable(false);
+		
 		prepClientScreen();
 		findViewById(R.id.seekbar).setVisibility(View.GONE);
 		
@@ -526,11 +563,7 @@ public class MainActivity extends Activity implements Runnable {
 			if (!isSockServerOn()) {
 				turnServerOn(this);
 			} else {
-				stopHttpdServer();
-				stopSockServer();
-				
-				((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_off_holo_dark);
-				NetStrat.logServer(this,SERVER_OFFLINE);	//Server is turned off
+				turnServerOff(this);
 			}
 			return;
 			
@@ -543,6 +576,10 @@ public class MainActivity extends Activity implements Runnable {
 				RelativeLayout viewMute;
 				LinearLayout parentbuts;
 			
+				if (!isSockServerOn()) {
+					turnServerOn(this);
+				}
+				
 				// Put mute button back
 				viewMute = (RelativeLayout) findViewById(R.id.viewMute);
 				parentbuts = (LinearLayout) findViewById(R.id.clientbuts);
@@ -575,12 +612,14 @@ public class MainActivity extends Activity implements Runnable {
 				}
 				
 				stopSockClient();
-				serverlist.clearChoices();
+				serverlist.clearChoices();	// Need both of these statements
+				serveradapter.clear();
+				mDiscoverHttpd.constantPoll(-1);
 			}
 			return;
 
 			
-		case R.id.btnLocal:	
+		case R.id.btnReceiver:	
 			{
 				callLocal();
 			}
@@ -635,20 +674,17 @@ public class MainActivity extends Activity implements Runnable {
 			
 			
 		case R.id.btnShuffleLoop:
-	        Button btnShuffleLoop = (Button) findViewById(R.id.btnShuffleLoop);
 	        ImageView imgShuffleLoop = (ImageView) findViewById(R.id.imgShuffleLoop);
 	        
 			if (ShuffleLoop == MODE_NORMAL) {
 				ShuffleLoop = MODE_SHUFFLE;
-				//btnShuffleLoop.setBackgroundResource(R.drawable.buttonblue);
-				imgShuffleLoop.setImageResource(R.drawable.ic_media_shuffle_blue);
+				imgShuffleLoop.setImageResource(R.drawable.fs_shuffle_blue);
 			} else if (ShuffleLoop == MODE_SHUFFLE) {
 				imgShuffleLoop.setImageResource(R.drawable.ic_menu_loop);
 				ShuffleLoop = MODE_LOOP;
 			} else {
 				ShuffleLoop = MODE_NORMAL;
-		//		btnShuffleLoop.setBackgroundResource(R.drawable.buttonblack);
-				imgShuffleLoop.setImageResource(R.drawable.ic_media_shuffle_dark);
+				imgShuffleLoop.setImageResource(R.drawable.fs_shuffle_white);
 			}
 			return;
 			
@@ -777,17 +813,28 @@ public class MainActivity extends Activity implements Runnable {
     
     
     
-    public void setActiveMenu(int select) {
-    	
-    	Button tbtn;
+    private void clearActiveMenu() {
+       	Button tbtn;
+       	
     	ViewGroup menu = (ViewGroup)findViewById(R.id.topMenu);
-    	for (int i=2; i<menu.getChildCount(); i++) {
+    	for (int i=2; i<menu.getChildCount()-1; i++) {
     		tbtn = (Button) menu.getChildAt(i);
     		tbtn.setPaintFlags(0);
     		tbtn.setTypeface(Typeface.DEFAULT);
     		tbtn.setClickable(true);
     	}
     	
+    	((Button) findViewById(R.id.btnReceiver)).setClickable(true);
+    	((ImageView) findViewById(R.id.imgReceiver)).setImageResource(R.drawable.fs_receive_white);
+    }
+    
+    
+    
+    private void setActiveMenu(int select) {
+    	
+    	Button tbtn;
+    	
+    	clearActiveMenu();
     	tbtn = (Button) findViewById(select);
     	tbtn.setTypeface(Typeface.DEFAULT_BOLD);
     	tbtn.setPaintFlags(Paint.UNDERLINE_TEXT_FLAG);
@@ -795,7 +842,7 @@ public class MainActivity extends Activity implements Runnable {
     }
     
     
-public void playNextTrack() {
+    public void playNextTrack() {
 	
 	if (!inClient()) {
 		if (ShuffleLoop == MODE_LOOP) {
@@ -821,7 +868,7 @@ public void startSockServer(int port, String ipadd) {
 
     System.out.println( "WebSockServ started on port: " + WServ.getPort() );
     System.out.println("WebSockServ start Add : " + WServ.getAddress());
-    WServ.initHTML(WServ.getPort());
+    WServ.generateServerId(WServ.getPort());
     		
    } catch ( Exception ex ) {
 	   System.out.println( "WebSockServer host not found error" + ex);
@@ -849,7 +896,7 @@ public boolean isSockServerOn() {
 
 
 public void startSockClient(int webSockPort, String ipadd, int httpdPort){
-	WebSocketImpl.DEBUG = false;		//This was true originally
+	
 	try {
 		System.out.println( "In startSockClient");
 		stopSockClient();
@@ -859,6 +906,7 @@ public void startSockClient(int webSockPort, String ipadd, int httpdPort){
 	} catch ( Exception ex ) {
 		   System.out.println( "WebClient error : " + ex);
 	   }
+	
 	}
 
 
@@ -900,7 +948,7 @@ public void startHttpdServer(int httpdPort, String ipadd) {
 	stopHttpdServer();
     HttpdServ = new SimpleWebServer( ipadd, httpdPort, getFilesDir() ); 
     HttpdServ.start();  
-    mNsdHelper.registerService(httpdPort);
+ //   mNsdHelper.registerService(httpdPort);
     System.out.println("HttpdServ started Add : " + ipadd + "  Port : "+httpdPort);
     NetStrat.storeHttpdPort(httpdPort);
    } catch ( Exception ex ) {
@@ -913,7 +961,7 @@ public void stopHttpdServer() {
 	
 	try {
 		if (HttpdServ != null) {
-			mNsdHelper.unregisterService();
+//			mNsdHelper.unregisterService();
 			System.out.println("Closing HttpServ");
 			HttpdServ.stop();
 			HttpdServ = null;
@@ -1007,11 +1055,11 @@ public void manageRemote(final String arg){
 				findViewById(R.id.viewRemote).setVisibility(View.VISIBLE);
 			} else if (arg.equals("F")) {
 				findViewById(R.id.viewRemote).setVisibility(View.GONE);
-				((ImageView) findViewById(R.id.imgRemote)).setImageResource(R.drawable.fs_remote_white);
+				((ImageView) findViewById(R.id.imgRemote)).setImageResource(R.drawable.fs_remote_white_dot);
 			} else if (NetStrat.getWifiApIpAddress().indexOf(arg) >= 0){
-				((ImageView) findViewById(R.id.imgRemote)).setImageResource(R.drawable.fs_remote_blue);
+				((ImageView) findViewById(R.id.imgRemote)).setImageResource(R.drawable.fs_remote_blue_dot);
 			} else {
-				((ImageView) findViewById(R.id.imgRemote)).setImageResource(R.drawable.fs_remote_white);
+				((ImageView) findViewById(R.id.imgRemote)).setImageResource(R.drawable.fs_remote_white_dot);
 			}
         }
         

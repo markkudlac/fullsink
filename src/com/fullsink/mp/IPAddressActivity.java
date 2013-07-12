@@ -1,6 +1,7 @@
 package com.fullsink.mp;
 
 import static com.fullsink.mp.Const.*;
+import android.app.ActionBar;
 import android.app.Activity;
 import android.content.res.Configuration;
 import android.os.Bundle;
@@ -12,6 +13,9 @@ public class IPAddressActivity extends Activity {
 	    protected void onCreate(Bundle savedInstanceState) {
 	        super.onCreate(savedInstanceState);
 	        setContentView(R.layout.activity_ipaddress);
+	        
+	        getActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM); 
+	        getActionBar().setCustomView(R.layout.actionbar);
 	        
 	        ((TextView) findViewById(R.id.ipaddress)).setText(NetStrat.getWifiApIpAddress() +
 	        		":"+ NetStrat.getHttpdPort());

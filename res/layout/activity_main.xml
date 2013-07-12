@@ -7,7 +7,7 @@
     
      	
 	<LinearLayout android:id="@+id/topMenu" style="?android:attr/buttonBarStyle"
-	    android:background="@drawable/border" android:weightSum="0.0"
+	    android:background="@drawable/xxborder" android:weightSum="0.0"
 	    android:baselineAligned="false" android:paddingTop="8dip" android:paddingBottom="12dip"
     	android:orientation="horizontal" android:layout_alignParentTop="true"  android:gravity="center"
     	android:layout_width="match_parent" android:layout_height="wrap_content" >	
@@ -34,7 +34,7 @@
 				android:background="@drawable/buttonblack"
 				android:onClick="click" />
 			<ImageView android:id="@+id/imgRemote"
-	      		android:src="@drawable/fs_remote_white" android:layout_centerHorizontal="true"
+	      		android:src="@drawable/fs_remote_white_dot" android:layout_centerHorizontal="true"
 	      		android:layout_height="30dip" android:layout_width="wrap_content" 
 	      		android:layout_centerVertical="true"/>	
 		</RelativeLayout>
@@ -57,12 +57,26 @@
         	android:layout_marginLeft="5dip" android:layout_marginRight="5dip" 
         	android:layout_weight="2"  android:onClick="click" 
         	android:text="@string/menuArtists" android:textColor="#AAA" />	
-   		
+  <!-- 	
    		<Button android:id="@+id/btnLocal" style="?android:attr/buttonBarButtonStyle"
         	android:layout_width="0dip" android:layout_height="30dip"
         	android:layout_marginLeft="5dip" android:layout_marginRight="2dip" 
         	android:layout_weight="2"  android:onClick="click" 
-        	android:text="@string/clientbutOff" android:textColor="#111" />			
+        	android:text="@string/clientbutOff" android:textColor="#111" />		
+        	
+     --> 		
+     <RelativeLayout android:id="@+id/viewReceiver"
+        android:layout_width="0dip" android:layout_height="wrap_content"
+        android:layout_marginLeft="5dip" android:layout_marginRight="6dip" 
+        android:layout_weight="1" > 
+			<Button  android:id="@+id/btnReceiver" android:layout_width="match_parent" 
+				android:layout_height="30dip" android:background="@drawable/buttonblack"
+				android:onClick="click" style="?android:attr/buttonBarButtonStyle"/>		
+			<ImageView android:id="@+id/imgReceiver"
+	      		android:src="@drawable/fs_receive_white" android:layout_centerHorizontal="true"
+	      		android:layout_height="30dip" android:layout_width="wrap_content" 
+	      		android:layout_centerVertical="true"/>
+	  	</RelativeLayout>
 	</LinearLayout>		
 	
 	<LinearLayout android:id="@+id/seekpar" android:layout_width="fill_parent"  android:layout_height="wrap_content" 
@@ -80,7 +94,7 @@
    			style="@android:style/Widget.ProgressBar.Horizontal" android:visibility="gone" />
 		
 		<LinearLayout android:id="@+id/mediabuts" android:orientation="horizontal"
-	    	android:background="@drawable/border" android:weightSum="0.0"
+	    	android:background="@drawable/xxborder" android:weightSum="0.0"
 	    	android:baselineAligned="false" android:paddingTop="8dip" android:paddingBottom="12dip"
 			style="?android:attr/buttonBarStyle" android:gravity="center" 
 			android:layout_width="match_parent" android:layout_height="wrap_content" >
@@ -143,14 +157,14 @@
 				android:background="@drawable/buttonblack"
 				android:onClick="click" style="?android:attr/buttonBarButtonStyle"/>		
 				<ImageView android:id="@+id/imgShuffleLoop" 
-        		android:src="@drawable/ic_media_shuffle_dark" android:layout_centerHorizontal="true"
+        		android:src="@drawable/fs_shuffle_white" android:layout_centerHorizontal="true"
         		android:layout_height="35dip" android:layout_width="wrap_content" 
         		android:layout_centerVertical="true"/>
 			  </RelativeLayout>
 			</LinearLayout>
 
 			<LinearLayout android:id="@+id/clientbuts" android:orientation="horizontal"
-	    	android:background="@drawable/border" android:weightSum="8.0"
+	    	android:background="@drawable/xxborder" android:weightSum="8.0"
 	    	android:baselineAligned="false" android:paddingTop="8dip" android:paddingBottom="12dip"
 			style="?android:attr/buttonBarStyle" android:gravity="center" 
 			android:layout_width="match_parent" android:layout_height="wrap_content"

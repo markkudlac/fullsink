@@ -7,10 +7,6 @@ import static com.fullsink.mp.Const.*;
 
 import android.net.Uri;
 import android.os.Environment;
-import android.os.SystemClock;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -46,7 +42,7 @@ public class WebClient extends WebSocketClient {
 }
 	
 	@Override
-    public void onMessage( String message ) {
+    public void onMessage(String message ) {
 
 		System.out.println("Cl Mess: " + message);
 		
@@ -226,6 +222,7 @@ public class WebClient extends WebSocketClient {
     }
     
     
+    // This is not being used now as it needs the nsd service leave in though
     public static void autoSelect(final MainActivity mnact, final int cnt) {
     	System.out.println("In autoSel");
     	
@@ -325,104 +322,3 @@ class ServerSearch implements Runnable {
 
 */
 
-/*
- Various file reading routines
- */
-
-/*
-try {
-    BufferedReader reader = new BufferedReader(
-        new FileReader(trkfile));
-
-    // do reading, usually loop until end of file reading  
-    String mLine = reader.readLine();
-    while (mLine != null) {
-    	mnact.textOut(mLine ); 
-       mLine = reader.readLine(); 
-    }
-
-    reader.close();
-} catch (IOException e) {
-	System.out.println( "File I/O error " + e);
-}
-
-
-******************
-*
-*
-//    	FileInputStream fis = null;
-    	try {
-//    		fis = new FileInputStream(trkFile);
-//    		clMusic = new Music(fis.getFD());
-    		if (clMusic == null) {
-    			clMusic = new Music("http://" + Prefs.getServerIPAddress(mnact) + ":" + Prefs.getHttpdPort(mnact) + "/trkfile.mp3");
-    		} else {
-    			clMusic.play();
-    		}
-//    		clMusic = new Music(getAssets().openFd("Track3.mp3"));
-//    		clMusic.play();
-    	} catch (Exception e) {
-    		System.out.println( "I/O outTrack " + e);
-    	}
-    	
-    	
-    	************************
-    	*
-    	*    	
-    	*    try {
-    		
-    	    RandomAccessFile writer = new RandomAccessFile(trkFile,"rw");
-    	    xbuf = Base64.decode(blk,Base64.DEFAULT);
-    	    mnact.textOut("CL write sze : " + xbuf.length + " skipFile : " + skipFile);
-    	    writer.seek(skipFile);
-    	    writer.write(xbuf);
-    	    skipFile = skipFile + xbuf.length;
-    	    writer.close();
-    	} catch (IOException e) {
-    		System.out.println( "File write error " + e);
-    	}
-    }
-
-*/
-
-
-/*
-public void setFile(int xsize) {
-	
-	byte [] xbuf = new byte[65536];
-
-   	mnact.textOut("In setFile : "+mnact.getFilesDir());  
-   	
-	trkFile = new File(mnact.getFilesDir(),trackFile);
-	try {
-		
-	if (trkFile.exists()) {
-		mnact.textOut("File exists - remove");
-		trkFile.delete();
-	}
-	
-	trkFile.createNewFile();
-	skipFile = 0;
-
-	
-	AssetFileDescriptor afd = mnact.getAssets().openFd(TRKFILE);
-    FileInputStream in = afd.createInputStream();
-//    InputStream in = new FileInputStream();
-    
-    OutputStream out = new FileOutputStream(trkFile);
-
-    // Transfer bytes from in to out
-
-    int len;
-    while ((len = in.read(xbuf)) > 0) {
-        out.write(xbuf, 0, len);
-    }
-    in.close();
-    out.close();
-		
-	    mnact.textOut("Blank file sz : "+trkFile.length());
-	} catch (IOException e) {
-		System.out.println( "File write error " + e);
-	}
-}
-*/  

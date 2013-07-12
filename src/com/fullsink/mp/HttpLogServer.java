@@ -11,6 +11,7 @@ import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.AsyncTask;
+import android.os.Looper;
 import android.widget.Toast;
 
 import org.json.JSONObject;
@@ -37,6 +38,8 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
 		this.macaddr = macaddr;
 	}
 	
+	
+	@Override
 	protected JSONObject doInBackground(String... xparam){
 		
     	JSONObject json = null;
@@ -122,11 +125,16 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
     	return(json);
 	}
 	
+	
 //	 protected void onProgressUpdate(Integer... progress) {        
 //     }
 
+	
+	@Override
      protected void onPostExecute(JSONObject result) {
     	 
+//		System.out.println("****** PostExecuteHttpLogServer *******");
+				
     	 if (result != null) {
     		 try {
  

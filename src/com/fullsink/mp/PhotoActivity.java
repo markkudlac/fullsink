@@ -18,6 +18,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 
 import android.widget.Toast;
+import android.app.ActionBar;
 import android.app.Activity;
 import android.content.ContentUris;
 import android.content.Context;
@@ -41,6 +42,9 @@ public class PhotoActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        getActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM); 
+        getActionBar().setCustomView(R.layout.actionbar);
         
         setContentView(R.layout.activity_photo);
         

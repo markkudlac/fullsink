@@ -24,6 +24,7 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
 		this.serveradapter = serveradapter;
 	}
 	
+	@Override
 	protected JSONObject doInBackground(String... xparam){
 		
     	HttpURLConnection con = null;
@@ -49,24 +50,30 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
     		}
     		json = new JSONObject(result);
 
- //    		System.out.println("JSON id : " + json.getString("id"));
-    	} catch (Exception ex) { System.out.println("Exception caught : " + ex); }
+//     		System.out.println("JSON id 3 : " + json.getString("id"));
+    	} catch (Exception ex) { 
+    		System.out.println("Exception caught : " + ex); 
+    	}
 
- 
     	finally {
+    		
     		if (con != null) con.disconnect();	
+    		
     	}
     	return(json);
 	}
 	
 
+	@Override
      protected void onPostExecute(JSONObject result) {
+    	 
+ //   	 System.out.println("onPostExecute HttpCom");
     	 
     	 if (result != null) {
     		 try {
-//    	 System.out.println("Out PostExecute : " + result.getString("id") + "  Address : " +addr); 
+ //   	 System.out.println("Out PostExecute : " + result.getString("id") + "  Address : " +addr); 
 //    	 System.out.println("Out PostExecute httpdPort : " + httpdPort + " webSockPort : " +result.getString("port") );
- //   			 mnact.textOut("HttpCom ID Server : " + result.getString("id"));
+//    	 System.out.println("HttpCom ID Server : " + result.getString("id"));
     	 			 
     			 serveradapter.add(result.getString("id"), addr, httpdPort, result.getInt("port"), servicename,
 					 null);
@@ -74,5 +81,7 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
     			 mnact.adapterOut(false,-1);
     		 } catch (Exception ex) { System.out.println("Exception caught : " + ex); }
     	 }
+    	 return;
      }
+	
 }

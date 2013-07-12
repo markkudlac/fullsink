@@ -43,7 +43,7 @@
 	
     	
 	<LinearLayout android:id="@+id/photobuts"  android:orientation="horizontal"
-	    	android:background="@drawable/border" android:weightSum="0.0"
+	    	android:background="@drawable/xxborder" android:weightSum="0.0"
 	    	android:baselineAligned="false" android:paddingTop="8dip" android:paddingBottom="12dip"
 			style="?android:attr/buttonBarStyle" android:gravity="center" 
 			android:layout_width="match_parent" android:layout_height="wrap_content" 
