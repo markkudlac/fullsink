@@ -17,6 +17,10 @@ public interface Const extends BaseColumns {
 	public static final int INSTALL_AUTO = 3;
 	public static final String COLON_SUB = "~%~";
 	
+	public static final int POLL_SECONDS = 12;
+	public static final int POLL_SLEEP_CLEAN = 4;
+	public static final int POLL_SLEEP_SOCKET = 900;
+	
 //	public static final String[] EXTENSIONS = {".mp3", ".mid", ".wav", ".ogg", ".m4a"}; //Playable Extensions
 	public static final String HTTP_PROT = "http";
 	public static final String HTML_DIR = "FlSkHtml";

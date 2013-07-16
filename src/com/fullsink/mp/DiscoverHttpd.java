@@ -24,7 +24,7 @@ public class DiscoverHttpd {
     public DiscoverHttpd(MainActivity context, ServerAdapter serveradapter, String ipadd, int port) {
         mnact = context;
         this.serveradapter = serveradapter;
-        timerSecs = 21;	// wait x seconds between poll runs
+        timerSecs = POLL_SECONDS;	// wait x seconds between poll runs
         this.ipadd = ipadd;
         this.port = port;
         
@@ -41,6 +41,9 @@ public class DiscoverHttpd {
             	int i = 0;	// Just for debug
             	int lower, upper,cnt;
             	
+            	int LOWER_lim = 0;
+            	int UPPER_lim = 255;
+            	
             	int ipend =  Integer.valueOf(ipadd.substring(ipadd.lastIndexOf(".")+1));
 		    	String ipbase =  ipadd.substring(0,ipadd.lastIndexOf(".")+1);
 		    	
@@ -56,19 +59,19 @@ public class DiscoverHttpd {
 			    	upper = ipend + 1;
 			    	cnt = 1;
 			    	
-			    	while ((lower > 0 || upper < 255) && !isInterrupted()) {
+			    	while ((lower > LOWER_lim || upper < UPPER_lim) && !isInterrupted()) {
 			    		
 			    		if (cnt % 25 == 0 ) {
-			    			Thread.sleep(900);
+			    			Thread.sleep(POLL_SLEEP_SOCKET);
 			    		}
 			    		
-			    		if (lower > 0) {
+			    		if (lower > LOWER_lim) {
 			    			pollAddress(ipbase+lower,port);
 			    			--lower;
 			    			++cnt;
 			    		}
 			    		
-			    		if (upper < 255) {
+			    		if (upper < UPPER_lim) {
 			    			pollAddress(ipbase+upper,port);
 			    			++upper;
 			    			++cnt;
@@ -78,7 +81,7 @@ public class DiscoverHttpd {
 			    	++i;	// Just for debug
 			    	
 			    	if (timerSecs > 0) {
-			    		Thread.sleep(4000);
+			    		Thread.sleep(POLL_SLEEP_CLEAN * 1000);
 			    		clearDeadServers();
 			    		Thread.sleep(1000 * timerSecs);
 			    	} else {
@@ -108,15 +111,13 @@ public class DiscoverHttpd {
 	 try {
             
             Socket socket = new Socket();
-            socket.connect(new InetSocketAddress(ipadd, port), 800);
+            socket.connect(new InetSocketAddress(ipadd, port), POLL_SLEEP_SOCKET - 100);
             System.out.println("******* Socket open : " +ipadd);
             socket.close();
             if (! serveradapter.inServerList(ipadd)) {
             	System.out.println("ServerSearch connect Address : " + ipadd + " Port : "+port);
 				new HttpCom(mnact,serveradapter).execute(ipadd,String.valueOf(port), ipadd);
 			}
-//            new Thread(new ServerSearch(mnact, serveradapter, ipadd,
-//            		port, ipadd)).start();
         } catch (IOException e) {
 //        	System.out.println("Socket closed : " +ipadd);
         }
