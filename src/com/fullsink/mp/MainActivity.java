@@ -83,6 +83,8 @@ public class MainActivity extends Activity implements Runnable {
         getActionBar().setCustomView(R.layout.actionbar);
         
 		setVolumeControlStream(AudioManager.STREAM_MUSIC);
+		
+		// Not sure if this is needed
 		PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
 		wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Lexiconda");
         setContentView(R.layout.activity_main);
