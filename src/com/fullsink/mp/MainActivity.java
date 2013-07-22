@@ -161,6 +161,23 @@ public class MainActivity extends Activity implements Runnable {
 		return true;
 	}
     
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+			case R.id.action_settings:
+				toSettings(item);
+				return true;
+			case R.id.action_photo:
+				toPhoto(item);
+				return true;
+			case R.id.action_ipaddress:
+				toIPAddress(item);
+				return true;
+      	default:
+            return super.onOptionsItemSelected(item);
+        }
+    }
+    
     
 	public void toSettings(MenuItem item) {
         Intent intent = new Intent(this,SettingsActivity.class);

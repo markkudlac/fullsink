@@ -48,7 +48,7 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
         HttpResponse response;
         String responseString = null;
         
-    	String provider;
+//    	String provider;
     	int lng = GPS_NULL;
     	int lat = GPS_NULL;
     	
@@ -58,38 +58,38 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
         	
         	List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
         		
-            LocationManager locationManager = (LocationManager) mnact.getSystemService(Context.LOCATION_SERVICE);
-            // Define the criteria how to select the locatioin provider -> use
-            // default
+//            LocationManager locationManager = (LocationManager) mnact.getSystemService(Context.LOCATION_SERVICE);
+//            // Define the criteria how to select the locatioin provider -> use
+//            // default
             
-            if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) ||
-            		locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                Criteria criteria = new Criteria();
-                criteria.setAccuracy(Criteria.ACCURACY_COARSE);
-                criteria.setAltitudeRequired(false);
-                criteria.setBearingRequired(false);
-                criteria.setCostAllowed(false);
-                criteria.setPowerRequirement(Criteria.POWER_MEDIUM );
-                provider = locationManager.getBestProvider(criteria, true);
-                Location location = locationManager.getLastKnownLocation(provider);
+//            if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) ||
+//            		locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+//                Criteria criteria = new Criteria();
+//                criteria.setAccuracy(Criteria.ACCURACY_COARSE);
+//                criteria.setAltitudeRequired(false);
+//                criteria.setBearingRequired(false);
+//                criteria.setCostAllowed(false);
+//                criteria.setPowerRequirement(Criteria.POWER_MEDIUM );
+//                provider = locationManager.getBestProvider(criteria, true);
+//                Location location = locationManager.getLastKnownLocation(provider);
 
                 // Initialize the location fields
-                if (location != null) {
-//                  System.out.println("Provider " + provider + " has been selected.");
-                	
-                	lat = (int) (location.getLatitude() * 10000000);
-                	lng = (int)(location.getLongitude()* 10000000);
-                	
-                    System.out.println("Latitude : " + lat);
-                    System.out.println("Longatude : " + lng);
-                  
-                } else {
-                	System.out.println("Location not available");
-                }
-            } else if (!xparam[2].equals("0")) {
-            	mnact.toastOut("Location services not enabled",Toast.LENGTH_SHORT);
-            	System.out.println("Location services not enabled");
-            }
+//                if (location != null) {
+////                  System.out.println("Provider " + provider + " has been selected.");
+//                	
+//                	lat = (int) (location.getLatitude() * 10000000);
+//                	lng = (int)(location.getLongitude()* 10000000);
+//                	
+//                    System.out.println("Latitude : " + lat);
+//                    System.out.println("Longatude : " + lng);
+//                  
+//                } else {
+//                	System.out.println("Location not available");
+//                }
+//            } else if (!xparam[2].equals("0")) {
+//            	mnact.toastOut("Location services not enabled",Toast.LENGTH_SHORT);
+//            	System.out.println("Location services not enabled");
+//            }
             
             nameValuePairs.add(new BasicNameValuePair("ipadd", xparam[0]));
         	nameValuePairs.add(new BasicNameValuePair("userhandle", xparam[1]));

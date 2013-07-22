@@ -3,21 +3,18 @@
         android:id="@+id/action_settings"
         android:orderInCategory="100"
         android:showAsAction="never"
-        android:title="@string/action_settings"
-		android:onClick="toSettings"/>
+        android:title="@string/action_settings"/>
    
    <item
         android:id="@+id/action_photo"
         android:orderInCategory="110"
         android:showAsAction="never"
-        android:title="@string/action_photo"
-		android:onClick="toPhoto"/>
+        android:title="@string/action_photo"/>
    
    <item
         android:id="@+id/action_ipaddress"
         android:orderInCategory="120"
         android:showAsAction="never"
-        android:title="@string/action_ipaddress"
-		android:onClick="toIPAddress"/>
+        android:title="@string/action_ipaddress"/>
 		
 </menu>

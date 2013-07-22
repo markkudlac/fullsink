@@ -1,15 +1,24 @@
 package com.fullsink.mp;
 
 
-import java.net.*;
+import static com.fullsink.mp.Const.HTML_DIR;
+import static com.fullsink.mp.Const.HTTP_PROT;
+import static com.fullsink.mp.Const.SERVERID_JS;
+import static com.fullsink.mp.Const.SERVER_PHOTO;
+import static com.fullsink.mp.Const.USERHTML_DIR;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import android.os.AsyncTask;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 import org.json.JSONObject;
 
-import static com.fullsink.mp.Const.*;
+import android.app.AlertDialog;
+import android.app.AlertDialog.Builder;
+import android.content.DialogInterface;
+import android.os.AsyncTask;
 
 public class HttpCom extends AsyncTask<String, Void, JSONObject>{
 
@@ -24,6 +33,7 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
 		this.serveradapter = serveradapter;
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Override
 	protected JSONObject doInBackground(String... xparam){
 		
@@ -53,6 +63,16 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
 //     		System.out.println("JSON id 3 : " + json.getString("id"));
     	} catch (Exception ex) { 
     		System.out.println("Exception caught : " + ex); 
+    		AlertDialog ad = new AlertDialog.Builder(null).create();  
+    		ad.setCancelable(false); // This blocks the 'BACK' button  
+    		ad.setMessage("Error while connecting: " + ex);  
+    		ad.setButton("OK", new DialogInterface.OnClickListener() {  
+    		    @Override  
+    		    public void onClick(DialogInterface dialog, int which) {  
+    		        dialog.dismiss();                      
+    		    }  
+    		});  
+    		ad.show(); 
     	}
 
     	finally {

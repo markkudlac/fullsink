@@ -20,6 +20,10 @@
  		<item name="android:windowTitleBackgroundStyle">@style/WindowTitleBackground</item>
     </style>
     
+    <style name="MyTheme" parent="@android:style/Theme.Holo.Light">
+    	<!-- Any customizations for your app running on devices with Theme.Holo here -->
+	</style>
+    
     
     <style name="WindowTitleBackground">
     <item name="android:background">#111</item>
