@@ -8,7 +8,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -36,7 +35,6 @@ import static com.fullsink.mp.Const.*;
 public class WebServer extends WebSocketServer {
 
 	MainActivity mnact = null;
-	int netlate = BASE_LATENCY;
 	String copyfile;
 	Thread fileThread = null;
 	
@@ -55,8 +53,6 @@ public class WebServer extends WebSocketServer {
         @Override
         public void onOpen( WebSocket conn, ClientHandshake handshake ) {
  //               this.sendToAll( "CMD:MESS : new connection: " + handshake.getResourceDescriptor() );
-        	conn.send(CMD_PING + System.currentTimeMillis());
-        	
                 System.out.println("WebSocketServer client connected : " + conn.getRemoteSocketAddress().getAddress().getHostAddress());
         }
 
@@ -71,9 +67,7 @@ public class WebServer extends WebSocketServer {
         	// Receive messages from controller here
           System.out.println( "onMessage server : " + message );
             
-            if (message.startsWith(CMD_PING)) {	
-            	conn.send(CMD_PONG + getArg(message));
-            } else if (message.startsWith(CMD_INIT)) {	
+          	if (message.startsWith(CMD_INIT)) {	
             	conn.send(CMD_PREP + mnact.getCurrentTrackName());
             } else if (message.startsWith(CMD_READY)) {	
             	
@@ -85,8 +79,6 @@ public class WebServer extends WebSocketServer {
             		sendTrackData(conn);
             } else if (message.startsWith(CMD_WHATPLAY)) {
             	sendTrackData(conn);
-        	} else if (message.startsWith(CMD_PONG)) {	
-    			netlate = calcLatency(Long.parseLong(getArg(message)));
     		}  else if (message.startsWith(CMD_COPY)) {
     			filesizeCopyTrack(getArg(message), conn);
     		} else if (message.startsWith(CMD_CONNECT)) {
@@ -250,22 +242,7 @@ public class WebServer extends WebSocketServer {
         	
         	return(xstr.substring(xstr.indexOf(':')+1));
         }
-        
-        
-       public static int calcLatency(long starttm){
-        	
-    	   int lag;
-    	   
-    	   lag = (int) (System.currentTimeMillis() - starttm);
-    	   lag = lag / 2;
-    	   
-    	   System.out.println("Lag is : "+lag);
-    	   	if (lag < BASE_LATENCY) lag = BASE_LATENCY;
-    	   	
-        	return(lag);
-        }
-       
-       
+          
        public void filesizeCopyTrack(String copyfile, WebSocket client) {
     	   
     	   // Determine file size

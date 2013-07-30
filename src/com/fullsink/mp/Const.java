@@ -5,10 +5,8 @@ import android.provider.BaseColumns;
 
 public interface Const extends BaseColumns {
 	
-	public static final int BASE_LATENCY = 20;
 	public static final int BASE_BLOCKSIZE = 65536;
 	public static final int FILE_COPY_WAIT = 110;
-	public static final int GPS_NULL = 1810000000;
 	public static final int DOWNLOADERR = -1810000000;		// This is for file download fail
 	
 	public static final String RESOLVER_ADDRESS = "http://www.fullsink.com";
@@ -40,8 +38,6 @@ public interface Const extends BaseColumns {
 	public static final String CMD_SEEK = "SEEK:";
 	public static final String CMD_STOP = "STOP";
 	public static final String CMD_INIT = "INIT";
-	public static final String CMD_PING = "PING:";
-	public static final String CMD_PONG = "PONG:";
 	public static final String CMD_CONNECT = "CONNECT:";
 	public static final String CMD_FILE = "FILE:";
 	public static final String CMD_DOWNEN = "DOWNEN:";

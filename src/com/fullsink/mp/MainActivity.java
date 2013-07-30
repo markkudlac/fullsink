@@ -22,29 +22,23 @@ import android.graphics.Typeface;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Looper;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
-import android.os.SystemClock;
-import android.util.AttributeSet;
 import android.view.GestureDetector;
-import android.view.GestureDetector.SimpleOnGestureListener;
 import android.view.ViewGroup.LayoutParams;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
-import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
-import android.widget.TextView;
 import android.widget.Toast;
 
 public class MainActivity extends Activity implements Runnable {
@@ -71,6 +65,7 @@ public class MainActivity extends Activity implements Runnable {
 	ProgressDialog progressdialog = null;
 	
 	boolean isTuning; //is user currently jammin out, if so automatically start playing the next track
+	boolean isTuning2;
 
 	private GestureDetector gestureDetector;
     View.OnTouchListener gestureListener;
@@ -78,13 +73,14 @@ public class MainActivity extends Activity implements Runnable {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        getActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM); 
-        getActionBar().setCustomView(R.layout.actionbar);
+        if(android.os.Build.VERSION.SDK_INT>=11) {
+        	 getActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM); 
+             getActionBar().setCustomView(R.layout.actionbar);
+        }
         
 		setVolumeControlStream(AudioManager.STREAM_MUSIC);
 		
-		// Not sure if this is needed
+		// Not sure if this is needed.
 		PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
 		wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Lexiconda");
         setContentView(R.layout.activity_main);
@@ -160,6 +156,23 @@ public class MainActivity extends Activity implements Runnable {
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
+    
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+			case R.id.action_settings:
+				toSettings(item);
+				return true;
+			case R.id.action_photo:
+				toPhoto(item);
+				return true;
+			case R.id.action_ipaddress:
+				toIPAddress(item);
+				return true;
+      	default:
+            return super.onOptionsItemSelected(item);
+        }
+    }
     
     
 	public void toSettings(MenuItem item) {
@@ -795,7 +808,6 @@ public class MainActivity extends Activity implements Runnable {
     				 		
        		if (onServer() && resume) {
            		toClients(CMD_RESUME + track.getCurrentPosition());
-       			android.os.SystemClock.sleep(WServ.netlate);
        		} 
        		
        		if (onServer()) WServ.sendTrackData(null);

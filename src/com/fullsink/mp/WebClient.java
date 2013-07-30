@@ -19,7 +19,6 @@ public class WebClient extends WebSocketClient {
 	private MainActivity mnact;
 	private String copyTrack;
 	private String currentTrack;
-	private int netlate;
 	private String ipAddress;
 	private int httpdport;
 	private DownloadFile fileTask;
@@ -36,7 +35,6 @@ public class WebClient extends WebSocketClient {
         this.httpdport = httpdport;
         copyTrack = null;
         currentTrack = null;
-        netlate = BASE_LATENCY;
         fileTask = null;
         downloadEnabled = true;
 }
@@ -51,7 +49,7 @@ public class WebClient extends WebSocketClient {
 		} else if (message.startsWith(CMD_PREP)) {	
 			streamTrack(WebServer.getArg(message));
 		} else if (message.startsWith(CMD_PLAY)) {	
-			mnact.playStream(Integer.parseInt(WebServer.getArg(message)) + netlate);
+			mnact.playStream(Integer.parseInt(WebServer.getArg(message)));
 		} else if (message.startsWith(CMD_RESUME)) {	
 			mnact.playStream(Integer.parseInt(WebServer.getArg(message)));
 		} else if (message.startsWith(CMD_PAUSE)) {	
@@ -60,14 +58,10 @@ public class WebClient extends WebSocketClient {
 		} else if (message.startsWith(CMD_STOP)) {	
 			mnact.getTrack().dispose();
 			mnact.setStreamTrack(null);
-		} else if (message.startsWith(CMD_PONG)) {	
-			netlate = WebServer.calcLatency(Long.parseLong(WebServer.getArg(message)));
 		} else if (message.startsWith(CMD_PLAYING)) {
 			setSongData(WebServer.getArg(message));
 		} else if (message.startsWith(CMD_FILE)){
 			rcvTrack(message.substring(5));
-		} else if (message.startsWith(CMD_PING)) {	
-        	send(CMD_PONG + WebServer.getArg(message));
         } else if (message.startsWith(CMD_DOWNEN)) {	
         	manageDisableDownload(WebServer.getArg(message));
         }
@@ -78,7 +72,6 @@ public class WebClient extends WebSocketClient {
     	System.out.println( "You are connected to WebServer: " + getURI() );
    	
     	send(CMD_CONNECT + Prefs.getName(mnact));
-    	send(CMD_PING + System.currentTimeMillis());
     	send(CMD_INIT);
     }
 
