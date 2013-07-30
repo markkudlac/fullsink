@@ -22,7 +22,7 @@ import org.apache.http.StatusLine;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 
@@ -47,62 +47,18 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
         HttpClient httpclient = new DefaultHttpClient();
         HttpResponse response;
         String responseString = null;
-        
-//    	String provider;
-    	int lng = GPS_NULL;
-    	int lat = GPS_NULL;
-    	
+        StringBuilder path = new StringBuilder(NetStrat.resolverAddress(mnact)+LOG_SERVER_PATH + macaddr + "/A" + "?");
+        StringBuilder params = new StringBuilder();
 
         try {
-        	HttpPut httpPut = new HttpPut(NetStrat.resolverAddress(mnact)+LOG_SERVER_PATH + macaddr + "/A");
+        	params.append("ipadd").append('=').append(xparam[0]).append('&');
+        	params.append("userhandle").append('=').append(xparam[1]).append('&');
+        	params.append("portsock").append('=').append(xparam[2]).append('&');
+        	params.append("porthttpd").append('=').append(xparam[3]);
+
+        	HttpGet httpGet = new HttpGet(path.append(params).toString());
         	
-        	List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
-        		
-//            LocationManager locationManager = (LocationManager) mnact.getSystemService(Context.LOCATION_SERVICE);
-//            // Define the criteria how to select the locatioin provider -> use
-//            // default
-            
-//            if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) ||
-//            		locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-//                Criteria criteria = new Criteria();
-//                criteria.setAccuracy(Criteria.ACCURACY_COARSE);
-//                criteria.setAltitudeRequired(false);
-//                criteria.setBearingRequired(false);
-//                criteria.setCostAllowed(false);
-//                criteria.setPowerRequirement(Criteria.POWER_MEDIUM );
-//                provider = locationManager.getBestProvider(criteria, true);
-//                Location location = locationManager.getLastKnownLocation(provider);
-
-                // Initialize the location fields
-//                if (location != null) {
-////                  System.out.println("Provider " + provider + " has been selected.");
-//                	
-//                	lat = (int) (location.getLatitude() * 10000000);
-//                	lng = (int)(location.getLongitude()* 10000000);
-//                	
-//                    System.out.println("Latitude : " + lat);
-//                    System.out.println("Longatude : " + lng);
-//                  
-//                } else {
-//                	System.out.println("Location not available");
-//                }
-//            } else if (!xparam[2].equals("0")) {
-//            	mnact.toastOut("Location services not enabled",Toast.LENGTH_SHORT);
-//            	System.out.println("Location services not enabled");
-//            }
-            
-            nameValuePairs.add(new BasicNameValuePair("ipadd", xparam[0]));
-        	nameValuePairs.add(new BasicNameValuePair("userhandle", xparam[1]));
-            
-            nameValuePairs.add(new BasicNameValuePair("portsock", xparam[2]));
-            nameValuePairs.add(new BasicNameValuePair("porthttpd", xparam[3]));
-
-            nameValuePairs.add(new BasicNameValuePair("longitude", String.valueOf(lng)));
-            nameValuePairs.add(new BasicNameValuePair("latitude", String.valueOf(lat))); 
-
-            httpPut.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-        	
-            response = httpclient.execute(httpPut);
+            response = httpclient.execute(httpGet);
             StatusLine statusLine = response.getStatusLine();
             
             if(statusLine.getStatusCode() == HttpStatus.SC_OK){
@@ -124,10 +80,6 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
   	
     	return(json);
 	}
-	
-	
-//	 protected void onProgressUpdate(Integer... progress) {        
-//     }
 
 	
 	@Override
