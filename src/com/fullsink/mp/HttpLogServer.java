@@ -1,30 +1,24 @@
 package com.fullsink.mp;
 
 
-import java.util.ArrayList;
-import java.util.List;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 
 import android.content.Context;
-import android.location.Criteria;
-import android.location.Location;
-import android.location.LocationManager;
+import android.net.wifi.WifiManager;
+import android.net.wifi.WifiInfo;
 import android.os.AsyncTask;
-import android.os.Looper;
-import android.widget.Toast;
-
 import org.json.JSONObject;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
-import org.apache.http.NameValuePair;
 import org.apache.http.StatusLine;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
 
 import static com.fullsink.mp.Const.*;
 
@@ -47,7 +41,7 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
         HttpClient httpclient = new DefaultHttpClient();
         HttpResponse response;
         String responseString = null;
-        StringBuilder path = new StringBuilder(NetStrat.resolverAddress(mnact)+LOG_SERVER_PATH + macaddr + "/A" + "?");
+        String path = new String(NetStrat.resolverAddress(mnact)+LOG_SERVER_PATH + macaddr + "/A" + "?");
         StringBuilder params = new StringBuilder();
 
         try {
@@ -55,8 +49,20 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
         	params.append("userhandle").append('=').append(xparam[1]).append('&');
         	params.append("portsock").append('=').append(xparam[2]).append('&');
         	params.append("porthttpd").append('=').append(xparam[3]);
+        	
+//            String ssid = ((WifiManager) getSystemService(Context.WIFI_SERVICE)).getConnectionInfo().getSSID();
+//            if (ssid.startsWith("\"") && ssid.endsWith("\"")){
+//                ssid = ssid.substring(1, ssid.length()-1);
+//            }
+        	//params.append("netname").append('=').append(ssid);
+        	
+        	String pathString = path + (params).toString();
+            final String encodedURL = URLEncoder.encode(pathString, "UTF-8");
+        	
+        	//TESTING
+        	System.out.println("The ip and port: " + encodedURL);
 
-        	HttpGet httpGet = new HttpGet(path.append(params).toString());
+        	HttpGet httpGet = new HttpGet(encodedURL);
         	
             response = httpclient.execute(httpGet);
             StatusLine statusLine = response.getStatusLine();
@@ -72,6 +78,8 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
                 response.getEntity().getContent().close();
                 throw new IOException(statusLine.getReasonPhrase());
             }
+        } catch (UnsupportedEncodingException ex) {
+            ex.printStackTrace();
         } catch (ClientProtocolException ex) {
             ex.printStackTrace();
         } catch (Exception ex) {

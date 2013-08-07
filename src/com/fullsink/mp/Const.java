@@ -24,8 +24,8 @@ public interface Const extends BaseColumns {
 	public static final String HTML_DIR = "FlSkHtml";
 	public static final String USERHTML_DIR = "UserHtml";
 	public static final String SERVERID_JS = "serverid.json";
-	public static final String MUSIC_DIR = "FullSink";
-	public static final String SERVICE_NAME = "FullSink";
+	public static final String MUSIC_DIR = "Fullsink";
+	public static final String SERVICE_NAME = "Fullsink";
 	public static final String SERVER_PHOTO = "serverphoto.jpg";
 	public static final String FILTER_MUSIC = "/Music/";
 	

@@ -10,6 +10,8 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.Enumeration;
 
+import com.fullsink.mp.Prefs.PF;
+
 import android.app.Activity;
 import android.content.Context;
 import android.net.wifi.WifiManager;
@@ -19,6 +21,7 @@ public class NetStrat {
 	
 static int httpdPort = 0;
 static String macAddress = null;
+static String ssid = null;
 
 static	public String getWifiApIpAddress() {
 	    try {
@@ -40,7 +43,8 @@ static	public String getWifiApIpAddress() {
 	    } catch (SocketException ex) {
 	    	System.out.println("AP exception : " + ex);
 	    }
-	    return null;
+	    //return null;
+	    return "192.168.1.103";
 	}
 	
 

@@ -21,5 +21,17 @@
 		    android:text="Address">  
 		</TextView> 
 		
+      <TextView 
+		     android:layout_width="wrap_content"  
+		    android:layout_height="wrap_content"  android:textSize="12pt"
+		    android:text="@string/action_ssid"  android:textColor="#CCC">  
+		</TextView>
+		
+      <TextView  android:id="@+id/networkIPAdressView"  
+		     android:layout_width="wrap_content"  
+		    android:layout_height="wrap_content"  android:textSize="16pt"
+		    android:text="Network">  
+		</TextView>
+		
      </LinearLayout>
   </LinearLayout>
