@@ -16,6 +16,7 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -59,6 +60,12 @@ public class PhotoActivity extends Activity {
 	        getActionBar().setCustomView(R.layout.actionbar);
 	        ImageView photoActionBarView = (ImageView) findViewById(R.id.photoActionBar);
 	        if (bm != null)	photoActionBarView.setImageBitmap(bm);
+	        ImageButton logoButton = (ImageButton) findViewById(R.id.logo_record);
+            logoButton.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+               	 Toast.makeText(getApplicationContext(), NetStrat.ssid, Toast.LENGTH_LONG).show();
+                }
+            });
         }
         
         

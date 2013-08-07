@@ -46,23 +46,17 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
 
         try {
         	params.append("ipadd").append('=').append(xparam[0]).append('&');
-        	params.append("userhandle").append('=').append(xparam[1]).append('&');
+        	params.append("userhandle").append('=').append(URLEncoder.encode(xparam[1], "UTF-8")).append('&');
         	params.append("portsock").append('=').append(xparam[2]).append('&');
-        	params.append("porthttpd").append('=').append(xparam[3]);
-        	
-//            String ssid = ((WifiManager) getSystemService(Context.WIFI_SERVICE)).getConnectionInfo().getSSID();
-//            if (ssid.startsWith("\"") && ssid.endsWith("\"")){
-//                ssid = ssid.substring(1, ssid.length()-1);
-//            }
-        	//params.append("netname").append('=').append(ssid);
+        	params.append("porthttpd").append('=').append(xparam[3]).append('&');
+        	params.append("netname").append('=').append(URLEncoder.encode(NetStrat.ssid, "UTF-8"));
         	
         	String pathString = path + (params).toString();
-            final String encodedURL = URLEncoder.encode(pathString, "UTF-8");
         	
         	//TESTING
-        	System.out.println("The ip and port: " + encodedURL);
+        	System.out.println("The ip and port: " + pathString);
 
-        	HttpGet httpGet = new HttpGet(encodedURL);
+        	HttpGet httpGet = new HttpGet(pathString);
         	
             response = httpclient.execute(httpGet);
             StatusLine statusLine = response.getStatusLine();

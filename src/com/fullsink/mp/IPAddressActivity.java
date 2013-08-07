@@ -8,8 +8,11 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 
@@ -24,11 +27,7 @@ public class IPAddressActivity extends Activity {
 		((TextView) findViewById(R.id.ipaddress)).setText(NetStrat
 				.getWifiApIpAddress() + ":" + NetStrat.getHttpdPort());
 		
-        String ssid = ((WifiManager) this.getSystemService(Context.WIFI_SERVICE)).getConnectionInfo().getSSID();
-        if (ssid.startsWith("\"") && ssid.endsWith("\"")){
-            ssid = ssid.substring(1, ssid.length()-1);
-        }
-        ((TextView) findViewById(R.id.networkIPAdressView)).setText(ssid);
+        ((TextView) findViewById(R.id.networkIPAdressView)).setText(NetStrat.ssid);
         
         //show action bar for OS 2.3 or greater
 		if (android.os.Build.VERSION.SDK_INT >= 11) {
@@ -39,6 +38,12 @@ public class IPAddressActivity extends Activity {
             if (bm != null){
            	 ((ImageView) findViewById(R.id.photoActionBar)).setImageBitmap(bm);
             }
+            ImageButton logoButton = (ImageButton) findViewById(R.id.logo_record);
+            logoButton.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+               	 Toast.makeText(getApplicationContext(), NetStrat.ssid, Toast.LENGTH_LONG).show();
+                }
+            });
 		}
 	}
 

@@ -9,8 +9,11 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.preference.PreferenceActivity;
+import android.view.View;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 
 public class SettingsActivity extends PreferenceActivity {
@@ -28,6 +31,12 @@ public class SettingsActivity extends PreferenceActivity {
             if (bm != null){
            	 ((ImageView) findViewById(R.id.photoActionBar)).setImageBitmap(bm);
             }
+            ImageButton logoButton = (ImageButton) findViewById(R.id.logo_record);
+            logoButton.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+               	 Toast.makeText(getApplicationContext(), NetStrat.ssid, Toast.LENGTH_LONG).show();
+                }
+            });
         }
         
     try {

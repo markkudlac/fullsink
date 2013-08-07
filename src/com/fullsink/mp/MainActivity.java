@@ -98,10 +98,13 @@ public class MainActivity extends Activity implements Runnable {
              if (ssidString.startsWith("\"") && ssidString.endsWith("\"")){
             	 ssidString = ssidString.substring(1, ssidString.length()-1);
              }
-             final String ssid = ssidString;
+             if (ssidString.startsWith("<") && ssidString.endsWith(">")){
+            	 ssidString = ssidString.substring(1, ssidString.length()-1);
+             }
+             NetStrat.ssid = ssidString;
              logoButton.setOnClickListener(new View.OnClickListener() {
                  public void onClick(View v) {
-                	 Toast.makeText(getApplicationContext(), ssid, Toast.LENGTH_LONG).show();
+                	 Toast.makeText(getApplicationContext(), NetStrat.ssid, Toast.LENGTH_LONG).show();
                  }
              });
         }
@@ -665,6 +668,10 @@ public class MainActivity extends Activity implements Runnable {
 				findViewById(R.id.progressbar).setVisibility(View.GONE);
 				findViewById(R.id.mediabuts).setVisibility(View.VISIBLE);
 				findViewById(R.id.clientbuts).setVisibility(View.GONE);
+		       	playcuradapter = new PlayCurAdapter(this, MediaMeta.getMusicCursor(this));
+		    	playlist.setOnItemClickListener(playcuradapter);
+		    	playlist.setAdapter(playcuradapter);
+				
 				findViewById(R.id.playlist).setVisibility(View.VISIBLE);
 				findViewById(R.id.serverlist).setVisibility(View.GONE);
 				
@@ -782,7 +789,14 @@ public class MainActivity extends Activity implements Runnable {
 				WClient.startCopyFile();
 				File filePath;
 				filePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
-				String newSongPath = filePath.toString() + "/" + MUSIC_DIR + getCurrentTrackName().substring(getCurrentTrackName().lastIndexOf("/"));
+				String currTrack = WClient.getCurrentTrack();
+				if(currTrack != null){
+					int slashIndex = currTrack.lastIndexOf("/");
+					if(slashIndex >= 0){
+						currTrack.substring(slashIndex-1);
+					}
+				}
+				String newSongPath = filePath.toString() + "/" + MUSIC_DIR + "/" + currTrack;
 				sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(new File(newSongPath))));
 			}
 		return;
@@ -1058,6 +1072,7 @@ public void toastOut(final String xmess, final int length){
 public void adapterOut(final boolean remove, final int item){
 
 	runOnUiThread(new Runnable() {
+		@Override
         public void run() {
         	
         	if (remove ) {
@@ -1072,9 +1087,10 @@ public void adapterOut(final boolean remove, final int item){
         	serveradapter.notifyDataSetChanged();
         	
         	//There may be a hole here as not sure if notify is completed here. Seems to work
-        	System.out.println( "Checked count : " + serverlist.getCheckedItemCount());
+        	int serverCount = serverlist.getCheckedItemPosition();
+        	System.out.println( "Checked count : " + serverCount);
         	// Stop stream if the check (current connection) is lost count zero
-			if (remove && serverlist.getCheckedItemCount() == 0) {
+			if (remove && serverCount == ListView.INVALID_POSITION) {
 			 clearStream();
 			}
         }
