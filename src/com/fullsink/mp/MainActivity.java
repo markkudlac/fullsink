@@ -10,6 +10,7 @@ import org.java_websocket.WebSocketImpl;
 import static com.fullsink.mp.Const.*;
 import fi.iki.elonen.SimpleWebServer;
 
+import android.annotation.TargetApi;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.ProgressDialog;
@@ -20,6 +21,7 @@ import android.content.res.Configuration;
 import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.media.AudioManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.PowerManager;
@@ -30,7 +32,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -70,7 +71,8 @@ public class MainActivity extends Activity implements Runnable {
 	private GestureDetector gestureDetector;
     View.OnTouchListener gestureListener;
 	
-    @Override
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if(android.os.Build.VERSION.SDK_INT>=11) {
@@ -82,7 +84,7 @@ public class MainActivity extends Activity implements Runnable {
 		
 		// Not sure if this is needed.
 		PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
-		wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Lexiconda");
+		wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Fullsink");
         setContentView(R.layout.activity_main);
 
         /*
@@ -1018,9 +1020,9 @@ public void adapterOut(final boolean remove, final int item){
         	serveradapter.notifyDataSetChanged();
         	
         	//There may be a hole here as not sure if notify is completed here. Seems to work
-        	System.out.println( "Checked count : " + serverlist.getCheckedItemCount());
-        	// Stop stream if the check (current connection) is lost count zero
-			if (remove && serverlist.getCheckedItemCount() == 0) {
+        	System.out.println( "Checked count : " + serverlist.getCheckedItemPosition());
+        	// Stop stream if the check (current connection) is lost count zero  (none checked)
+			if (remove && serverlist.getCheckedItemPosition() == ListView.INVALID_POSITION ) {
 			 clearStream();
 			}
         }

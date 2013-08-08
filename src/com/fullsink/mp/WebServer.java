@@ -305,7 +305,7 @@ public class WebServer extends WebSocketServer {
         Server id JSON looks like 
         
         {
-product:"FullSink",
+product:"Fullsink",
 id:"The server name from Prefs",
 port: "12345",     //websocket port
 }            

@@ -40,7 +40,8 @@ static	public String getWifiApIpAddress() {
 	    } catch (SocketException ex) {
 	    	System.out.println("AP exception : " + ex);
 	    }
-	    return null;
+//	    return null;
+	    return "192.168.1.103";
 	}
 	
 
