@@ -5,121 +5,152 @@ import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.preference.*;
+import android.annotation.TargetApi;
+import android.preference.PreferenceActivity;
 
+public class Prefs extends PreferenceActivity {
+	private static int prefs = R.xml.settings;
 
-public class Prefs extends PreferenceFragment {
-
-	
 	@Override
-	public void onCreate(Bundle savedInstanceState) {
-		
+	protected void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
-		
-		addPreferencesFromResource(R.xml.settings);
+		try {
+			getClass().getMethod("getFragmentManager");
+			AddResourceApi11AndGreater();
+		} catch (NoSuchMethodException e) { // Api < 11
+			AddResourceApiLessThan11();
+		}
 	}
 
-	
-	@Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-// This is here to capture orientation change. No need to do anything
-    }
-	
-	
-	public static Integer getHttpdPort(Context context) {
-				
-		String xstr = PreferenceManager.
-		getDefaultSharedPreferences(context).getString(context.getString(R.string.pref_httpdport),
-				context.getString(R.string.default_httpdport));
-		
-		return(Integer.parseInt(xstr));
+	@SuppressWarnings("deprecation")
+	protected void AddResourceApiLessThan11() {
+		addPreferencesFromResource(prefs);
+	}
+
+	@TargetApi(11)
+	protected void AddResourceApi11AndGreater() {
+		getFragmentManager().beginTransaction()
+				.replace(android.R.id.content, new PF()).commit();
 	}
 	
+	public static void setVersionNumber(Context context, int count) {
+
+		SharedPreferences prefs = PreferenceManager
+				.getDefaultSharedPreferences(context);
+
+		prefs.edit().putInt("com.fullsink.mp.versionnumber", count)
+				.commit();
+	}
+
+	public static int getVersionNumber(Context context) {
+
+		SharedPreferences prefs = PreferenceManager
+				.getDefaultSharedPreferences(context);
+
+		return prefs.getInt("com.fullsink.mp.versionnumber", 0); // Start
+																	// count
+																	// at
+																	// zero
+	}
+	
+	@Override
+	public void onConfigurationChanged(Configuration newConfig) {
+		super.onConfigurationChanged(newConfig);
+		// This is here to capture orientation change. No need to do
+		// anything
+	}
+
+	public static Integer getHttpdPort(Context context) {
+
+		String xstr = PreferenceManager
+				.getDefaultSharedPreferences(context).getString(
+						context.getString(R.string.pref_httpdport),
+						context.getString(R.string.default_httpdport));
+
+		return (Integer.parseInt(xstr));
+	}
 
 	public static Integer getSocketPort(Context context) {
-		
-		String xstr = PreferenceManager.
-		getDefaultSharedPreferences(context).getString(context.getString(R.string.pref_sockport),
-				context.getString(R.string.default_sockport));
-		
-		return(Integer.parseInt(xstr));
+
+		String xstr = PreferenceManager
+				.getDefaultSharedPreferences(context).getString(
+						context.getString(R.string.pref_sockport),
+						context.getString(R.string.default_sockport));
+
+		return (Integer.parseInt(xstr));
 	}
-	
-	
+
 	public static boolean getDownload(Context context) {
-			
-		boolean allowdown = PreferenceManager.
-		getDefaultSharedPreferences(context).getBoolean(context.getString(R.string.pref_download),true);
-		
-		return(allowdown);
+
+		boolean allowdown = PreferenceManager.getDefaultSharedPreferences(
+				context).getBoolean(
+				context.getString(R.string.pref_download), true);
+
+		return (allowdown);
 	}
-	
-	
+
 	public static String getServerIPAddress(Context context) {
-		
-		String xstr = PreferenceManager.
-		getDefaultSharedPreferences(context).getString(context.getString(R.string.pref_srvadd),"");
-		
-		return(xstr);
-	}
-	
-	
-public static boolean getOnAir(Context context) {
-		
-		boolean xbool = PreferenceManager.
-		getDefaultSharedPreferences(context).getBoolean(context.getString(R.string.pref_onair),true);
-		
-		return(xbool);
+
+		String xstr = PreferenceManager
+				.getDefaultSharedPreferences(context).getString(
+						context.getString(R.string.pref_srvadd), "");
+
+		return (xstr);
 	}
 
-public static void setName(Context context, String name) {
+	public static boolean getOnAir(Context context) {
 
-	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+		boolean xbool = PreferenceManager.getDefaultSharedPreferences(
+				context).getBoolean(context.getString(R.string.pref_onair),
+				true);
 
-	prefs.edit().putString("com.fullsink.mp.name", name).commit();
-}
+		return (xbool);
+	}
 
+	public static void setName(Context context, String name) {
 
-public static String getName(Context context) {
+		SharedPreferences prefs = PreferenceManager
+				.getDefaultSharedPreferences(context);
 
-	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+		prefs.edit().putString("com.fullsink.mp.name", name).commit();
+	}
 
-	return prefs.getString("com.fullsink.mp.name","");
-}
+	public static String getName(Context context) {
 
+		SharedPreferences prefs = PreferenceManager
+				.getDefaultSharedPreferences(context);
 
-// Number of times app has been loaded. Used for initialization
-public static void setLoadCount(Context context, int count) {
+		return prefs.getString("com.fullsink.mp.name", "");
+	}
 
-	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+	// Number of times app has been loaded. Used for initialization
+	public static void setLoadCount(Context context, int count) {
 
-	prefs.edit().putInt("com.fullsink.mp.loadcount", count).commit();
-}
+		SharedPreferences prefs = PreferenceManager
+				.getDefaultSharedPreferences(context);
 
+		prefs.edit().putInt("com.fullsink.mp.loadcount", count).commit();
+	}
 
-public static int getLoadCount(Context context) {
+	public static int getLoadCount(Context context) {
 
-	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+		SharedPreferences prefs = PreferenceManager
+				.getDefaultSharedPreferences(context);
 
-	return prefs.getInt("com.fullsink.mp.loadcount", 0);	//Start count at zero
-}
+		return prefs.getInt("com.fullsink.mp.loadcount", 0); // Start count
+																// at zero
+	}
 
+	@TargetApi(11)
+	public static class PF extends PreferenceFragment {
 
+		@Override
+		public void onCreate(Bundle savedInstanceState) {
 
-public static void setVersionNumber(Context context, int count) {
+			super.onCreate(savedInstanceState);
 
-	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+			addPreferencesFromResource(R.xml.settings);
+		}
 
-	prefs.edit().putInt("com.fullsink.mp.versionnumber", count).commit();
-}
-
-
-public static int getVersionNumber(Context context) {
-
-	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-
-	return prefs.getInt("com.fullsink.mp.versionnumber", 0);	//Start count at zero
-}
-
+	}
 }

@@ -1,22 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent" android:background="#111"
-    android:orientation="horizontal" android:gravity="left">
+    android:layout_height="match_parent"
+    android:background="#111"
+    android:orientation="horizontal" >
 
-    <ImageView android:id="@+id/logo_record"
+    <ImageButton
+        android:id="@+id/logo_record"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:src="@drawable/fs_logo_graphic" 
-        android:padding="3dip"
+        android:layout_alignParentLeft="true"
         android:layout_marginLeft="5dip"
-         />
-    
-    <ImageView android:id="@+id/logo_text"
+        android:onClick="onClick"
+        android:padding="3dip"
+        android:layout_centerVertical="true"
+        android:src="@drawable/fs_logo_graphic" />
+
+    <ImageView
+        android:id="@+id/logo_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:src="@drawable/fs_logo_text" 
+        android:layout_toRightOf="@id/logo_record"
         android:padding="3dip"
-         />
+        android:layout_centerVertical="true"
+        android:src="@drawable/fs_logo_text" />
 
-</LinearLayout>
+
+    <ImageView
+        android:id="@+id/photoActionBar"
+        android:layout_width="36dip"
+        android:layout_height="36dip"
+        android:layout_alignParentRight="true"
+        android:padding="2dip"
+        android:paddingLeft="20dip"
+		android:layout_centerVertical="true"
+        android:background="#ffff"
+        android:src="@drawable/ic_menu_invite" />
+
+</RelativeLayout>

@@ -1,8 +1,10 @@
 package com.fullsink.mp;
 
- import android.content.CursorLoader;
 
 //import android.support.v4.content.CursorLoader;
+
+import android.support.v4.content.CursorLoader;
+
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;

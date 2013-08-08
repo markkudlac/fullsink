@@ -11,6 +11,8 @@ import static com.fullsink.mp.Const.*;
 import fi.iki.elonen.SimpleWebServer;
 
 import android.annotation.TargetApi;
+import android.annotation.SuppressLint;
+
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.ProgressDialog;
@@ -18,27 +20,37 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
 import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.media.AudioManager;
+
 import android.os.Build;
+
+import android.net.Uri;
+import android.net.wifi.WifiManager;
+
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
-import android.view.GestureDetector;
+import android.provider.ContactsContract.Contacts;
+import android.util.Log;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup.LayoutParams;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.Toast;
 
@@ -53,7 +65,7 @@ public class MainActivity extends Activity implements Runnable {
 	private static int ShuffleLoop = MODE_NORMAL;
 	WakeLock wakeLock;
 
-	Music track; //currently loaded track
+	protected Music track; //currently loaded track
 
 	ListView playlist;
 	ListView serverlist;
@@ -66,18 +78,41 @@ public class MainActivity extends Activity implements Runnable {
 	ProgressDialog progressdialog = null;
 	
 	boolean isTuning; //is user currently jammin out, if so automatically start playing the next track
-	boolean isTuning2;
 
-	private GestureDetector gestureDetector;
+	//private GestureDetector gestureDetector;
     View.OnTouchListener gestureListener;
 	
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+
+    @SuppressLint("NewApi")
 	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //load action bar for OS 2.3 or greater
         if(android.os.Build.VERSION.SDK_INT>=11) {
-        	 getActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM); 
-             getActionBar().setCustomView(R.layout.actionbar);
+        	 ActionBar ab = getActionBar();
+        	 ab.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM); 
+             ab.setCustomView(R.layout.actionbar);
+             ImageView photoActionBarView = (ImageView) findViewById(R.id.photoActionBar);
+             
+             Bitmap bm = PhotoActivity.getPhotoBitmap(this);
+             if (bm != null){
+            	 ((ImageView) findViewById(R.id.photoActionBar)).setImageBitmap(bm);
+             }
+
+             ImageButton logoButton = (ImageButton) findViewById(R.id.logo_record);
+             String ssidString = ((WifiManager) this.getSystemService(Context.WIFI_SERVICE)).getConnectionInfo().getSSID();
+             if (ssidString.startsWith("\"") && ssidString.endsWith("\"")){
+            	 ssidString = ssidString.substring(1, ssidString.length()-1);
+             }
+             if (ssidString.startsWith("<") && ssidString.endsWith(">")){
+            	 ssidString = ssidString.substring(1, ssidString.length()-1);
+             }
+             NetStrat.ssid = ssidString;
+             logoButton.setOnClickListener(new View.OnClickListener() {
+                 public void onClick(View v) {
+                	 Toast.makeText(getApplicationContext(), NetStrat.ssid, Toast.LENGTH_LONG).show();
+                 }
+             });
         }
         
 		setVolumeControlStream(AudioManager.STREAM_MUSIC);
@@ -106,6 +141,9 @@ public class MainActivity extends Activity implements Runnable {
     	System.out.println("In RESUME");
     	if (onServer()) WServ.sendTrackData(null);	// Will update changes in settings
 //    	mNsdHelper.discoverServices(); Keep out was problems
+    	ImageView photoActionBarView = (ImageView) findViewById(R.id.photoActionBar);
+    	Bitmap bitmap = PhotoActivity.getPhotoBitmap(this);
+    	if (bitmap != null)	photoActionBarView.setImageBitmap(bitmap);
     }
 	
     
@@ -210,14 +248,26 @@ public class MainActivity extends Activity implements Runnable {
                 System.out.println("Exception in thread run for seek : " + ex);
             } 
         	
-            if (track.isPlaying()) {
-            	if (inClient()){
-            		progressbar.setMax(getTrack().getDuration());
-            		progressbar.setProgress(currentPosition);
-            	} else {
-            		seekbar.setProgress(currentPosition);
-            	}
-            }
+        	try {
+	        	if (track.isPlaying()) {
+	            	if (inClient()){
+	            		progressbar.setMax(getTrack().getDuration());
+	            		progressbar.setProgress(currentPosition);
+	            	} else {
+	            		seekbar.setProgress(currentPosition);
+	            	}
+	            }
+        	} catch (Exception ex){
+        		Log.e("Fullsink", "Error in track.isPlaying()", ex);
+        		StringBuffer result = new StringBuffer();
+                StackTraceElement[] trace = ex.getStackTrace();
+                ex.printStackTrace();
+                for (int i=0;i<trace.length;i++) {
+                    result.append(trace[i].toString()).append('\n');
+                }
+        		Log.e("Stack Trace", result.toString());
+        	 
+        	}
             
             try {
                 Thread.sleep(1000);
@@ -531,7 +581,6 @@ public class MainActivity extends Activity implements Runnable {
 		
 		NetStrat.logServer(mnact,SERVER_OFFLINE);	//Server is turned off
 		
-	    ((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_off_holo_dark);
 	} 	
 	 
     
@@ -557,6 +606,10 @@ public class MainActivity extends Activity implements Runnable {
 		clearActiveMenu();
 		((ImageView) findViewById(R.id.imgReceiver)).setImageResource(R.drawable.fs_receive_blue);
 		((Button) findViewById(R.id.btnReceiver)).setClickable(false);
+		Button serverButton = ((Button) findViewById(R.id.btnServer));
+		serverButton.setClickable(false);
+		serverButton.setBackgroundResource(R.drawable.buttongrey);
+		((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_off_holo_dark);
 		
 		prepClientScreen();
 		findViewById(R.id.seekbar).setVisibility(View.GONE);
@@ -612,12 +665,19 @@ public class MainActivity extends Activity implements Runnable {
 				parentbuts.addView(viewMute,0);
 				
 				
-
+				Button serverButton = ((Button) findViewById(R.id.btnServer));
+				serverButton.setBackgroundResource(R.drawable.buttonblack);
+				serverButton.setClickable(false);
+				((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_on_holo_blue);
 				setActiveMenu(R.id.btnSongs);
 				findViewById(R.id.seekbar).setVisibility(View.VISIBLE);
 				findViewById(R.id.progressbar).setVisibility(View.GONE);
 				findViewById(R.id.mediabuts).setVisibility(View.VISIBLE);
 				findViewById(R.id.clientbuts).setVisibility(View.GONE);
+		       	playcuradapter = new PlayCurAdapter(this, MediaMeta.getMusicCursor(this));
+		    	playlist.setOnItemClickListener(playcuradapter);
+		    	playlist.setAdapter(playcuradapter);
+				
 				findViewById(R.id.playlist).setVisibility(View.VISIBLE);
 				findViewById(R.id.serverlist).setVisibility(View.GONE);
 				
@@ -733,6 +793,17 @@ public class MainActivity extends Activity implements Runnable {
 				
 				progressdialog.show();
 				WClient.startCopyFile();
+				File filePath;
+				filePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
+				String currTrack = WClient.getCurrentTrack();
+				if(currTrack != null){
+					int slashIndex = currTrack.lastIndexOf("/");
+					if(slashIndex >= 0){
+						currTrack.substring(slashIndex-1);
+					}
+				}
+				String newSongPath = filePath.toString() + "/" + MUSIC_DIR + "/" + currTrack;
+				sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(new File(newSongPath))));
 			}
 		return;
 			
@@ -859,6 +930,7 @@ public class MainActivity extends Activity implements Runnable {
     
     
     public void playNextTrack() {
+    	
 	
 	if (!inClient()) {
 		if (ShuffleLoop == MODE_LOOP) {
@@ -1006,6 +1078,7 @@ public void toastOut(final String xmess, final int length){
 public void adapterOut(final boolean remove, final int item){
 
 	runOnUiThread(new Runnable() {
+		@Override
         public void run() {
         	
         	if (remove ) {
@@ -1020,9 +1093,11 @@ public void adapterOut(final boolean remove, final int item){
         	serveradapter.notifyDataSetChanged();
         	
         	//There may be a hole here as not sure if notify is completed here. Seems to work
-        	System.out.println( "Checked count : " + serverlist.getCheckedItemPosition());
-        	// Stop stream if the check (current connection) is lost count zero  (none checked)
-			if (remove && serverlist.getCheckedItemPosition() == ListView.INVALID_POSITION ) {
+
+        	int serverCount = serverlist.getCheckedItemPosition();
+        	System.out.println( "Checked count : " + serverCount);
+        	// Stop stream if the check (current connection) is lost count zero
+			if (remove && serverCount == ListView.INVALID_POSITION) {
 			 clearStream();
 			}
         }

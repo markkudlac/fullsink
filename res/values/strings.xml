@@ -20,6 +20,7 @@
 	<string name="photobutclear">Clear Photo</string>
 	
 	<string name="action_ipaddress">Server Address</string>
+	<string name="action_ssid">Wifi Network</string>
 	
 	<string name="tunedin">has tuned in</string>
 	<string name="tunedout">has tuned out</string>

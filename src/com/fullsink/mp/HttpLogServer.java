@@ -4,9 +4,10 @@ package com.fullsink.mp;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 
 import android.os.AsyncTask;
-
 
 import org.json.JSONObject;
 import org.apache.http.HttpResponse;
@@ -39,16 +40,22 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
         HttpClient httpclient = new DefaultHttpClient();
         HttpResponse response;
         String responseString = null;
-        StringBuilder path = new StringBuilder(NetStrat.resolverAddress(mnact)+LOG_SERVER_PATH + macaddr + "/A" + "?");
+        String path = new String(NetStrat.resolverAddress(mnact)+LOG_SERVER_PATH + macaddr + "/A" + "?");
         StringBuilder params = new StringBuilder();
 
         try {
         	params.append("ipadd").append('=').append(xparam[0]).append('&');
-        	params.append("userhandle").append('=').append(xparam[1]).append('&');
+        	params.append("userhandle").append('=').append(URLEncoder.encode(xparam[1], "UTF-8")).append('&');
         	params.append("portsock").append('=').append(xparam[2]).append('&');
-        	params.append("porthttpd").append('=').append(xparam[3]);
+        	params.append("porthttpd").append('=').append(xparam[3]).append('&');
+        	params.append("netname").append('=').append(URLEncoder.encode(NetStrat.ssid, "UTF-8"));
+        	
+        	String pathString = path + (params).toString();
+        	
+        	//TESTING
+        	System.out.println("The ip and port: " + pathString);
 
-        	HttpGet httpGet = new HttpGet(path.append(params).toString());
+        	HttpGet httpGet = new HttpGet(pathString);
         	
             response = httpclient.execute(httpGet);
             StatusLine statusLine = response.getStatusLine();
@@ -64,6 +71,8 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
                 response.getEntity().getContent().close();
                 throw new IOException(statusLine.getReasonPhrase());
             }
+        } catch (UnsupportedEncodingException ex) {
+            ex.printStackTrace();
         } catch (ClientProtocolException ex) {
             ex.printStackTrace();
         } catch (Exception ex) {

@@ -4,8 +4,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-
+import android.support.v4.content.CursorLoader;
 import android.net.Uri;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Email;
@@ -15,14 +16,17 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import android.widget.Toast;
+import android.annotation.SuppressLint;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.content.ContentUris;
 import android.content.Context;
-import android.content.CursorLoader;
+
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.database.Cursor;
@@ -39,12 +43,10 @@ public class PhotoActivity extends Activity {
 	private EditText editname;
 	
 	
-    @Override
+    @SuppressLint("NewApi")
+	@Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
-        getActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM); 
-        getActionBar().setCustomView(R.layout.actionbar);
         
         setContentView(R.layout.activity_photo);
         
@@ -52,6 +54,20 @@ public class PhotoActivity extends Activity {
         
         Bitmap bm = getPhotoBitmap(this);
         if (bm != null)	photoimageview.setImageBitmap(bm);
+        
+        if(android.os.Build.VERSION.SDK_INT>=11) {
+	        getActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM); 
+	        getActionBar().setCustomView(R.layout.actionbar);
+	        ImageView photoActionBarView = (ImageView) findViewById(R.id.photoActionBar);
+	        if (bm != null)	photoActionBarView.setImageBitmap(bm);
+	        ImageButton logoButton = (ImageButton) findViewById(R.id.logo_record);
+            logoButton.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+               	 Toast.makeText(getApplicationContext(), NetStrat.ssid, Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+        
         
         addKeyListener(this);
         
@@ -112,7 +128,9 @@ public class PhotoActivity extends Activity {
                         	System.out.println( "Got photo Blob : ");
 	                    	Bitmap bm = BitmapFactory.decodeByteArray(photoblob,0,photoblob.length);
 	                    	ImageView img = (ImageView) findViewById(R.id.photoimage);
+	                    	ImageView imgAB = (ImageView) findViewById(R.id.photoActionBar);
 	                    	img.setImageBitmap(bm);
+	                    	imgAB.setImageBitmap(bm);
                         
                     		storePhoto(this, photoblob);
                         } else {
@@ -175,7 +193,7 @@ public class PhotoActivity extends Activity {
     }
     
  
-    static private Bitmap getPhotoBitmap(Context context) {
+    static public Bitmap getPhotoBitmap(Context context) {
     	
     	Bitmap bm = null;
     	byte[] xbyte;

@@ -115,6 +115,10 @@ public class WebClient extends WebSocketClient {
     	send(CMD_COPY + copyTrack);
     }
     
+    public String getCurrentTrack(){
+    	return currentTrack;
+    }
+    
     
     public void rcvTrack(String blk) {
     	

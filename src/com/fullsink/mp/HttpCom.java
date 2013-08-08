@@ -63,16 +63,6 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
 //     		System.out.println("JSON id 3 : " + json.getString("id"));
     	} catch (Exception ex) { 
     		System.out.println("Exception caught : " + ex); 
-    		AlertDialog ad = new AlertDialog.Builder(null).create();  
-    		ad.setCancelable(false); // This blocks the 'BACK' button  
-    		ad.setMessage("Error while connecting: " + ex);  
-    		ad.setButton("OK", new DialogInterface.OnClickListener() {  
-    		    @Override  
-    		    public void onClick(DialogInterface dialog, int which) {  
-    		        dialog.dismiss();                      
-    		    }  
-    		});  
-    		ad.show(); 
     	}
 
     	finally {
