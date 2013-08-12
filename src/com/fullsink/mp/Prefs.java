@@ -116,11 +116,17 @@ public class Prefs extends PreferenceActivity {
 	}
 
 	public static String getName(Context context) {
-
+		
+		String tmpname;
+		
 		SharedPreferences prefs = PreferenceManager
 				.getDefaultSharedPreferences(context);
 
-		return prefs.getString("com.fullsink.mp.name", "");
+		tmpname = prefs.getString("com.fullsink.mp.name", "");
+		if (tmpname.length() > 20) {
+			tmpname = tmpname.substring(0, 20);
+		}
+		return tmpname;
 	}
 
 	// Number of times app has been loaded. Used for initialization

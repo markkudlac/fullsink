@@ -53,7 +53,7 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
         	String pathString = path + (params).toString();
         	
         	//TESTING
-        	System.out.println("The ip and port: " + pathString);
+ //       	System.out.println("The ip and port: " + pathString);
 
         	HttpGet httpGet = new HttpGet(pathString);
         	

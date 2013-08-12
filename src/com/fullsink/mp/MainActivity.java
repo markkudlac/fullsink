@@ -60,7 +60,7 @@ public class MainActivity extends Activity implements Runnable {
 	public static SimpleWebServer HttpdServ = null;
 	public static WebClient WClient = null;
 //	public static NsdHelper mNsdHelper = null;
-	public static DiscoverHttpd mDiscoverHttpd;
+	public static DiscoverHttpd mDiscoverHttpd = null;
 	
 	private static int ShuffleLoop = MODE_NORMAL;
 	WakeLock wakeLock;
@@ -92,7 +92,7 @@ public class MainActivity extends Activity implements Runnable {
         	 ActionBar ab = getActionBar();
         	 ab.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM); 
              ab.setCustomView(R.layout.actionbar);
-             ImageView photoActionBarView = (ImageView) findViewById(R.id.photoActionBar);
+//             ImageView photoActionBarView = (ImageView) findViewById(R.id.photoActionBar);
              
              Bitmap bm = PhotoActivity.getPhotoBitmap(this);
              if (bm != null){
@@ -108,6 +108,7 @@ public class MainActivity extends Activity implements Runnable {
             	 ssidString = ssidString.substring(1, ssidString.length()-1);
              }
              NetStrat.ssid = ssidString;
+  
              logoButton.setOnClickListener(new View.OnClickListener() {
                  public void onClick(View v) {
                 	 Toast.makeText(getApplicationContext(), NetStrat.ssid, Toast.LENGTH_LONG).show();
@@ -139,11 +140,14 @@ public class MainActivity extends Activity implements Runnable {
     	super.onResume();
     	wakeLock.acquire();
     	System.out.println("In RESUME");
-    	if (onServer()) WServ.sendTrackData(null);	// Will update changes in settings
+    	if (isSockServerOn()) WServ.sendTrackData(null);	// Will update changes in settings
 //    	mNsdHelper.discoverServices(); Keep out was problems
-    	ImageView photoActionBarView = (ImageView) findViewById(R.id.photoActionBar);
-    	Bitmap bitmap = PhotoActivity.getPhotoBitmap(this);
-    	if (bitmap != null)	photoActionBarView.setImageBitmap(bitmap);
+    	
+    	if(android.os.Build.VERSION.SDK_INT>=11) {
+	    	ImageView photoActionBarView = (ImageView) findViewById(R.id.photoActionBar);
+	    	Bitmap bitmap = PhotoActivity.getPhotoBitmap(this);
+	    	if (bitmap != null)	photoActionBarView.setImageBitmap(bitmap);
+    	}
     }
 	
     
@@ -166,11 +170,15 @@ public class MainActivity extends Activity implements Runnable {
     @Override
 	public void onDestroy() {
     	super.onDestroy();
-		
+    	
+    	if (mDiscoverHttpd != null ) {
+    		mDiscoverHttpd.constantPoll(-1);
+    	}
+    	
 		System.out.println("In DESTROY");
 		NetStrat.logServer(this, SERVER_OFFLINE);
-		
-		stopSockServer();
+
+		stopSockServer(true);
 		stopHttpdServer();
 		stopSockClient();
 		System.out.println("Destroy OUT");
@@ -229,7 +237,7 @@ public class MainActivity extends Activity implements Runnable {
 	
 	public void toIPAddress(MenuItem item) {
 		
-		if (!onServer()) turnServerOn(this);
+		if (!isSockServerOn()) turnServerOn(this);
 		
         Intent intent = new Intent(this,IPAddressActivity.class);
         startActivity(intent);
@@ -336,8 +344,6 @@ public class MainActivity extends Activity implements Runnable {
  //   	 mNsdHelper = new NsdHelper(this, serveradapter);
 //		 mNsdHelper.initializeNsd();
     	
-    	 
-    	
 		 setActiveMenu(R.id.btnSongs);
 		 
 		 WebServer.versionChangeHTML(this);	// This must be set before call to turnServerON
@@ -349,10 +355,12 @@ public class MainActivity extends Activity implements Runnable {
 		 incrementLoadCount();
 		 int cnt = Prefs.getLoadCount(this);
 		 if (cnt <= INSTALL_AUTO) {
-			 
+//			 System.out.println("Before setName for first installs");
 			 PhotoActivity.setNamePhoto(this);
 	//		 WebClient.autoSelect(this, INSTALL_AUTO - cnt);	Leave this in used with nsd
 		 }
+		 
+		 Music.setMuted(false);
     	System.out.println("Out Initialize");
     }
     
@@ -577,7 +585,7 @@ public class MainActivity extends Activity implements Runnable {
 	public void turnServerOff(final MainActivity mnact) {
 	
 		stopHttpdServer();
-		stopSockServer();
+		stopSockServer(false);
 		
 		NetStrat.logServer(mnact,SERVER_OFFLINE);	//Server is turned off
 		
@@ -879,11 +887,11 @@ public class MainActivity extends Activity implements Runnable {
     private void playTrack(boolean resume){
     	if(isTuning && track != null){
     				 		
-       		if (onServer() && resume) {
+       		if (isSockServerOn() && resume) {
            		toClients(CMD_RESUME + track.getCurrentPosition());
        		} 
        		
-       		if (onServer()) WServ.sendTrackData(null);
+       		if (isSockServerOn()) WServ.sendTrackData(null);
       
 			track.play();
 			
@@ -945,14 +953,26 @@ public class MainActivity extends Activity implements Runnable {
 
 public void startSockServer(int port, String ipadd) {
     WebSocketImpl.DEBUG = false;		//This was true originally
+    boolean serverinit = false;
     
-    System.out.println( "In WebSockServer");
+ //   System.out.println( "In WebSockServer : "+ipadd);
    try {
-	stopSockServer();
-    WServ = new WebServer( port, ipadd, MainActivity.this );
+//	stopSockServer();
+// This was changed to allow websocket server to remain running for 2.3 bug
+	   
+	if (!isSockServerOn()) {
+		System.out.println( "In startSockServer");
+		WServ = new WebServer( port, ipadd, MainActivity.this );
+		serverinit = true;
+		
+	}
+	
     WServ.deleteCues();
     WServ.cueTrack(getMusicDirectory(), getCurrentTrackName());		//Copy for stream
-    WServ.start();       
+     
+    if (serverinit) {
+    	WServ.start(); 
+    }
 
     System.out.println( "WebSockServ started on port: " + WServ.getPort() );
     System.out.println("WebSockServ start Add : " + WServ.getAddress());
@@ -965,12 +985,21 @@ public void startSockServer(int port, String ipadd) {
 
 
 
-public void stopSockServer() {
+public void stopSockServer(boolean closeflg) {
 	
 	try {
-		if (onServer()) {
-			WServ.stop();
-			WServ = null;
+		if (isSockServerOn()) {
+//			System.out.println( "WebSockServer there are clients : " + WServ.isClient());
+	// There seems to be a bug when there are no connections the stop hangs in 2.3
+	// To get around this just let the socketserver run if no connections as no one will be able
+	// to connect as the Httpd server is the contact point for a live server
+			
+			if (android.os.Build.VERSION.SDK_INT > 10 || closeflg || WServ.isClient()) {
+//				System.out.println("WebSockServ stopping");
+				WServ.stop();
+				WServ = null;
+			}
+			
 		}
 	} catch(Exception ex ) {
 	   System.out.println( "WebSockServer stop error" + ex);
@@ -1000,7 +1029,7 @@ public void startSockClient(int webSockPort, String ipadd, int httpdPort){
 
 public void toClients(String mess){
 	
-	if (onServer()){
+	if (isSockServerOn()){
 		WServ.sendToAll(mess);
 	}
 }
@@ -1024,12 +1053,6 @@ public boolean inClient() {
 }
 
 
-
-public boolean onServer() {
-	return(WServ != null);
-}
-
-
 public void startHttpdServer(int httpdPort, String ipadd) {
     
    try {
@@ -1050,10 +1073,10 @@ public void stopHttpdServer() {
 	try {
 		if (HttpdServ != null) {
 //			mNsdHelper.unregisterService();
-			System.out.println("Closing HttpServ");
 			HttpdServ.stop();
 			HttpdServ = null;
 			NetStrat.storeHttpdPort(0);
+
 		}
 		
 	} catch(Exception ex ) {

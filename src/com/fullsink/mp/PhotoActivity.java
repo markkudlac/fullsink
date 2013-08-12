@@ -6,11 +6,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import android.support.v4.content.CursorLoader;
 import android.net.Uri;
-import android.net.wifi.WifiManager;
+
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Email;
-import android.provider.ContactsContract.CommonDataKinds.Photo;
+//import android.provider.ContactsContract.CommonDataKinds.Photo;
 import android.provider.ContactsContract.Contacts; 
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -18,7 +18,7 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.TextView;
+
 
 import android.widget.Toast;
 import android.annotation.SuppressLint;
@@ -128,10 +128,12 @@ public class PhotoActivity extends Activity {
                         	System.out.println( "Got photo Blob : ");
 	                    	Bitmap bm = BitmapFactory.decodeByteArray(photoblob,0,photoblob.length);
 	                    	ImageView img = (ImageView) findViewById(R.id.photoimage);
-	                    	ImageView imgAB = (ImageView) findViewById(R.id.photoActionBar);
 	                    	img.setImageBitmap(bm);
-	                    	imgAB.setImageBitmap(bm);
-                        
+	                    	
+	                    	if(android.os.Build.VERSION.SDK_INT>=11) {
+		                    	ImageView imgAB = (ImageView) findViewById(R.id.photoActionBar);
+		                    	imgAB.setImageBitmap(bm);
+	                    	}
                     		storePhoto(this, photoblob);
                         } else {
                         	System.out.println( "No photo Blob");
@@ -176,19 +178,17 @@ public class PhotoActivity extends Activity {
     	
        	try {
 	    		File photodest;
-	      		
+	
 	    		photodest = new File(pact.getFilesDir(),USERHTML_DIR);
 	    		photodest.mkdirs();
 	    			
         		photodest = new File(photodest, SERVER_PHOTO);
         		photodest.createNewFile();
-    		
     	    FileOutputStream writer = new FileOutputStream(photodest,false);
     	    writer.write(photoblob);
     	    writer.close();
-    	    
     	} catch (IOException e) {
-    		System.out.println( "Phot File write error " + e);
+    		System.out.println( "Photo File write error " + e);
     	}
     }
     

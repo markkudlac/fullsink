@@ -3,38 +3,39 @@ package com.fullsink.mp;
 import static com.fullsink.mp.Const.*;
 
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.ServerSocket;
-import java.net.Socket;
+
 import java.net.SocketException;
 import java.util.Enumeration;
-
-import com.fullsink.mp.Prefs.PF;
 
 import android.app.Activity;
 import android.content.Context;
 import android.net.wifi.WifiManager;
-import android.os.Looper;
+
 
 public class NetStrat {
 	
 static int httpdPort = 0;
 static String macAddress = null;
-static String ssid = null;
+static String ssid = "NONE";
 
 static	public String getWifiApIpAddress() {
-	    try {
-	        for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en
-	                .hasMoreElements();) {
+	
+	    try {;
+	        for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); 
+	        		en.hasMoreElements();) {
+	        	
 	            NetworkInterface intf = en.nextElement();
-	            if (intf.getName().contains("wlan")) {
+//	            System.out.println("Net IF name : "+intf.getName());
+	            
+	            if (intf.getName().contains("wlan") || intf.getName().contains("eth0")) {
 	                for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr
 	                        .hasMoreElements();) {
 	                    InetAddress inetAddress = enumIpAddr.nextElement();
 	                    if (!inetAddress.isLoopbackAddress()
 	                            && (inetAddress.getAddress().length == 4)) {
-	                    	System.out.println("AP address : " + inetAddress.getHostAddress());
+//	                    	System.out.println("AP address : " + inetAddress.getHostAddress());
 	                        return inetAddress.getHostAddress();
 	                    }
 	                }
@@ -44,7 +45,6 @@ static	public String getWifiApIpAddress() {
 	    	System.out.println("AP exception : " + ex);
 	    }
 	    return null;
-	   // return "192.168.1.103";
 	}
 	
 

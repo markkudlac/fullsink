@@ -128,9 +128,11 @@ public String[] getSongData(int pos) {
 			mnact.turnServerOff(mnact);
 		} 
     	
+ //   	System.out.println("After turnserverOff");
+    	
     	ServerData xdata = ((ServerData)(adapter.getItemAtPosition(position)));
     	
-//	   	System.out.println("Got item click: "+ xdata.ipAddr + "pos : "+position);
+	   	System.out.println("Got item click: "+ xdata.ipAddr + "pos : "+position);
     	clearSongData();
     	
 	   	mnact.clearCurrentTrack();

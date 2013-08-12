@@ -34,7 +34,7 @@ public class DownloadFile extends AsyncTask<String, Integer, File> {
         HttpURLConnection con = null;
         File downfl = null;
         byte [] xbuf = new byte[BASE_BLOCKSIZE];
-        
+        		
    		String destfl = fileUrl;		// find final file name to make zip file flat
 		int xind = destfl.lastIndexOf("/");   		
 		if (xind > 0){
@@ -44,9 +44,9 @@ public class DownloadFile extends AsyncTask<String, Integer, File> {
         try {
 
         	downfl = WebClient.targetCopyFile(fileUrl);
-        	System.out.println("Dest file path is : " + downfl.getAbsolutePath() );
+ //       	System.out.println("Dest file path is : " + downfl.getAbsolutePath() );
         	
-        	URL url = new URL(HTTP_PROT,addr,httpdport,Uri.encode(fileUrl));	
+        	URL url = new URL(HTTP_PROT,addr,httpdport,"/"+Uri.encode(fileUrl));	
     		con = (HttpURLConnection) url.openConnection();
 
        		InputStream httpin = (InputStream) con.getInputStream();
@@ -63,9 +63,9 @@ public class DownloadFile extends AsyncTask<String, Integer, File> {
     	    }
     	    httpin.close();
     	    downflout.close();
-    	    System.out.println("Done transfer");
+ //   	    System.out.println("Done transfer");
         } catch (Exception e) {
-            System.out.println("Error" + e.getMessage());
+            System.out.println("Error download" + e.getMessage());
             e.printStackTrace();
         }
         return(downfl);

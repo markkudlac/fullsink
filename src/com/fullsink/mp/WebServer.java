@@ -68,6 +68,7 @@ public class WebServer extends WebSocketServer {
           System.out.println( "onMessage server : " + message );
             
           	if (message.startsWith(CMD_INIT)) {	
+          		System.out.println("Sendifn INIt : "+mnact.getCurrentTrackName());
             	conn.send(CMD_PREP + mnact.getCurrentTrackName());
             } else if (message.startsWith(CMD_READY)) {	
             	
@@ -98,6 +99,8 @@ public class WebServer extends WebSocketServer {
                 }
         }
 
+
+        
         /**
          * Sends <var>text</var> to all currently connected WebSocket clients.
          *
@@ -114,6 +117,12 @@ public class WebServer extends WebSocketServer {
                                 c.send( text );
                         }
                 }
+        }
+        
+        
+        public boolean isClient() {
+        	
+        	return(! connections().isEmpty());
         }
         
         
@@ -155,7 +164,7 @@ public class WebServer extends WebSocketServer {
         
  static   void DeleteRecursive(File fileOrDirectory) {
 	 
-	 System.out.println("IN deleteRecursive : " + fileOrDirectory.getAbsolutePath());
+//	 System.out.println("IN deleteRecursive : " + fileOrDirectory.getAbsolutePath());
             if (fileOrDirectory.isDirectory())
                 for (File child : fileOrDirectory.listFiles())
                     DeleteRecursive(child);
@@ -214,7 +223,7 @@ public class WebServer extends WebSocketServer {
         		
         		File trkFile = new File(mnact.getFilesDir(), mfile);
    
-        		System.out.println("Zip file path is : " + mnact.getFilesDir() + mfile + ".zip");
+//        		System.out.println("Zip file path is : " + mnact.getFilesDir() + mfile + ".zip");
         		File zipFile = new File(mnact.getFilesDir(), mfile + ".zip");
         		
         		if (!zipFile.exists()) {
@@ -312,9 +321,7 @@ port: "12345",     //websocket port
         	 */
         	
         	File serverid, htmldir;
-        	String builder;
-        	
-        	
+        	String builder;	
 
         	builder = "{ \"service\":\""+ SERVICE_NAME+ "\", \"id\":\"" + Prefs.getName(mnact) + "\", \"port\":\""+
     				webSocketPort;
@@ -414,120 +421,4 @@ port: "12345",     //websocket port
     	}
         
 }
-
-   
-		/*	Various File writing routines
-		 * 
-       	int i = 0;
-       	
-       	
-       	       		if (trkFile.exists()) {
-        			mnact.textOut("File exists - remove");
-        			trkFile.delete();
-        		}
-       	
-       	
-	    BufferedReader reader = new BufferedReader(
-	        new InputStreamReader(getAssets().open("Track1.mp3")), 32000);
-
-	    // do reading, usually loop until end of file reading  
-	    String mLine = reader.readLine();
-	    while (mLine != null && i < 5) {
-	    	
-	    	WServ.sendToAll(mLine);
-	    	textOut("Srv sent : " + i + " Sz : "+ mLine.length()); 
-	       mLine = reader.readLine(); 
-	       ++i;
-	    }	
-		
-		int bcnt;
-
-		AssetFileDescriptor afd = mnact.getAssets().openFd("Track2.mp3");
-	    FileInputStream reader = afd.createInputStream();
-	    		
-     	    mnact.textOut("File off: " + afd.getStartOffset() + "  Len: "+afd.getLength());
-
-		    bcnt = reader.read(xbuf);
-		    
-		    while (bcnt > 0 && i < 98) {
-		    	
-		    	mnact.toClients("DATA:"+Base64.encodeToString(xbuf,Base64.DEFAULT));
-		    	mnact.textOut("Srv sent : " + i + " Sz : "+ bcnt); 
-		    	bcnt = reader.read(xbuf); 
-		    	if (i == 5) {
-		    		mnact.textOut("Send CMD:PLAY");
-		    		mnact.toClients("CMD:PLAY");
-		    	}
-		       ++i;
-		    }
-	    reader.close();
-	    */
-
-/*
-private class FileServer implements Runnable {
-	
-	   MainActivity mnact;
-	   String fileCopy;
-	   WebSocket client;
-	   
-	   	FileServer(MainActivity xact, String xfile, WebSocket client) {
-	   		
-	   		mnact = xact;
-	   		fileCopy = xfile;
-	   		this.client = client;
-	   	}
-	   
-	   @Override
-	   public void run() {
-		   copyTrackToClient(fileCopy);    
-	   }
-	   
-	      public void copyTrackToClient(String xtrk) {
-	    	   
-	    	   	byte [] xbuf = new byte[BASE_BLOCKSIZE];
-
-	           	mnact.textOut("In copyTrackToClient : "+mnact.getFilesDir());  
-	           	
-	        	File trkFile;
-	        	FileInputStream reader = null;
-	        	
-	        	try {
-		        	trkFile = new File(mnact.getFilesDir(),xtrk);
-		        	reader = new FileInputStream(trkFile);
-	        	
-		        	int bcnt;
-		        	
-		 		    bcnt = reader.read(xbuf);
-		 		    //was mnact.toClients
-		        	client.send(CMD_FILE+ ((trkFile.length() / BASE_BLOCKSIZE)+1)); // Send length of file first
-		 		    
-		        	 while (bcnt > 0) {
-		 		    	
-		        		 client.send(CMD_FILE+Base64.encodeToString(xbuf,Base64.DEFAULT));
-		 		    	Thread.sleep(FILE_COPY_WAIT);
-
-		 		    	bcnt = reader.read(xbuf);
-
-		 		    }
-		        	reader.close();
-		        	client.send(CMD_FILE);  //End of file
-	        	} catch(IOException ex){
-	        		System.out.println("File exception : "+ ex);
-	        	} catch (InterruptedException e) {
-
-	        		if (reader != null) {
-	        			System.out.println("Interupt caught");
-	        			try {
-	        				reader.close();
-	        			} catch (Exception ex) {
-	      	               return;
-	      	           }     
-	        		}
-	               return;
-	        	} catch (Exception e) {
-	               return;
-	           }     
-	       }
-}
-*/ 
 

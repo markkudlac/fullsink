@@ -128,11 +128,13 @@ public class DiscoverHttpd {
     
 
     public void constantPoll(int timer) {	
-    	if (currentThread.isAlive()) {
+    	
+    	if  (currentThread.isAlive()) {
     		timerSecs = timer;
     		System.out.println("Thread is alive");
     		currentThread.interrupt();
     	}
+    	
     }
     
     

@@ -1,8 +1,5 @@
 package com.fullsink.mp;
 
-
-//import android.support.v4.content.CursorLoader;
-
 import android.support.v4.content.CursorLoader;
 
 import android.database.Cursor;

@@ -45,7 +45,7 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
     			httpdPort = Integer.valueOf(xparam[1]);
     			servicename = xparam[2];
     			
-    		String xurl = HTML_DIR + "/" + SERVERID_JS;
+    		String xurl = "/" + HTML_DIR + "/" + SERVERID_JS;
     			
     		URL url = new URL(HTTP_PROT, xparam[0], httpdPort, xurl);	
     		con = (HttpURLConnection) url.openConnection();
@@ -60,9 +60,9 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
     		}
     		json = new JSONObject(result);
 
-//     		System.out.println("JSON id 3 : " + json.getString("id"));
+     		System.out.println("JSON id 3 : " + json.getString("id"));
     	} catch (Exception ex) { 
-    		System.out.println("Exception caught : " + ex); 
+    		System.out.println("Exception caught 1 : " + ex); 
     	}
 
     	finally {
@@ -77,7 +77,7 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
 	@Override
      protected void onPostExecute(JSONObject result) {
     	 
- //   	 System.out.println("onPostExecute HttpCom");
+    	 System.out.println("onPostExecute HttpCom");
     	 
     	 if (result != null) {
     		 try {
@@ -87,9 +87,9 @@ public class HttpCom extends AsyncTask<String, Void, JSONObject>{
     	 			 
     			 serveradapter.add(result.getString("id"), addr, httpdPort, result.getInt("port"), servicename,
 					 null);
-    			 new DownloadImageTask(mnact, addr, httpdPort, serveradapter, null).execute(USERHTML_DIR + "/" + SERVER_PHOTO);
+    			 new DownloadImageTask(mnact, addr, httpdPort, serveradapter, null).execute("/" + USERHTML_DIR + "/" + SERVER_PHOTO);
     			 mnact.adapterOut(false,-1);
-    		 } catch (Exception ex) { System.out.println("Exception caught : " + ex); }
+    		 } catch (Exception ex) { System.out.println("Exception caught 2 : " + ex); }
     	 }
     	 return;
      }

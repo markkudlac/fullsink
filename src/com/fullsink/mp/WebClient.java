@@ -127,7 +127,7 @@ public class WebClient extends WebSocketClient {
     	if (blktot < 0) {
 			mnact.fileProgressControl(DOWNLOADERR);
     	} else {
-			mnact.fileProgressControl(- blktot); // Set total progress
+			mnact.fileProgressControl(- blktot); // Set total progress	
 	    	fileTask = new DownloadFile(mnact, ipAddress, httpdport, blktot);
 	    	fileTask.execute(copyTrack);
     	}
