@@ -29,6 +29,7 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
 	public HttpLogServer(MainActivity mnact, String macaddr) {
 		this.mnact = mnact;
 		this.macaddr = macaddr;
+		NetStrat.setSsid(mnact);
 	}
 	
 	
@@ -48,7 +49,7 @@ public class HttpLogServer extends AsyncTask<String, Void, JSONObject>{
         	params.append("userhandle").append('=').append(URLEncoder.encode(xparam[1], "UTF-8")).append('&');
         	params.append("portsock").append('=').append(xparam[2]).append('&');
         	params.append("porthttpd").append('=').append(xparam[3]).append('&');
-        	params.append("netname").append('=').append(URLEncoder.encode(NetStrat.ssid, "UTF-8"));
+        	params.append("netname").append('=').append(URLEncoder.encode(NetStrat.getSsid(), "UTF-8"));
         	
         	String pathString = path + (params).toString();
         	

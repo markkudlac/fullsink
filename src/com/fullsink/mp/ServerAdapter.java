@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,6 +20,7 @@ public class ServerAdapter extends ArrayAdapter<ServerData> implements OnItemCli
 	MainActivity mnact;
 	int currentChecked = -1;
 	boolean testflg = false;
+	private int selectedPosition;
 	
 	static ArrayList<ServerData> items = new ArrayList<ServerData>();
 	
@@ -35,6 +37,13 @@ public class ServerAdapter extends ArrayAdapter<ServerData> implements OnItemCli
         if (view == null) {
             LayoutInflater inflater = (LayoutInflater) mnact.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             view = inflater.inflate(R.layout.server_data, null);
+        }
+        
+        CheckableLinearLayout cl = (CheckableLinearLayout)view.findViewById(R.id.serverDataLayout);	
+        if(position == this.selectedPosition ){
+        	cl.setBackgroundColor((mnact.getResources().getColor(R.color.highlight)));
+        } else {
+        	cl.setBackgroundColor(Color.TRANSPARENT);
         }
         
         ServerData rec = items.get(position);
@@ -58,6 +67,9 @@ public class ServerAdapter extends ArrayAdapter<ServerData> implements OnItemCli
         return view;
     }
     
+    public void updateSelectedPosition(int newSelectedPosition){
+    	selectedPosition = newSelectedPosition;
+    }
     
     public void updateImage(String ipAddr, Bitmap img){
     	
@@ -128,7 +140,10 @@ public String[] getSongData(int pos) {
 			mnact.turnServerOff(mnact);
 		} 
     	
+
  //   	System.out.println("After turnserverOff");
+    	this.updateSelectedPosition(position);
+
     	
     	ServerData xdata = ((ServerData)(adapter.getItemAtPosition(position)));
     	

@@ -3,19 +3,16 @@ package com.fullsink.mp;
 
 import static com.fullsink.mp.Const.FILTER_MUSIC;
 import android.provider.MediaStore;
-import android.view.ViewGroup.LayoutParams;
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.CursorAdapter;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 
@@ -24,6 +21,8 @@ public class PlayCurAdapter extends CursorAdapter implements OnItemClickListener
 	MainActivity mnact;
 	private final LayoutInflater mInflater;
 	private String currentTrack;
+	private int selectedPosition = 0;
+	private int previousSelected = 0;
 	
 	
 	public PlayCurAdapter(MainActivity mnact, Cursor cursor) {
@@ -33,7 +32,9 @@ public class PlayCurAdapter extends CursorAdapter implements OnItemClickListener
 		mInflater=LayoutInflater.from(mnact);
 	}
 	
-	  
+	public void updateSelectedPosition(int currSelected){
+		selectedPosition = currSelected;
+	}  
 
 	@Override
 	public void bindView(View view, Context context, Cursor cursor) {
@@ -41,9 +42,16 @@ public class PlayCurAdapter extends CursorAdapter implements OnItemClickListener
 		String albart = "";
 		String artist,album;
 		try {
+		int currPosition = cursor.getPosition();
 		 TextView field=(TextView)view.findViewById(R.id.title);
 	        field.setText(cursor.getString(
 	        		cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)));
+	        CheckableRelativeLayout cl = (CheckableRelativeLayout)view.findViewById(R.id.checkableLayout);	
+	        if(currPosition == this.selectedPosition ){
+	        	cl.setBackgroundColor(mnact.getResources().getColor(R.color.highlight));
+	        } else {
+	        	cl.setBackgroundColor(Color.TRANSPARENT);
+	        }
 	        
 	        field=(TextView)view.findViewById(R.id.album);
 	        album = cursor.getString(
@@ -82,11 +90,16 @@ public class PlayCurAdapter extends CursorAdapter implements OnItemClickListener
 	}
 
 	
-	
     @Override
-    public void onItemClick(AdapterView<?> adapter, View v, int pos, long id) {
-    	
+    public void onItemClick(AdapterView<?> adapter, View view, int pos, long id) {
+    	previousSelected = selectedPosition;
+    	View previousView = ((ViewGroup)view.getParent()).getChildAt(previousSelected);
+    	CheckableRelativeLayout prevLayout = (CheckableRelativeLayout)previousView.findViewById(R.id.checkableLayout);
+    	prevLayout.setBackgroundColor(Color.TRANSPARENT);
+    	selectedPosition = pos;
 	   	mnact.onPlayClick(currentTrack);
+	   	CheckableRelativeLayout cl = (CheckableRelativeLayout)view.findViewById(R.id.checkableLayout);	
+        cl.setBackgroundColor(mnact.getResources().getColor(R.color.highlight));
 	   }
     
     

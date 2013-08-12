@@ -26,17 +26,13 @@ import android.graphics.Typeface;
 import android.media.AudioManager;
 
 import android.os.Build;
-
 import android.net.Uri;
-import android.net.wifi.WifiManager;
 
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
-import android.provider.ContactsContract.Contacts;
 import android.util.Log;
-import android.view.View.OnClickListener;
 import android.view.ViewGroup.LayoutParams;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -50,7 +46,6 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
-import android.widget.TextView;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.Toast;
 
@@ -100,18 +95,13 @@ public class MainActivity extends Activity implements Runnable {
              }
 
              ImageButton logoButton = (ImageButton) findViewById(R.id.logo_record);
-             String ssidString = ((WifiManager) this.getSystemService(Context.WIFI_SERVICE)).getConnectionInfo().getSSID();
-             if (ssidString.startsWith("\"") && ssidString.endsWith("\"")){
-            	 ssidString = ssidString.substring(1, ssidString.length()-1);
-             }
-             if (ssidString.startsWith("<") && ssidString.endsWith(">")){
-            	 ssidString = ssidString.substring(1, ssidString.length()-1);
-             }
-             NetStrat.ssid = ssidString;
-  
+
+             NetStrat.setSsid(this);
+             final String ssid = NetStrat.getSsid();
+
              logoButton.setOnClickListener(new View.OnClickListener() {
                  public void onClick(View v) {
-                	 Toast.makeText(getApplicationContext(), NetStrat.ssid, Toast.LENGTH_LONG).show();
+                	 Toast.makeText(getApplicationContext(), ssid, Toast.LENGTH_LONG).show();
                  }
              });
         }
@@ -142,7 +132,7 @@ public class MainActivity extends Activity implements Runnable {
     	System.out.println("In RESUME");
     	if (isSockServerOn()) WServ.sendTrackData(null);	// Will update changes in settings
 //    	mNsdHelper.discoverServices(); Keep out was problems
-    	
+
     	if(android.os.Build.VERSION.SDK_INT>=11) {
 	    	ImageView photoActionBarView = (ImageView) findViewById(R.id.photoActionBar);
 	    	Bitmap bitmap = PhotoActivity.getPhotoBitmap(this);
@@ -335,6 +325,7 @@ public class MainActivity extends Activity implements Runnable {
 
     	if (!playcuradapter.isEmpty()) {
     		playlist.setItemChecked(0, true);
+    		playcuradapter.updateSelectedPosition(0);
     		loadTrack(null);
     	}
     	
@@ -634,14 +625,16 @@ public class MainActivity extends Activity implements Runnable {
     
     public void click(View view){
 		int id = view.getId();
+		Button serverButton = ((Button) findViewById(R.id.btnServer));
 		
 		switch(id){
 		case R.id.btnServer:	
-			
 			if (!isSockServerOn()) {
 				turnServerOn(this);
+				((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_on_holo_blue);
 			} else {
 				turnServerOff(this);
+				((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_off_holo_dark);
 			}
 			return;
 			
@@ -656,6 +649,9 @@ public class MainActivity extends Activity implements Runnable {
 			
 				if (!isSockServerOn()) {
 					turnServerOn(this);
+					((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_on_holo_blue);
+					serverButton.setBackgroundResource(R.drawable.buttonblack);
+					serverButton.setClickable(true);
 				}
 				
 				// Put mute button back
@@ -672,11 +668,6 @@ public class MainActivity extends Activity implements Runnable {
 				parentbuts = (LinearLayout) findViewById(R.id.mediabuts);
 				parentbuts.addView(viewMute,0);
 				
-				
-				Button serverButton = ((Button) findViewById(R.id.btnServer));
-				serverButton.setBackgroundResource(R.drawable.buttonblack);
-				serverButton.setClickable(false);
-				((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_on_holo_blue);
 				setActiveMenu(R.id.btnSongs);
 				findViewById(R.id.seekbar).setVisibility(View.VISIBLE);
 				findViewById(R.id.progressbar).setVisibility(View.GONE);
@@ -878,6 +869,7 @@ public class MainActivity extends Activity implements Runnable {
 			}
     	}  
     	playlist.setItemChecked(pos, true);
+    	playcuradapter.updateSelectedPosition(pos);
     	playlist.smoothScrollToPosition(pos);
     	return(prevtrack);
     }
@@ -1108,6 +1100,7 @@ public void adapterOut(final boolean remove, final int item){
         		serveradapter.setNotifyOnChange(true);	//turn auto upadte back on
         		if (item >= 0 ) {		// it is in the list else just leave
         			serverlist.setItemChecked(item,false);	// This is dumb and should not be required
+        			serveradapter.updateSelectedPosition(item);
         		} else {
         			return;
         		}
