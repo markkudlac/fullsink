@@ -92,6 +92,8 @@ public class PlayCurAdapter extends CursorAdapter implements OnItemClickListener
     @Override
     public void onItemClick(AdapterView<?> adapter, View view, int pos, long id) {
     	selectedPosition = pos;
+    	
+	   	mnact.onPlayClick(currentTrack);
     	//in api > 15 bindview is not called,as a result need to update background
     	//for each row in view
     	if(android.os.Build.VERSION.SDK_INT > 15) {
@@ -107,7 +109,7 @@ public class PlayCurAdapter extends CursorAdapter implements OnItemClickListener
 					currLayout.setBackgroundColor(Color.TRANSPARENT);
 				}
 			}
-		   	mnact.onPlayClick(currentTrack);
+
 		   	CheckableRelativeLayout cl = (CheckableRelativeLayout)view.findViewById(R.id.checkableLayout);	
 	        cl.setBackgroundColor(mnact.getResources().getColor(R.color.highlight));
     	}
