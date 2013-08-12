@@ -63,7 +63,7 @@ public class PhotoActivity extends Activity {
 	        ImageButton logoButton = (ImageButton) findViewById(R.id.logo_record);
             logoButton.setOnClickListener(new View.OnClickListener() {
                 public void onClick(View v) {
-               	 Toast.makeText(getApplicationContext(), NetStrat.ssid, Toast.LENGTH_LONG).show();
+               	 Toast.makeText(getApplicationContext(), NetStrat.getSsid(), Toast.LENGTH_LONG).show();
                 }
             });
         }

@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.fullsink.mp.CheckableLinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="wrap_content"
-    android:orientation="horizontal" android:layout_alignParentLeft="true">
+<com.fullsink.mp.CheckableLinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/serverDataLayout"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_alignParentLeft="true"
+    android:orientation="horizontal" >
 
     <ImageView
         android:id="@+id/image1" android:src="@drawable/ic_menu_invite"

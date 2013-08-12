@@ -1,4 +1,5 @@
 
 <resources>
 <color name="red">#FF3333</color>
+<color name="highlight">#81DAF5</color>
 </resources>

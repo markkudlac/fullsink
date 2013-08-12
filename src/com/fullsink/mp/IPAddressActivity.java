@@ -27,7 +27,7 @@ public class IPAddressActivity extends Activity {
 		((TextView) findViewById(R.id.ipaddress)).setText(NetStrat
 				.getWifiApIpAddress() + ":" + NetStrat.getHttpdPort());
 		
-        ((TextView) findViewById(R.id.networkIPAdressView)).setText(NetStrat.ssid);
+        ((TextView) findViewById(R.id.networkIPAdressView)).setText(NetStrat.getSsid());
         
         //show action bar for OS 2.3 or greater
 		if (android.os.Build.VERSION.SDK_INT >= 11) {
@@ -41,7 +41,7 @@ public class IPAddressActivity extends Activity {
             ImageButton logoButton = (ImageButton) findViewById(R.id.logo_record);
             logoButton.setOnClickListener(new View.OnClickListener() {
                 public void onClick(View v) {
-               	 Toast.makeText(getApplicationContext(), NetStrat.ssid, Toast.LENGTH_LONG).show();
+               	 Toast.makeText(getApplicationContext(), NetStrat.getSsid(), Toast.LENGTH_LONG).show();
                 }
             });
 		}
