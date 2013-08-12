@@ -22,7 +22,6 @@ public class PlayCurAdapter extends CursorAdapter implements OnItemClickListener
 	private final LayoutInflater mInflater;
 	private String currentTrack;
 	private int selectedPosition = 0;
-	private int previousSelected = 0;
 	
 	
 	public PlayCurAdapter(MainActivity mnact, Cursor cursor) {
@@ -92,14 +91,26 @@ public class PlayCurAdapter extends CursorAdapter implements OnItemClickListener
 	
     @Override
     public void onItemClick(AdapterView<?> adapter, View view, int pos, long id) {
-    	previousSelected = selectedPosition;
-    	View previousView = ((ViewGroup)view.getParent()).getChildAt(previousSelected);
-    	CheckableRelativeLayout prevLayout = (CheckableRelativeLayout)previousView.findViewById(R.id.checkableLayout);
-    	prevLayout.setBackgroundColor(Color.TRANSPARENT);
     	selectedPosition = pos;
-	   	mnact.onPlayClick(currentTrack);
-	   	CheckableRelativeLayout cl = (CheckableRelativeLayout)view.findViewById(R.id.checkableLayout);	
-        cl.setBackgroundColor(mnact.getResources().getColor(R.color.highlight));
+    	//in api > 15 bindview is not called,as a result need to update background
+    	//for each row in view
+    	if(android.os.Build.VERSION.SDK_INT > 15) {
+    		//# or rows currently displayed
+	    	int childCount = ((ViewGroup)view.getParent()).getChildCount();
+			View v;
+			CheckableRelativeLayout currLayout;
+			for (int i = 0; i < childCount; i++) {
+				v = ((ViewGroup) view.getParent()).getChildAt(i);
+				if (v != null) {
+					currLayout = (CheckableRelativeLayout) v
+							.findViewById(R.id.checkableLayout);
+					currLayout.setBackgroundColor(Color.TRANSPARENT);
+				}
+			}
+		   	mnact.onPlayClick(currentTrack);
+		   	CheckableRelativeLayout cl = (CheckableRelativeLayout)view.findViewById(R.id.checkableLayout);	
+	        cl.setBackgroundColor(mnact.getResources().getColor(R.color.highlight));
+    	}
 	   }
     
     
