@@ -673,9 +673,12 @@ public class MainActivity extends Activity implements Runnable {
 				findViewById(R.id.progressbar).setVisibility(View.GONE);
 				findViewById(R.id.mediabuts).setVisibility(View.VISIBLE);
 				findViewById(R.id.clientbuts).setVisibility(View.GONE);
+				
+				/*
 		       	playcuradapter = new PlayCurAdapter(this, MediaMeta.getMusicCursor(this));
 		    	playlist.setOnItemClickListener(playcuradapter);
 		    	playlist.setAdapter(playcuradapter);
+				*/
 				
 				findViewById(R.id.playlist).setVisibility(View.VISIBLE);
 				findViewById(R.id.serverlist).setVisibility(View.GONE);
@@ -688,8 +691,10 @@ public class MainActivity extends Activity implements Runnable {
 				}
 				
 				stopSockClient();
+				/*
 				serverlist.clearChoices();	// Need both of these statements
 				serveradapter.clear();
+				*/
 				mDiscoverHttpd.constantPoll(-1);
 			}
 			return;
