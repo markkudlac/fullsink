@@ -73,6 +73,7 @@ public class MainActivity extends Activity implements Runnable {
 	ProgressDialog progressdialog = null;
 	
 	boolean isTuning; //is user currently jammin out, if so automatically start playing the next track
+	private boolean serverIndicator;
 
 	//private GestureDetector gestureDetector;
     View.OnTouchListener gestureListener;
@@ -82,6 +83,7 @@ public class MainActivity extends Activity implements Runnable {
 	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        NetStrat.setSsid(this);
         //load action bar for OS 2.3 or greater
         if(android.os.Build.VERSION.SDK_INT>=11) {
         	 ActionBar ab = getActionBar();
@@ -95,8 +97,6 @@ public class MainActivity extends Activity implements Runnable {
              }
 
              ImageButton logoButton = (ImageButton) findViewById(R.id.logo_record);
-
-             NetStrat.setSsid(this);
              final String ssid = NetStrat.getSsid();
 
              logoButton.setOnClickListener(new View.OnClickListener() {
@@ -632,9 +632,11 @@ public class MainActivity extends Activity implements Runnable {
 			if (!isSockServerOn()) {
 				turnServerOn(this);
 				((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_on_holo_blue);
+				serverIndicator = true;
 			} else {
 				turnServerOff(this);
 				((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_off_holo_dark);
+				serverIndicator = false;
 			}
 			return;
 			
@@ -647,11 +649,12 @@ public class MainActivity extends Activity implements Runnable {
 				RelativeLayout viewMute;
 				LinearLayout parentbuts;
 			
-				if (!isSockServerOn()) {
+				if (!isSockServerOn() || !serverIndicator) {
 					turnServerOn(this);
 					((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_on_holo_blue);
 					serverButton.setBackgroundResource(R.drawable.buttonblack);
 					serverButton.setClickable(true);
+					serverIndicator = true;
 				}
 				
 				// Put mute button back
@@ -697,6 +700,7 @@ public class MainActivity extends Activity implements Runnable {
 			
 		case R.id.btnReceiver:	
 			{
+				serverIndicator = false;
 				callLocal();
 			}
 			return;
