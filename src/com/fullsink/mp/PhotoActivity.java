@@ -245,7 +245,7 @@ public class PhotoActivity extends Activity {
     	 
     	editname = (EditText) findViewById(R.id.nameField);
     	editname.setText(Prefs.getName(context));
-    	System.out.println("Addkeykistener text : "+Prefs.getName(context));
+//    	System.out.println("Addkeykistener text : "+Prefs.getName(context));
     	// add a keylistener to keep track user input
     	editname.addTextChangedListener(new TextWatcher() {
     		 
@@ -353,7 +353,7 @@ public class PhotoActivity extends Activity {
     		String photoid = cursor.getString(cursor.getColumnIndex(
     				ContactsContract.Contacts.Photo.PHOTO_ID));
             if (photoid != null) {
-            	System.out.println( "Got Email photo ID");
+ //           	System.out.println( "Got Email photo ID");
             	setPhoto(pact, photoid);
             	break;
             } else {
@@ -382,10 +382,10 @@ public class PhotoActivity extends Activity {
     		
     		byte[] photoblob = cursor.getBlob(cursor.getColumnIndex(ContactsContract.Contacts.Photo.PHOTO));
             if (photoblob != null) {
-            	System.out.println( "Got photo Blob");
+ //           	System.out.println( "Got photo Blob");
         		storePhoto(pact, photoblob);
             } else {
-            	System.out.println( "Photo Blob is null");
+//            	System.out.println( "Photo Blob is null");
             }
     	} else {
     		System.out.println("Got contact Photo FAIL");

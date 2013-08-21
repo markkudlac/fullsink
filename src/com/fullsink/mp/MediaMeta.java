@@ -1,7 +1,10 @@
 package com.fullsink.mp;
 
+import java.io.File;
+
 import android.support.v4.content.CursorLoader;
 
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
@@ -62,16 +65,18 @@ static  Cursor getMusicCursor(MainActivity mnact ) {
     CursorLoader loader = new CursorLoader(mnact, contentUri, proj, select, args, null);
     Cursor cursor = loader.loadInBackground();
     
-    /*
-    int column_path = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
-    int column_title = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
-    int column_album = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM);
-    int column_artist = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
-    */
     
-    System.out.println("Out with media cursor");
+//    System.out.println("Out with media cursor");
     return cursor;
 }
+
+
+static void refreshMediaStore(MainActivity mnact, File newmedia) {
+	System.out.println("Before broadcast");
+	mnact.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(newmedia)));
+	System.out.println("After broadcast");
+}
+
 }
 
 

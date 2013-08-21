@@ -19,6 +19,7 @@ public class DownloadFile extends AsyncTask<String, Integer, File> {
     int httpdport;
     int filesize = 0;
     Integer blkcount = 0;
+    static boolean download = false;
 
     public DownloadFile(MainActivity mnact, String addr, int httpdport, int filesize) {
         
@@ -28,6 +29,16 @@ public class DownloadFile extends AsyncTask<String, Integer, File> {
     	this.filesize = filesize - 3;
     }
 
+    
+    public static boolean fileWasDownloaded() {
+    	return download;
+    }
+    
+    
+    public static void clearWasDownloaded() {
+    	download = false;
+    }
+    
     
     protected File doInBackground(String... urls) {
         String fileUrl = urls[0];
@@ -53,7 +64,7 @@ public class DownloadFile extends AsyncTask<String, Integer, File> {
     	    FileOutputStream downflout = new FileOutputStream(downfl); 
     	    
     	    // Transfer bytes from in to out
-    	    System.out.println("Start transfer");
+ //   	    System.out.println("Start transfer");
     	    Integer fbytes = 0;
     	    int len;
     	    while ((len = httpin.read(xbuf)) > 0) {
@@ -88,6 +99,8 @@ public class DownloadFile extends AsyncTask<String, Integer, File> {
     	
     
     protected void onPostExecute(File result) {
- 
+    	
+    	download = true;
+    	MediaMeta.refreshMediaStore(mnact, result);
     }
 }

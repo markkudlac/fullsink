@@ -289,9 +289,7 @@ public class MainActivity extends Activity implements Runnable {
     	serverlist.setOnItemClickListener(serveradapter);
     	serverlist.setAdapter(serveradapter);
     	
-       	playcuradapter = new PlayCurAdapter(this, MediaMeta.getMusicCursor(this));
-    	playlist.setOnItemClickListener(playcuradapter);
-    	playlist.setAdapter(playcuradapter);
+    	loadPlayAdapter();
     	
         seekbar = (SeekBar) findViewById(R.id.seekbar);
         progressbar = (ProgressBar) findViewById(R.id.progressbar);
@@ -321,14 +319,7 @@ public class MainActivity extends Activity implements Runnable {
                         }
 });
         
-       	isTuning = false;
 
-    	if (!playcuradapter.isEmpty()) {
-    		playlist.setItemChecked(0, true);
-    		playcuradapter.updateSelectedPosition(0);
-    		loadTrack(null);
-    	}
-    	
  //   	serverlist.setOnTouchListener(gestureListener);
  //   	playlist.setOnTouchListener(gestureListener);
     	
@@ -352,11 +343,27 @@ public class MainActivity extends Activity implements Runnable {
 		 }
 		 
 		 Music.setMuted(false);
-    	System.out.println("Out Initialize");
+//    	System.out.println("Out Initialize");
     }
     
     
+    public void loadPlayAdapter() {
+    	
+    	playcuradapter = new PlayCurAdapter(this, MediaMeta.getMusicCursor(this));
+    	playlist.setOnItemClickListener(playcuradapter);
+    	playlist.setAdapter(playcuradapter);
+    	
+       	isTuning = false;
+
+    	if (!playcuradapter.isEmpty()) {
+    		playlist.setItemChecked(0, true);
+    		playcuradapter.updateSelectedPosition(0);
+    		loadTrack(null);
+    	}
+    	
+    }
    
+    
     public void setStreamTrack(Music xtrk) {
     	synchronized(this) {		// May not be needed not sure on Sync
     		track = xtrk;
@@ -677,16 +684,17 @@ public class MainActivity extends Activity implements Runnable {
 				findViewById(R.id.mediabuts).setVisibility(View.VISIBLE);
 				findViewById(R.id.clientbuts).setVisibility(View.GONE);
 				
-				/*
-		       	playcuradapter = new PlayCurAdapter(this, MediaMeta.getMusicCursor(this));
-		    	playlist.setOnItemClickListener(playcuradapter);
-		    	playlist.setAdapter(playcuradapter);
-				*/
-				
 				findViewById(R.id.playlist).setVisibility(View.VISIBLE);
 				findViewById(R.id.serverlist).setVisibility(View.GONE);
 				
-				if (inClient()){	// a stream was started so restart track
+				if (DownloadFile.fileWasDownloaded()) {	//If a song was dowloaded, reload playlist
+//					System.out.println("File was dowloaded, reload adapter");
+					DownloadFile.clearWasDownloaded();
+					loadPlayAdapter();
+					((ImageView) findViewById(R.id.imgPlayPause)).setImageResource(R.drawable.ic_media_play);
+					seekbar.setProgress(0);
+				} else if (inClient()){	// a stream was started so restart track
+//					System.out.println("Coming from receiver, track cued");
 					isTuning = false;
 					((ImageView) findViewById(R.id.imgPlayPause)).setImageResource(R.drawable.ic_media_play);
 					seekbar.setProgress(0);
@@ -694,10 +702,10 @@ public class MainActivity extends Activity implements Runnable {
 				}
 				
 				stopSockClient();
-				/*
+				
 				serverlist.clearChoices();	// Need both of these statements
 				serveradapter.clear();
-				*/
+				
 				mDiscoverHttpd.constantPoll(-1);
 			}
 			return;
@@ -801,17 +809,6 @@ public class MainActivity extends Activity implements Runnable {
 				
 				progressdialog.show();
 				WClient.startCopyFile();
-				File filePath;
-				filePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
-				String currTrack = WClient.getCurrentTrack();
-				if(currTrack != null){
-					int slashIndex = currTrack.lastIndexOf("/");
-					if(slashIndex >= 0){
-						currTrack.substring(slashIndex-1);
-					}
-				}
-				String newSongPath = filePath.toString() + "/" + MUSIC_DIR + "/" + currTrack;
-				sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(new File(newSongPath))));
 			}
 		return;
 			
