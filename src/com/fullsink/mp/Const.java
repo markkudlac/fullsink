@@ -47,7 +47,7 @@ public interface Const extends BaseColumns {
 	public static final String CMD_PLAYING = "PLAYING:";
 	public static final String CMD_WHATPLAY = "WHATPLAY";
 	public static final String CMD_REMOTE = "REMOTE:";	// T,F,S=seize,IP Addres resonse to seize
-	
+	public int MSG_CONTINUE = 1;
 	
 	public static final int MODE_PAUSE = 1;
 	public static final int MODE_PLAY = 2;
@@ -55,6 +55,7 @@ public interface Const extends BaseColumns {
 	public static final int MODE_NORMAL = 0;
 	public static final int MODE_SHUFFLE = 1;
 	public static final int MODE_LOOP = 2;
+	public static final String ALBUM_PATH = "content://media/external/audio/albumart/";
 }
 
 

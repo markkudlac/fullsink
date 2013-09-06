@@ -15,11 +15,14 @@ import android.annotation.SuppressLint;
 
 import android.app.ActionBar;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.gesture.GestureOverlayView;
+import android.gesture.GestureOverlayView.OnGestureListener;
 import android.graphics.Bitmap;
 import android.graphics.Paint;
 import android.graphics.Typeface;
@@ -31,13 +34,23 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.PowerManager;
+import android.os.RemoteException;
 import android.os.PowerManager.WakeLock;
+import android.provider.MediaStore;
 import android.util.Log;
+import android.view.GestureDetector;
+import android.view.KeyEvent;
+import android.view.ContextMenu.ContextMenuInfo;
+import android.view.MotionEvent;
 import android.view.ViewGroup.LayoutParams;
+import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -46,10 +59,12 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
+import android.widget.TextView;
+import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.Toast;
 
-public class MainActivity extends Activity implements Runnable {
+public class MainActivity extends Activity implements Runnable, OnGestureListener  {
 	
 	public static WebServer WServ = null;	
 	public static SimpleWebServer HttpdServ = null;
@@ -67,6 +82,8 @@ public class MainActivity extends Activity implements Runnable {
 	
 	ServerAdapter serveradapter;
 	PlayCurAdapter playcuradapter;
+	AlbumAdapter albumAdapter;
+	ArtistAdapter artistAdapter;
 	
 	SeekBar seekbar;
 	ProgressBar progressbar;
@@ -74,7 +91,14 @@ public class MainActivity extends Activity implements Runnable {
 	
 	boolean isTuning; //is user currently jammin out, if so automatically start playing the next track
 	private boolean serverIndicator;
-
+	private boolean albumSelected;
+	private boolean artistSelected;
+	public final static int DELETE_ITEM = 0;
+	private long[] deleteList;
+	private View deleteView;
+	private String deleteSongName;
+	private MainActivity mnact;
+	private GestureDetector gestureDetector;
 	//private GestureDetector gestureDetector;
     View.OnTouchListener gestureListener;
 	
@@ -113,14 +137,15 @@ public class MainActivity extends Activity implements Runnable {
 		wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Fullsink");
         setContentView(R.layout.activity_main);
 
-        /*
+        
         gestureDetector = new GestureDetector(this, new FS_GestureDetector(this));
         gestureListener = new View.OnTouchListener() {
-            public boolean onTouch(View v, MotionEvent event) {
-                return gestureDetector.onTouchEvent(event);
-            }
+			@Override
+			public boolean onTouch(View v, MotionEvent event) {
+				return gestureDetector.onTouchEvent(event);
+			}
         };
-        */
+        
         initialize();
     }
     
@@ -277,11 +302,12 @@ public class MainActivity extends Activity implements Runnable {
     
     
     private void initialize(){
-
+    	mnact = this;
     	WebSocketImpl.DEBUG = false;		//This was true originally
     	
     	playlist= (ListView) findViewById(R.id.playlist);
-    	
+    	playlist.setOnCreateContextMenuListener(this);
+        playlist.setOnTouchListener(gestureListener);
     	serverlist = (ListView) View.inflate(this,R.layout.server_adapter, null);
     	((ViewGroup) findViewById(R.id.midfield)).addView(serverlist);
     	
@@ -363,7 +389,6 @@ public class MainActivity extends Activity implements Runnable {
     	
     }
    
-    
     public void setStreamTrack(Music xtrk) {
     	synchronized(this) {		// May not be needed not sure on Sync
     		track = xtrk;
@@ -381,6 +406,33 @@ public class MainActivity extends Activity implements Runnable {
     	}
     }
     
+    public void setAlbumSelected(boolean selected){
+    	albumSelected = selected;
+    }
+    
+    public void setArtistSelected(boolean selected){
+    	artistSelected = selected;
+    }
+    
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if ((keyCode == KeyEvent.KEYCODE_BACK)) { //Back key pressed
+        	if(albumSelected){
+        		setAlbumSelected(false);
+        		playlist.setAdapter(albumAdapter);
+				playlist.setOnItemClickListener(albumAdapter);
+				setSongsSubmenu(false);
+	            return true;
+        	} else if(artistSelected) {
+        		setArtistSelected(false);
+        		playlist.setAdapter(artistAdapter);
+				playlist.setOnItemClickListener(artistAdapter);
+				setSongsSubmenu(false);
+	            return true;
+        	}
+        }
+        return super.onKeyDown(keyCode, event);
+    }
     
     public void setDownload(final boolean enable){
  
@@ -651,7 +703,7 @@ public class MainActivity extends Activity implements Runnable {
 			toClients(CMD_REMOTE+"S");		// Make me the current station on client
 			return;
 			
-		case R.id.btnSongs:
+		case R.id.btnSongs: case R.id.btnAlbums: case R.id.btnArtists:
 			{
 				RelativeLayout viewMute;
 				LinearLayout parentbuts;
@@ -675,14 +727,14 @@ public class MainActivity extends Activity implements Runnable {
 				layoutp.setMargins(FS_Util.scaleDipPx(this, 2), 0, FS_Util.scaleDipPx(this, 8), 0);
 				viewMute.setLayoutParams(layoutp);
 				viewMute.setLayoutParams(layoutp);
-				parentbuts = (LinearLayout) findViewById(R.id.mediabuts);
-				parentbuts.addView(viewMute,0);
 				
-				setActiveMenu(R.id.btnSongs);
+				
 				findViewById(R.id.seekbar).setVisibility(View.VISIBLE);
 				findViewById(R.id.progressbar).setVisibility(View.GONE);
 				findViewById(R.id.mediabuts).setVisibility(View.VISIBLE);
 				findViewById(R.id.clientbuts).setVisibility(View.GONE);
+		    	playlist.setOnItemClickListener(playcuradapter);
+		    	playlist.setAdapter(playcuradapter);
 				
 				findViewById(R.id.playlist).setVisibility(View.VISIBLE);
 				findViewById(R.id.serverlist).setVisibility(View.GONE);
@@ -702,11 +754,35 @@ public class MainActivity extends Activity implements Runnable {
 				}
 				
 				stopSockClient();
-				
 				serverlist.clearChoices();	// Need both of these statements
 				serveradapter.clear();
 				
-				mDiscoverHttpd.constantPoll(-1);
+				
+				if(id == R.id.btnSongs){
+					setActiveMenu(R.id.btnSongs);
+					parentbuts = (LinearLayout) findViewById(R.id.mediabuts);
+					if(parentbuts.indexOfChild(viewMute) < 0){
+						parentbuts.addView(viewMute,0);
+					}
+					if (mDiscoverHttpd != null ) {
+						mDiscoverHttpd.constantPoll(-1);
+					}
+				} else if(id == R.id.btnAlbums){
+					((Button) findViewById(R.id.btnAlbums)).setClickable(true);
+					setActiveMenu(R.id.btnAlbums);
+					if(albumAdapter == null){
+						albumAdapter = new AlbumAdapter(this, MediaMeta.getAlbumCursor(this));
+					}
+					playlist.setAdapter(albumAdapter);
+					playlist.setOnItemClickListener(albumAdapter);
+				} else {
+					setActiveMenu(R.id.btnArtists);
+					if(artistAdapter == null){
+						artistAdapter = new ArtistAdapter(this, MediaMeta.getArtistCursor(this));
+					}
+					playlist.setAdapter(artistAdapter);
+					playlist.setOnItemClickListener(artistAdapter);
+				}
 			}
 			return;
 
@@ -809,6 +885,17 @@ public class MainActivity extends Activity implements Runnable {
 				
 				progressdialog.show();
 				WClient.startCopyFile();
+				File filePath;
+				filePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
+				String currTrack = WClient.getCurrentTrack();
+				if(currTrack != null){
+					int slashIndex = currTrack.lastIndexOf("/");
+					if(slashIndex >= 0){
+						currTrack.substring(slashIndex-1);
+					}
+				}
+				String newSongPath = filePath.toString() + "/" + MUSIC_DIR + "/" + currTrack;
+				sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(new File(newSongPath))));
 			}
 		return;
 			
@@ -923,7 +1010,7 @@ public class MainActivity extends Activity implements Runnable {
     
     
     
-    private void setActiveMenu(int select) {
+    void setActiveMenu(int select) {
     	
     	Button tbtn;
     	
@@ -932,6 +1019,17 @@ public class MainActivity extends Activity implements Runnable {
     	tbtn.setTypeface(Typeface.DEFAULT_BOLD);
     	tbtn.setPaintFlags(Paint.UNDERLINE_TEXT_FLAG);
     	tbtn.setClickable(false);
+    }
+    
+    public void setSongsSubmenu(boolean active){
+    	Button tbtn = (Button) findViewById(R.id.btnSongs);
+    	if(active){
+	    	tbtn.setTypeface(Typeface.DEFAULT_BOLD);
+	    	tbtn.setClickable(false);
+    	} else {
+    		tbtn.setTypeface(Typeface.DEFAULT);
+    		tbtn.setClickable(true);
+    	}
     }
     
     
@@ -1177,6 +1275,95 @@ public void manageRemote(final String arg){
         }
         
     });
+}
+
+@Override
+public void onCreateContextMenu(ContextMenu menu, View view, ContextMenuInfo menuInfoIn) {
+    menu.add(0, DELETE_ITEM, 0, R.string.delete);
+
+}
+
+@Override
+public boolean onContextItemSelected(MenuItem item) {
+
+    switch (item.getItemId()) {
+        case DELETE_ITEM: {
+        	AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
+        	View view = info.targetView;
+        	deleteView = view;
+            ImageView imageView = (ImageView)view.findViewById(R.id.image);
+            TextView field = (TextView) view.findViewById(R.id.title);
+           deleteSongName = (String) field.getText();
+            int songId = Integer.valueOf(imageView.getTag().toString());
+        	 deleteList = new long[1];
+        	 deleteList[0] = (int) songId;
+        	 AlertDialog diaBox = AskOption();
+        	 diaBox.show();
+            return true;
+        }
+    }
+    return super.onContextItemSelected(item);
+}
+
+
+
+private AlertDialog AskOption()
+{
+   AlertDialog myQuittingDialogBox =new AlertDialog.Builder(this) 
+       //set message, title, and icon
+       .setTitle("Delete") 
+       .setMessage(getResources().getString(R.string.delete_confirm_button_text))
+       //.setIcon(R.drawable.delete)
+
+       .setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+
+           public void onClick(DialogInterface dialog, int whichButton) { 
+        	   MusicUtils.deleteTracks(MainActivity.this, deleteList);
+               //playlist.removeView(deleteView);
+        	    playcuradapter.changeCursor(MediaMeta.getMusicCursor(mnact));
+               dialog.dismiss();
+           }   
+
+       })
+
+       .setNegativeButton("cancel", new DialogInterface.OnClickListener() {
+           public void onClick(DialogInterface dialog, int which) {
+
+               dialog.dismiss();
+
+           }
+       })
+       .create();
+       return myQuittingDialogBox;
+
+   }
+
+
+@Override
+public void onGesture(GestureOverlayView overlay, MotionEvent event) {
+	// TODO Auto-generated method stub
+	
+}
+
+
+@Override
+public void onGestureCancelled(GestureOverlayView overlay, MotionEvent event) {
+	// TODO Auto-generated method stub
+	
+}
+
+
+@Override
+public void onGestureEnded(GestureOverlayView overlay, MotionEvent event) {
+	// TODO Auto-generated method stub
+	
+}
+
+
+@Override
+public void onGestureStarted(GestureOverlayView overlay, MotionEvent event) {
+	// TODO Auto-generated method stub
+	
 }
 
 

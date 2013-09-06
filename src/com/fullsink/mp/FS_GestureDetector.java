@@ -4,6 +4,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.GestureDetector.SimpleOnGestureListener;
+import android.widget.Button;
+import android.widget.Toast;
 
 
 class FS_GestureDetector extends SimpleOnGestureListener {
@@ -31,11 +33,17 @@ class FS_GestureDetector extends SimpleOnGestureListener {
             
             // right to left swipe
             if(e1.getX() - e2.getX() > swipeMinDistance && Math.abs(velocityX) > swipeThresholdVelocity) {
-                System.out.println("Left Swipe");
-
+            	Toast.makeText(mnact, "Left Swipe", Toast.LENGTH_SHORT).show(); 
+				((Button)mnact.findViewById(R.id.btnAlbums)).setClickable(true);
+				mnact.setActiveMenu(R.id.btnAlbums);
+            	if(mnact.albumAdapter == null) {
+            		mnact.albumAdapter = new AlbumAdapter(mnact, MediaMeta.getAlbumCursor(mnact));
+				}
+				mnact.playlist.setAdapter(mnact.albumAdapter);
+				mnact.playlist.setOnItemClickListener(mnact.albumAdapter);
 
             }  else if (e2.getX() - e1.getX() > swipeMinDistance && Math.abs(velocityX) > swipeThresholdVelocity) {
-            	System.out.println("Right Swipe");
+            	Toast.makeText(mnact, "Right Swipe", Toast.LENGTH_SHORT).show();
 
             }
         } catch (Exception e) {

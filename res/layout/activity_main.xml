@@ -3,237 +3,398 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
-    
-     	
-	<LinearLayout android:id="@+id/topMenu" style="?android:attr/buttonBarStyle"
-	    android:background="@drawable/xxborder" android:weightSum="0.0"
-	    android:baselineAligned="false" android:paddingTop="8dip" android:paddingBottom="12dip"
-    	android:orientation="horizontal" android:layout_alignParentTop="true"  android:gravity="center"
-    	android:layout_width="match_parent" android:layout_height="wrap_content" >	
-    	
-   		<RelativeLayout android:id="@+id/viewServer"
-        android:layout_width="0dip" android:layout_height="wrap_content"
-        android:layout_marginLeft="2dip" android:layout_marginRight="10dip" 
-        android:layout_weight="1" > 
-			<Button  android:id="@+id/btnServer" android:layout_width="match_parent" 
-				android:layout_height="30dip" android:background="@drawable/buttonblack"
-				
-				android:onClick="click" style="?android:attr/buttonBarButtonStyle"/>		
-			<ImageView android:id="@+id/imgServer"
-	      		android:src="@drawable/ic_media_route_off_holo_dark" android:layout_centerHorizontal="true"
-	      		android:layout_height="30dip" android:layout_width="wrap_content" 
-	      		android:layout_centerVertical="true" android:contentDescription="TODO"/>
-	  	</RelativeLayout>
-	  	
-	  	<RelativeLayout android:id="@+id/viewRemote" android:visibility="gone"
-        android:layout_width="0dip" android:layout_height="wrap_content"
-        android:layout_marginLeft="10dip" android:layout_marginRight="10dip" 
-        android:layout_weight="1" > 
+    tools:context=".MainActivity" >
 
-			<Button
-			    android:id="@+id/btnRemote"
-			    style="?android:attr/buttonBarButtonStyle"
-			    android:layout_width="match_parent"
-			    android:layout_height="30dip"
-			    android:background="@drawable/buttonblack"
-			    android:onClick="click"
-			    tools:ignore="ContentDescription" />
+    <LinearLayout
+        android:id="@+id/topMenu"
+        style="?android:attr/buttonBarStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:background="@drawable/xxborder"
+        android:baselineAligned="false"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingBottom="12dip"
+        android:paddingTop="8dip"
+        android:weightSum="0.0" >
 
-			<ImageView android:id="@+id/imgRemote"
-	      		android:src="@drawable/fs_remote_white_dot" android:layout_centerHorizontal="true"
-	      		android:layout_height="30dip" android:layout_width="wrap_content" 
-	      		android:layout_centerVertical="true"/>	
-		</RelativeLayout>
-   		
-   		<Button
-   		    android:id="@+id/btnSongs"
-   		    style="?android:attr/buttonBarButtonStyle"
-   		    android:layout_width="0dip"
-   		    android:layout_height="37dp"
-   		    android:layout_marginLeft="5dip"
-   		    android:layout_marginRight="5dip"
-   		    android:layout_weight="2"
-   		    android:onClick="click"
-   		    android:text="@string/menuSongs"
-   		    android:textColor="#111" />
-   			
-   		<Button
-   		    android:id="@+id/btnAlbums"
-   		    style="?android:attr/buttonBarButtonStyle"
-   		    android:layout_width="wrap_content"
-   		    android:layout_height="37dp"
-   		    android:layout_marginLeft="5dip"
-   		    android:layout_marginRight="5dip"
-   		    android:onClick="click"
-   		    android:text="@string/menuAlbums"
-   		    android:textColor="#AAA" />
-   		
-   		<Button
-   		    android:id="@+id/btnArtists"
-   		    style="?android:attr/buttonBarButtonStyle"
-   		    android:layout_width="0dip"
-   		    android:layout_height="37dp"
-   		    android:layout_marginLeft="5dip"
-   		    android:layout_marginRight="5dip"
-   		    android:layout_weight="2"
-   		    android:onClick="click"
-   		    android:text="@string/menuArtists"
-   		    android:textColor="#AAA" />
-	
-  <!-- 	
+        <RelativeLayout
+            android:id="@+id/viewServer"
+            android:layout_width="0dip"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="2dip"
+            android:layout_marginRight="10dip"
+            android:layout_weight="1" >
+
+            <Button
+                android:id="@+id/btnServer"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="match_parent"
+                android:layout_height="30dip"
+                android:background="@drawable/buttonblack"
+                android:onClick="click" />
+
+            <ImageView
+                android:id="@+id/imgServer"
+                android:layout_width="wrap_content"
+                android:layout_height="30dip"
+                android:layout_centerHorizontal="true"
+                android:layout_centerVertical="true"
+                android:contentDescription="TODO"
+                android:src="@drawable/ic_media_route_off_holo_dark" />
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:id="@+id/viewRemote"
+            android:layout_width="0dip"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dip"
+            android:layout_marginRight="10dip"
+            android:layout_weight="1"
+            android:visibility="gone" >
+
+            <Button
+                android:id="@+id/btnRemote"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="match_parent"
+                android:layout_height="30dip"
+                android:background="@drawable/buttonblack"
+                android:onClick="click"
+                tools:ignore="ContentDescription" />
+
+            <ImageView
+                android:id="@+id/imgRemote"
+                android:layout_width="wrap_content"
+                android:layout_height="30dip"
+                android:layout_centerHorizontal="true"
+                android:layout_centerVertical="true"
+                android:src="@drawable/fs_remote_white_dot" />
+        </RelativeLayout>
+
+        <Button
+            android:id="@+id/btnSongs"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="0dip"
+            android:layout_height="37dp"
+            android:layout_marginLeft="5dip"
+            android:layout_marginRight="5dip"
+            android:layout_weight="2"
+            android:onClick="click"
+            android:text="@string/menuSongs"
+            android:textColor="#111" />
+
+        <Button
+            android:id="@+id/btnAlbums"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="37dp"
+            android:layout_marginLeft="5dip"
+            android:layout_marginRight="5dip"
+            android:onClick="click"
+            android:text="@string/menuAlbums"
+            android:textColor="#111" />
+
+        <Button
+            android:id="@+id/btnArtists"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="0dip"
+            android:layout_height="37dp"
+            android:layout_marginLeft="5dip"
+            android:layout_marginRight="5dip"
+            android:layout_weight="2"
+            android:onClick="click"
+            android:text="@string/menuArtists"
+            android:textColor="#111" />
+
+        <!--
    		<Button android:id="@+id/btnLocal" style="?android:attr/buttonBarButtonStyle"
         	android:layout_width="0dip" android:layout_height="30dip"
         	android:layout_marginLeft="5dip" android:layout_marginRight="2dip" 
         	android:layout_weight="2"  android:onClick="click" 
         	android:text="@string/clientbutOff" android:textColor="#111" />		
-        	
-     --> 		
-     <RelativeLayout android:id="@+id/viewReceiver"
-        android:layout_width="0dip" android:layout_height="wrap_content"
-        android:layout_marginLeft="5dip" android:layout_marginRight="6dip" 
-        android:layout_weight="1" > 
-			<Button  android:id="@+id/btnReceiver" android:layout_width="match_parent" 
-				android:layout_height="30dip" android:background="@drawable/buttonblack"
-				android:onClick="click" style="?android:attr/buttonBarButtonStyle"/>		
-			<ImageView android:id="@+id/imgReceiver"
-	      		android:src="@drawable/fs_receive_white" android:layout_centerHorizontal="true"
-	      		android:layout_height="30dip" android:layout_width="wrap_content" 
-	      		android:layout_centerVertical="true"/>
-	  	</RelativeLayout>
-	</LinearLayout>		
-	
-	<LinearLayout android:id="@+id/seekpar" android:layout_width="fill_parent"  android:layout_height="wrap_content" 
-    		android:orientation="vertical" android:layout_alignParentBottom="true" android:layout_alignParentLeft="true">
-			
-		<SeekBar android:id="@+id/seekbar" android:layout_width="fill_parent" android:layout_height="wrap_content"
-   			android:layout_marginTop="2dip"  android:layout_marginBottom="2dip"
-   			android:layout_marginLeft="10dip"  android:layout_marginRight="15dip"
-   			android:max="100" android:progress="0" />
+        -->
 
-		<!--  Hidden initially -->			
-		<ProgressBar android:id="@+id/progressbar" android:layout_width="fill_parent" 
-		    android:layout_height="wrap_content"
-   			android:layout_margin="5dip" android:max="100" android:progress="0"
-   			style="@android:style/Widget.ProgressBar.Horizontal" android:visibility="gone" />
-		
-		<LinearLayout android:id="@+id/mediabuts" android:orientation="horizontal"
-	    	android:background="@drawable/xxborder" android:weightSum="0.0"
-	    	android:baselineAligned="false" android:paddingTop="8dip" android:paddingBottom="12dip"
-			style="?android:attr/buttonBarStyle" android:gravity="center" 
-			android:layout_width="match_parent" android:layout_height="wrap_content" >
-			
-		     <RelativeLayout android:id="@+id/viewMute"
-		        android:layout_width="0dip" android:layout_height="wrap_content"
-		        android:layout_marginLeft="2dip" android:layout_marginRight="8dip" 
-		        android:layout_weight="1" > 
-				<Button  android:id="@+id/btnMute" android:layout_width="match_parent" 
-				android:layout_height="35dip" android:background="@drawable/buttonblack"
-				android:onClick="click" style="?android:attr/buttonBarButtonStyle"/>		
-				<ImageView android:id="@+id/imgVolMute"
-        		android:src="@drawable/ic_volume_small" android:layout_centerHorizontal="true"
-        		android:layout_height="35dip" android:layout_width="wrap_content" 
-        		android:layout_centerVertical="true"/>
-			  </RelativeLayout>
-			  
-		    <RelativeLayout android:layout_width="0dip" android:layout_height="wrap_content"
-		        android:layout_marginLeft="7dip" android:layout_marginRight="7dip" 
-		        android:layout_weight="2" >
-				<Button android:id="@+id/btnPrevious" android:layout_width="match_parent" android:layout_height="35dip" 
-				android:background="@drawable/buttonblack" 
-				android:onClick="click" style="?android:attr/buttonBarButtonStyle"/>		
-				<ImageView
-        			android:src="@drawable/ic_media_previous" android:layout_centerHorizontal="true"
-        			android:layout_height="35dip" android:layout_width="wrap_content" android:layout_centerVertical="true"/>
-			 </RelativeLayout>
+        <RelativeLayout
+            android:id="@+id/viewReceiver"
+            android:layout_width="0dip"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="5dip"
+            android:layout_marginRight="6dip"
+            android:layout_weight="1" >
 
-		    <RelativeLayout android:layout_width="0dip" android:layout_height="wrap_content"
-		        android:layout_marginLeft="7dip" android:layout_marginRight="7dip" 
-		        android:layout_weight="2" >
-				<Button android:id="@+id/btnPlay" android:layout_width="match_parent" 
-				android:layout_height="35dip" 
-				android:background="@drawable/buttonblack" 
-				android:onClick="click" style="?android:attr/buttonBarButtonStyle"/>		
-				<ImageView android:id="@+id/imgPlayPause"
-        		android:src="@drawable/ic_media_play" android:layout_centerHorizontal="true"
-        		android:layout_height="35dip" android:layout_width="wrap_content" 
-        		android:layout_centerVertical="true" />
-			  </RelativeLayout>
+            <Button
+                android:id="@+id/btnReceiver"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="match_parent"
+                android:layout_height="30dip"
+                android:background="@drawable/buttonblack"
+                android:onClick="click" />
 
-		    
-		    <RelativeLayout android:layout_width="0dip" android:layout_height="wrap_content"
-		        android:layout_marginLeft="7dip" android:layout_marginRight="7dip" 
-		        android:layout_weight="2" >
-			<Button android:id="@+id/btnNext" android:layout_width="match_parent" android:layout_height="35dip" 
-				android:background="@drawable/buttonblack"
-				android:onClick="click" style="?android:attr/buttonBarButtonStyle"/>		
-				<ImageView
-        		android:src="@drawable/ic_media_next" android:layout_centerHorizontal="true"
-        		android:layout_height="35dip" android:layout_width="wrap_content" 
-        		android:layout_centerVertical="true"/>
-			  </RelativeLayout>
-			  
-		    <RelativeLayout android:layout_width="0dip" android:layout_height="wrap_content"
-		        android:layout_marginRight="4dip" android:layout_marginLeft="8dip"  
-		        android:layout_weight="1" >
-				<Button android:id="@+id/btnShuffleLoop" 
-				android:layout_width="match_parent" android:layout_height="35dip" 
-				android:background="@drawable/buttonblack"
-				android:onClick="click" style="?android:attr/buttonBarButtonStyle"/>		
-				<ImageView android:id="@+id/imgShuffleLoop" 
-        		android:src="@drawable/fs_shuffle_white" android:layout_centerHorizontal="true"
-        		android:layout_height="35dip" android:layout_width="wrap_content" 
-        		android:layout_centerVertical="true"/>
-			  </RelativeLayout>
-			</LinearLayout>
+            <ImageView
+                android:id="@+id/imgReceiver"
+                android:layout_width="wrap_content"
+                android:layout_height="30dip"
+                android:layout_centerHorizontal="true"
+                android:layout_centerVertical="true"
+                android:src="@drawable/fs_receive_white" />
+        </RelativeLayout>
+    </LinearLayout>
 
-			<LinearLayout android:id="@+id/clientbuts" android:orientation="horizontal"
-	    	android:background="@drawable/xxborder" android:weightSum="8.0"
-	    	android:baselineAligned="false" android:paddingTop="8dip" android:paddingBottom="12dip"
-			style="?android:attr/buttonBarStyle" android:gravity="center" 
-			android:layout_width="match_parent" android:layout_height="wrap_content"
-			android:visibility="gone" >
-	  
-		     <RelativeLayout
-		        android:layout_width="0dip" android:layout_height="wrap_content"
-		        android:layout_marginRight="8dip" android:layout_marginLeft="8dip" 
-		        android:layout_weight="2"  > 
-				<Button android:layout_width="match_parent" android:layout_height="35dip" 
-				android:background="@drawable/buttongrey" android:clickable="false"
-				android:onClick="click" style="?android:attr/buttonBarButtonStyle" />		
-				<ImageView android:id="@+id/imgServerIndicator"
-        		android:src="@drawable/ic_media_stop" android:layout_centerHorizontal="true"
-        		android:layout_height="35dip" android:layout_width="wrap_content" 
-        		android:layout_centerVertical="true"/>
-			  </RelativeLayout>
-		     
-		      <RelativeLayout
-		        android:layout_width="0dip" android:layout_height="wrap_content"
-		        android:layout_marginLeft="8dip" android:layout_marginRight="8dip" 
-		        android:layout_weight="3" > 
-				<Button android:id="@+id/btnclientCopy" 
-				android:layout_width="match_parent" android:layout_height="35dip" 
-				android:background="@drawable/buttongrey" android:clickable="false"
-				android:onClick="click" style="?android:attr/buttonBarButtonStyle"/>		
-				<ImageView android:id="@+id/imgclientCopy" 
-        		android:src="@drawable/stat_sys_download" android:layout_centerHorizontal="true"
-        		android:layout_height="35dip" android:layout_width="wrap_content" 
-        		android:layout_centerVertical="true"/>
-			  </RelativeLayout>
-			</LinearLayout>	  
-	</LinearLayout>
-	
-  	<RelativeLayout android:id="@+id/midfield" android:layout_width="match_parent"  android:layout_height="0dip" 
-    		android:layout_alignParentLeft="true" android:fillViewport="true"
-    		android:layout_below="@+id/topMenu" android:layout_above="@+id/seekpar"
-    		android:layout_marginBottom="5dip" android:layout_marginTop="5dip" >
+    <LinearLayout
+        android:id="@+id/seekpar"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:orientation="vertical" >
 
-	    <ListView android:id="@+id/playlist"
-	        android:scrollbars="vertical" android:layout_marginRight="5dip"
- 			android:scrollbarAlwaysDrawVerticalTrack="true"
- 			android:scrollbarStyle="outsideOverlay"
- 			android:fadeScrollbars="false" android:scrollbarSize="5dip"
-        	android:layout_width="wrap_content" android:layout_height="match_parent"
-        	android:choiceMode="singleChoice" android:drawSelectorOnTop="true" />
-	</RelativeLayout>
+        <SeekBar
+            android:id="@+id/seekbar"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="2dip"
+            android:layout_marginLeft="10dip"
+            android:layout_marginRight="15dip"
+            android:layout_marginTop="2dip"
+            android:max="100"
+            android:progress="0" />
+
+        <!-- Hidden initially -->
+
+        <ProgressBar
+            android:id="@+id/progressbar"
+            style="@android:style/Widget.ProgressBar.Horizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="5dip"
+            android:max="100"
+            android:progress="0"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/mediabuts"
+            style="?android:attr/buttonBarStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/xxborder"
+            android:baselineAligned="false"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingBottom="12dip"
+            android:paddingTop="8dip"
+            android:weightSum="0.0" >
+
+            <RelativeLayout
+                android:id="@+id/viewMute"
+                android:layout_width="0dip"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="2dip"
+                android:layout_marginRight="8dip"
+                android:layout_weight="1" >
+
+                <Button
+                    android:id="@+id/btnMute"
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="35dip"
+                    android:background="@drawable/buttonblack"
+                    android:onClick="click" />
+
+                <ImageView
+                    android:id="@+id/imgVolMute"
+                    android:layout_width="wrap_content"
+                    android:layout_height="35dip"
+                    android:layout_centerHorizontal="true"
+                    android:layout_centerVertical="true"
+                    android:src="@drawable/ic_volume_small" />
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:layout_width="0dip"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="7dip"
+                android:layout_marginRight="7dip"
+                android:layout_weight="2" >
+
+                <Button
+                    android:id="@+id/btnPrevious"
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="35dip"
+                    android:background="@drawable/buttonblack"
+                    android:onClick="click" />
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="35dip"
+                    android:layout_centerHorizontal="true"
+                    android:layout_centerVertical="true"
+                    android:src="@drawable/ic_media_previous" />
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:layout_width="0dip"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="7dip"
+                android:layout_marginRight="7dip"
+                android:layout_weight="2" >
+
+                <Button
+                    android:id="@+id/btnPlay"
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="35dip"
+                    android:background="@drawable/buttonblack"
+                    android:onClick="click" />
+
+                <ImageView
+                    android:id="@+id/imgPlayPause"
+                    android:layout_width="wrap_content"
+                    android:layout_height="35dip"
+                    android:layout_centerHorizontal="true"
+                    android:layout_centerVertical="true"
+                    android:src="@drawable/ic_media_play" />
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:layout_width="0dip"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="7dip"
+                android:layout_marginRight="7dip"
+                android:layout_weight="2" >
+
+                <Button
+                    android:id="@+id/btnNext"
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="35dip"
+                    android:background="@drawable/buttonblack"
+                    android:onClick="click" />
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="35dip"
+                    android:layout_centerHorizontal="true"
+                    android:layout_centerVertical="true"
+                    android:src="@drawable/ic_media_next" />
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:layout_width="0dip"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="8dip"
+                android:layout_marginRight="4dip"
+                android:layout_weight="1" >
+
+                <Button
+                    android:id="@+id/btnShuffleLoop"
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="35dip"
+                    android:background="@drawable/buttonblack"
+                    android:onClick="click" />
+
+                <ImageView
+                    android:id="@+id/imgShuffleLoop"
+                    android:layout_width="wrap_content"
+                    android:layout_height="35dip"
+                    android:layout_centerHorizontal="true"
+                    android:layout_centerVertical="true"
+                    android:src="@drawable/fs_shuffle_white" />
+            </RelativeLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/clientbuts"
+            style="?android:attr/buttonBarStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/xxborder"
+            android:baselineAligned="false"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingBottom="12dip"
+            android:paddingTop="8dip"
+            android:visibility="gone"
+            android:weightSum="8.0" >
+
+            <RelativeLayout
+                android:layout_width="0dip"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="8dip"
+                android:layout_marginRight="8dip"
+                android:layout_weight="2" >
+
+                <Button
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="35dip"
+                    android:background="@drawable/buttongrey"
+                    android:clickable="false"
+                    android:onClick="click" />
+
+                <ImageView
+                    android:id="@+id/imgServerIndicator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="35dip"
+                    android:layout_centerHorizontal="true"
+                    android:layout_centerVertical="true"
+                    android:src="@drawable/ic_media_stop" />
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:layout_width="0dip"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="8dip"
+                android:layout_marginRight="8dip"
+                android:layout_weight="3" >
+
+                <Button
+                    android:id="@+id/btnclientCopy"
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="35dip"
+                    android:background="@drawable/buttongrey"
+                    android:clickable="false"
+                    android:onClick="click" />
+
+                <ImageView
+                    android:id="@+id/imgclientCopy"
+                    android:layout_width="wrap_content"
+                    android:layout_height="35dip"
+                    android:layout_centerHorizontal="true"
+                    android:layout_centerVertical="true"
+                    android:src="@drawable/stat_sys_download" />
+            </RelativeLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <RelativeLayout
+        android:id="@+id/midfield"
+        android:layout_width="match_parent"
+        android:layout_height="0dip"
+        android:layout_above="@+id/seekpar"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/topMenu"
+        android:layout_marginBottom="5dip"
+        android:layout_marginTop="5dip"
+        android:fillViewport="true" >
+
+        <ListView
+            android:id="@+id/playlist"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginRight="5dip"
+            android:cacheColorHint="@android:color/transparent"
+            android:choiceMode="singleChoice"
+            android:drawSelectorOnTop="true"
+            android:fadeScrollbars="false"
+            android:listSelector="@android:color/transparent"
+            android:scrollbarAlwaysDrawVerticalTrack="true"
+            android:scrollbarSize="5dip"
+            android:scrollbarStyle="outsideOverlay"
+            android:scrollbars="vertical" />
+    </RelativeLayout>
+
 </RelativeLayout>

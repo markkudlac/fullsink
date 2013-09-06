@@ -4,6 +4,7 @@ import java.io.File;
 
 import android.support.v4.content.CursorLoader;
 
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
@@ -51,9 +52,9 @@ static  void loadMusic(MainActivity mnact, PlayAdapter playadapter ) {
 }
 
 */
+	
 
 static  Cursor getMusicCursor(MainActivity mnact ) {
-	
 	Uri contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
     String[] proj = { MediaStore.Audio.Media._ID, MediaStore.Audio.Media.DATA, 
     		MediaStore.Audio.Media.TITLE,
@@ -61,15 +62,110 @@ static  Cursor getMusicCursor(MainActivity mnact ) {
     		MediaStore.Audio.Media.ARTIST};
     String select = MediaStore.Audio.Media.DATA + " LIKE ? ";
     String[] args = { "%" + FILTER_MUSIC + "%" };
+    String  sortOrder = MediaStore.Audio.Media.TITLE + " COLLATE UNICODE";
 
-    CursorLoader loader = new CursorLoader(mnact, contentUri, proj, select, args, null);
-    Cursor cursor = loader.loadInBackground();
-    
-    
-//    System.out.println("Out with media cursor");
+    CursorLoader loader = new CursorLoader(mnact, contentUri, proj, select, args, sortOrder);
+    Cursor cursor = loader.loadInBackground();   
+   // System.out.println("Out with media cursor");
     return cursor;
 }
 
+static Cursor getAlbumCursor(MainActivity mnact) {
+	Uri contentUri = MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI;
+    String select = MediaStore.Audio.Albums.ALBUM + " != ''";  
+    String[] proj = new String[] {
+            MediaStore.Audio.Albums._ID, 
+            MediaStore.Audio.Albums.ALBUM,
+    		MediaStore.Audio.Albums.ARTIST
+    };
+   // String[] args = { "%" + FILTER_MUSIC + "%" };
+    CursorLoader loader = new CursorLoader(mnact, contentUri, proj, select, null, MediaStore.Audio.Albums.DEFAULT_SORT_ORDER);
+    Cursor cursor = loader.loadInBackground();
+    return cursor;
+}
+
+
+static Cursor getAlbumSongsCursor(MainActivity mnact, String albumId) {
+	Uri contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+    String select = MediaStore.Audio.Media.TITLE + " != ''" + " AND " + MediaStore.Audio.Media.ALBUM_ID + "=" + albumId;
+    String[] proj = new String[] {
+            MediaStore.Audio.Media._ID, 
+            MediaStore.Audio.Media.ALBUM,
+    		MediaStore.Audio.Media.ARTIST,
+    		MediaStore.Audio.Media.TITLE_KEY,
+    		MediaStore.Audio.Media.TITLE
+    };
+   // String[] args = { "%" + FILTER_MUSIC + "%" };
+    String  sortOrder = MediaStore.Audio.Media.TITLE + " COLLATE UNICODE";
+    CursorLoader loader = new CursorLoader(mnact, contentUri, proj, select, null, sortOrder);
+    Cursor cursor = loader.loadInBackground();
+    return cursor;
+}
+
+static Cursor getArtistCursor(MainActivity mnact) {
+	Uri contentUri = MediaStore.Audio.Artists.EXTERNAL_CONTENT_URI;
+    String select = MediaStore.Audio.Artists.ARTIST + " != ''";
+    String[] proj = new String[] {
+	        MediaStore.Audio.Artists._ID,
+	        MediaStore.Audio.Artists.ARTIST,
+	        MediaStore.Audio.Artists.NUMBER_OF_ALBUMS
+	};
+    //String sortOrder = MediaStore.Audio.Artists.DEFAULT_SORT_ORDER;
+    CursorLoader loader = new CursorLoader(mnact, contentUri, proj, select, null, null);
+    Cursor cursor = loader.loadInBackground();
+    return cursor;
+}
+
+static Cursor getArtistSongsCursor(MainActivity mnact, String artistId) {
+	Uri contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+    String select = MediaStore.Audio.Media.TITLE + " != ''" + " AND " + MediaStore.Audio.Media.ARTIST_ID + "=" + artistId;
+    String[] proj = new String[] {
+            MediaStore.Audio.Media._ID, 
+            MediaStore.Audio.Media.ALBUM,
+    		MediaStore.Audio.Media.ARTIST,
+    		MediaStore.Audio.Media.TITLE_KEY,
+    		MediaStore.Audio.Media.TITLE
+    };
+   // String[] args = { "%" + FILTER_MUSIC + "%" };
+    String  sortOrder = MediaStore.Audio.Media.TITLE + " COLLATE UNICODE";
+    CursorLoader loader = new CursorLoader(mnact, contentUri, proj, select, null, sortOrder);
+    Cursor cursor = loader.loadInBackground();
+    return cursor;
+}
+
+
+static Cursor getArtistAlbumsCursor(MainActivity mnact, String artist) {
+	Uri contentUri = MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI;
+	String[] proj = new String[] {
+			MediaStore.Audio.Albums._ID,
+	        MediaStore.Audio.Albums.ALBUM,
+	};
+	//handle cases where artist has ' in their name: O'Brien
+	//sql escape for single ' is ''
+	String cleanArtist = artist.replace("'","''");
+	String select = MediaStore.Audio.Albums.ALBUM + " != ''" + " AND " + MediaStore.Audio.Albums.ARTIST + "=" + "'" + cleanArtist + "'";
+    CursorLoader loader = new CursorLoader(mnact, contentUri, proj, select, null, null);
+    Cursor cursor = loader.loadInBackground();
+    return cursor;
+}
+
+static Cursor deleteItemsCursor(Context context, long [] list){
+	String [] cols = new String [] { MediaStore.Audio.Media._ID, 
+            MediaStore.Audio.Media.DATA, MediaStore.Audio.Media.ALBUM_ID };
+    StringBuilder where = new StringBuilder();
+    where.append(MediaStore.Audio.Media._ID + " IN (");
+    for (int i = 0; i < list.length; i++) {
+        where.append(list[i]);
+        if (i < list.length - 1) {
+            where.append(",");
+        }
+    }
+    where.append(")");
+    CursorLoader loader = new CursorLoader(context, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, cols,  where.toString(), null, null);
+    Cursor cursor = loader.loadInBackground();
+    return cursor;
+
+}
 
 static void refreshMediaStore(MainActivity mnact, File newmedia) {
 	System.out.println("Before broadcast");

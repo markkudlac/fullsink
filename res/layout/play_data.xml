@@ -7,8 +7,9 @@
     android:paddingTop="3dip" android:paddingBottom="3dip" >
     
     <ImageView
-        android:id="@+id/image" android:src="@drawable/keyboard_key_feedback_background"
-        android:layout_height="wrap_content" android:layout_width="wrap_content"
+        android:id="@+id/image" android:src="@drawable/albumart_icon"
+        android:layout_width="60dp"
+    	android:layout_height="60dp"
         android:adjustViewBounds = "true" android:maxHeight="50dip"
         android:layout_alignParentLeft="true"
         android:layout_centerVertical="true" />
@@ -17,7 +18,6 @@
 	    android:id="@+id/playcheck"
 	    android:layout_width="wrap_content" android:layout_alignParentRight="true"
 	    android:layout_height="wrap_content" android:layout_centerVertical="true"
-	    android:checkMark="?android:attr/listChoiceIndicatorSingle"
 		/>
     
  	<RelativeLayout android:layout_width="wrap_content"  android:layout_height="wrap_content" 

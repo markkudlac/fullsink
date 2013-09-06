@@ -23,9 +23,10 @@ import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.CursorAdapter;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.TextView;
 
-public class PlayCurAdapter extends CursorAdapter implements
+public class ArtistAdapter extends CursorAdapter implements
 		OnItemClickListener {
 
 	MainActivity mnact;
@@ -37,18 +38,19 @@ public class PlayCurAdapter extends CursorAdapter implements
 	private int mArtistIdx;
 	private int mTitle;
 	private final int highlight;
-	private String SONG_PATH = "content://media/external/audio/media/";
+	private ArtistContentAdapter artistContentAdapter;
+	private String ALBUM_PATH = "content://media/external/audio/albumart/";
+	private int mNumAlbum;
 
-	public PlayCurAdapter(MainActivity mnact, Cursor cursor) {
+	public ArtistAdapter(MainActivity mnact, Cursor cursor) {
 		super((Context) mnact, cursor, false);
 		this.mnact = mnact;
 		currentTrack = null;
 		highlight = mnact.getResources().getColor(R.color.highlight);
 		mInflater = LayoutInflater.from(mnact);
 		artLoader = new AlbumArtLoader();
-		mAlbumIdx = cursor.getColumnIndexOrThrow(MediaStore.Audio.Albums.ALBUM);
-        mArtistIdx = cursor.getColumnIndexOrThrow(MediaStore.Audio.Albums.ARTIST);
-        mTitle = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
+        mArtistIdx = cursor.getColumnIndexOrThrow(MediaStore.Audio.Artists.ARTIST);
+        mNumAlbum = cursor.getColumnIndexOrThrow(MediaStore.Audio.Artists.NUMBER_OF_ALBUMS);
 	}
 
 	public void updateSelectedPosition(int currSelected) {
@@ -58,68 +60,44 @@ public class PlayCurAdapter extends CursorAdapter implements
 	@Override
 	public void bindView(View view, Context context, Cursor cursor) {
 
-		String albart = "";
-		String artist, album;
-		try {
-			int currPosition = cursor.getPosition();
-			TextView field = (TextView) view.findViewById(R.id.title);
-			field.setText(cursor.getString(mTitle));
-			CheckableRelativeLayout cl = (CheckableRelativeLayout) view
-					.findViewById(R.id.checkableLayout);
-			if (currPosition == this.selectedPosition) {
-				cl.setBackgroundColor(highlight);
-			} else {
-				cl.setBackgroundColor(Color.TRANSPARENT);
-			}
+		String artist, numAlbums;
 
-			field = (TextView) view.findViewById(R.id.album);
-			album = cursor.getString(mAlbumIdx);
-
-			artist = cursor.getString(mArtistIdx);
-
-			if (artist.indexOf("<unknown>") == -1
-					&& artist.indexOf("Unknown") == -1) {
-				albart = artist;
-			} else {
-				albart = "";
-			}
-
-			if (albart.length() > 0) {
-				if (album.length() > 0) {
-					albart = album + "    " + albart;
-				}
-			} else {
-				albart = album;
-			}
-			field.setText(albart);
-		} catch (Exception ex) {
-			System.out.println("Column cursor : " + ex);
+		int currPosition = cursor.getPosition();
+		CheckableRelativeLayout cl = (CheckableRelativeLayout) view
+				.findViewById(R.id.checkableLayout);
+		if (currPosition == this.selectedPosition) {
+			cl.setBackgroundColor(highlight);
+		} else {
+			cl.setBackgroundColor(Color.TRANSPARENT);
 		}
+		TextView artistField = (TextView) view.findViewById(R.id.title);
+		artistField.setText(cursor.getString(mArtistIdx));
 		
-		artLoader.init(context);
-		int albmIdIndex = cursor.getColumnIndex(MediaStore.Audio.Albums._ID);
-		int albumId = ((Long)cursor.getLong(albmIdIndex)).intValue();
+		TextView albumField = (TextView) view.findViewById(R.id.album);
+		numAlbums = cursor.getString(mNumAlbum);
+		albumField.setText(numAlbums + ' ' + "albums");
 		ImageView imageView = (ImageView)view.findViewById(R.id.image);
-		imageView.setTag(String.valueOf(albumId));
 		imageView.setImageResource(R.drawable.albumart_icon);
-		artLoader.loadBitmap(albumId, SONG_PATH + albumId + "/albumart", imageView, context);
-		
+		SetArtistArt saa = new SetArtistArt(cursor.getString(mArtistIdx),  Integer.parseInt(numAlbums), mnact, imageView, context);
+		saa.getNextArtistArt();
+
+			
+
 
 	}
 
 	@Override
 	public View newView(Context context, Cursor cursor, ViewGroup parent) {
+
 		final View view = mInflater.inflate(R.layout.play_data, parent, false);
 		return view;
 	}
 
 	@Override
 	public void onItemClick(AdapterView<?> adapter, View view, int pos, long id) {
+		mnact.setArtistSelected(true);
 		selectedPosition = pos;
-		mnact.onPlayClick(currentTrack);
-		// in api > 15 bindview is not called,as a result need to update
-		// background
-		// for each row in view
+		
 		if (android.os.Build.VERSION.SDK_INT > 15) {
 			// # or rows currently displayed
 			int childCount = ((ViewGroup) view.getParent()).getChildCount();
@@ -138,6 +116,12 @@ public class PlayCurAdapter extends CursorAdapter implements
 			cl.setBackgroundColor(mnact.getResources().getColor(
 					R.color.highlight));
 		}
+		
+		artistContentAdapter = new ArtistContentAdapter(mnact, MediaMeta.getArtistSongsCursor(mnact, Long.valueOf(id).toString()));
+		((ListView)mnact.findViewById(R.id.playlist)).setAdapter(artistContentAdapter);
+		((ListView)mnact.findViewById(R.id.playlist)).setOnItemClickListener(artistContentAdapter);
+		mnact.setSongsSubmenu(true);
+		
 	}
 
 	public String getCurrentTrack() {
@@ -147,7 +131,6 @@ public class PlayCurAdapter extends CursorAdapter implements
 	public void setCurrentTrack(String curtrk) {
 		currentTrack = curtrk;
 	}
-	
 
 	public String getTrackPath(int pos) {
 
@@ -167,23 +150,5 @@ public class PlayCurAdapter extends CursorAdapter implements
 		return (cutpath);
 	}
 
-	public String[] getTAA(int pos) {
-		String[] xTTA = new String[3];
-
-		xTTA[0] = xTTA[1] = xTTA[2] = "";
-
-		Cursor tcur;
-
-		tcur = (Cursor) getItem(pos);
-		if (tcur != null) {
-			xTTA[0] = tcur.getString(tcur
-					.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE));
-			xTTA[1] = tcur.getString(tcur
-					.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM));
-			xTTA[2] = tcur.getString(tcur
-					.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST));
-		}
-		return xTTA;
-	}
 
 }
