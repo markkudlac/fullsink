@@ -64,13 +64,6 @@ public class ArtistAdapter extends CursorAdapter implements
 		String artist, numAlbums;
 
 		int currPosition = cursor.getPosition();
-		CheckableRelativeLayout cl = (CheckableRelativeLayout) view
-				.findViewById(R.id.checkableLayout);
-		if (currPosition == this.selectedPosition) {
-			cl.setBackgroundColor(highlight);
-		} else {
-			cl.setBackgroundColor(Color.TRANSPARENT);
-		}
 		TextView artistField = (TextView) view.findViewById(R.id.title);
 		artistField.setText(cursor.getString(mArtistIdx));
 		
@@ -100,11 +93,6 @@ public class ArtistAdapter extends CursorAdapter implements
 		mnact.setArtistSelected(true);
 		selectedPosition = pos;
 		
-		if (android.os.Build.VERSION.SDK_INT > 15) {
-			moveHighlight(view);
-		}
-		
-		
 		Cursor tcur = (Cursor) getItem(pos);
 		String artistIdtoTest = tcur.getString(tcur
 				.getColumnIndexOrThrow( MediaStore.Audio.Media.ARTIST_ID));
@@ -123,25 +111,6 @@ public class ArtistAdapter extends CursorAdapter implements
 		}
 	}
 	
-	public void moveHighlight(View view) {
-		// # or rows currently displayed
-					int childCount = ((ViewGroup) view.getParent()).getChildCount();
-					View v;
-					CheckableRelativeLayout currLayout;
-					for (int i = 0; i < childCount; i++) {
-						v = ((ViewGroup) view.getParent()).getChildAt(i);
-						if (v != null) {
-							currLayout = (CheckableRelativeLayout) v
-									.findViewById(R.id.checkableLayout);
-							currLayout.setBackgroundColor(Color.TRANSPARENT);
-						}
-					}
-					CheckableRelativeLayout cl = (CheckableRelativeLayout) view
-							.findViewById(R.id.checkableLayout);
-					cl.setBackgroundColor(mnact.getResources().getColor(
-							R.color.highlight));
-		
-	}
 
 	public String getCurrentTrack() {
 		return currentTrack;

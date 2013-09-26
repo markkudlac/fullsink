@@ -19,6 +19,7 @@ public class MusicManager {
 	private Music mTrack;
 	private boolean mIsTuning; 	// is user currently jammin out, if so automatically start
 								// playing the next track
+	private int mCurrentSongsPosition;
 	
 
 	public MusicManager(MainActivity mnact) {
@@ -166,6 +167,14 @@ public class MusicManager {
 	public void setTrack(Music track) {
 		mTrack = track;
 		
+	}
+	
+	public void setCurrentSongPosition(int position){
+		mCurrentSongsPosition = position;
+	}
+	
+	public int getCurrentSongPosition(){
+		return mCurrentSongsPosition;
 	}
 
 }

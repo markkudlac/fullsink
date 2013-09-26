@@ -65,12 +65,6 @@ public class AlbumAdapter extends CursorAdapter implements
 			int currPosition = cursor.getPosition();
 			CheckableRelativeLayout cl = (CheckableRelativeLayout) view
 					.findViewById(R.id.checkableLayout);
-			if (currPosition == this.selectedPosition) {
-				cl.setBackgroundColor(highlight);
-			} else {
-				cl.setBackgroundColor(Color.TRANSPARENT);
-			}
-
 			TextView field = (TextView) view.findViewById(R.id.album);
 			album = cursor.getString(mAlbumIdx);
 
@@ -117,9 +111,6 @@ public class AlbumAdapter extends CursorAdapter implements
 		mnact.setAlbumSelected(true);
 		selectedPosition = pos;
 		
-		if (android.os.Build.VERSION.SDK_INT > 15) {
-			moveHighlight(view);
-		}
 		this.setCurrAlbumId(Long.valueOf(id).toString());
 		playCurAdapter = new PlayCurAdapter(mnact, MediaMeta.getAlbumSongsCursor(mnact, Long.valueOf(id).toString(), mnact.getSongsSortOrder()));
 		((ListView)mnact.findViewById(R.id.playlist)).setAdapter(playCurAdapter);
@@ -135,25 +126,6 @@ public class AlbumAdapter extends CursorAdapter implements
 		
 	}
 
-	public void moveHighlight(View view) {
-		// # or rows currently displayed
-					int childCount = ((ViewGroup) view.getParent()).getChildCount();
-					View v;
-					CheckableRelativeLayout currLayout;
-					for (int i = 0; i < childCount; i++) {
-						v = ((ViewGroup) view.getParent()).getChildAt(i);
-						if (v != null) {
-							currLayout = (CheckableRelativeLayout) v
-									.findViewById(R.id.checkableLayout);
-							currLayout.setBackgroundColor(Color.TRANSPARENT);
-						}
-					}
-					CheckableRelativeLayout cl = (CheckableRelativeLayout) view
-							.findViewById(R.id.checkableLayout);
-					cl.setBackgroundColor(mnact.getResources().getColor(
-							R.color.highlight));
-		
-	}
 
 	public String getCurrentTrack() {
 		return currentTrack;

@@ -23,6 +23,7 @@ import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.CursorAdapter;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.TextView;
 
 public class PlayCurAdapter extends CursorAdapter implements
@@ -31,7 +32,6 @@ public class PlayCurAdapter extends CursorAdapter implements
 	MainActivity mnact;
 	private final LayoutInflater mInflater;
 	private String currentTrack;
-	private int selectedPosition = 0;
 	private AlbumArtLoader artLoader;
 	private int mAlbumIdx;
 	private int mArtistIdx;
@@ -56,9 +56,6 @@ public class PlayCurAdapter extends CursorAdapter implements
         mArtist = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
 	}
 
-	public void updateSelectedPosition(int currSelected) {
-		selectedPosition = currSelected;
-	}
 
 	@Override
 	public void bindView(View view, Context context, Cursor cursor) {
@@ -71,7 +68,8 @@ public class PlayCurAdapter extends CursorAdapter implements
 			field.setText(cursor.getString(mTitle));
 			CheckableRelativeLayout cl = (CheckableRelativeLayout) view
 					.findViewById(R.id.checkableLayout);
-			if (currPosition == this.selectedPosition) {
+			ListView playlist = mnact.getPlaylist();
+			if (currPosition == mnact.getMusicManager().getCurrentSongPosition()) {
 				cl.setBackgroundColor(mHighlight);
 			} else {
 				cl.setBackgroundColor(Color.TRANSPARENT);
@@ -120,7 +118,7 @@ public class PlayCurAdapter extends CursorAdapter implements
 
 	@Override
 	public void onItemClick(AdapterView<?> adapter, View view, int pos, long id) {
-		selectedPosition = pos;
+		mnact.getMusicManager().setCurrentSongPosition(pos);
 		TextView field = (TextView) view.findViewById(R.id.title);
 		setCurrentTrack((String)field.getText());
 		mnact.onPlayClick(currentTrack);

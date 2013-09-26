@@ -1,5 +1,6 @@
 package com.fullsink.mp;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
@@ -58,17 +59,19 @@ public class LoadImageTask extends AsyncTask {
 			Uri albumArtUri = Uri.parse(path);
 			try {
 				ContentResolver cr = context.getContentResolver();
-				bitmap = MediaStore.Images.Media.getBitmap(cr, albumArtUri);
-				if (bitmap != null) {
+				File bitmapFile = new File(path);
+				if(!bitmapFile.exists()) {
+				   System.out.println("Failed to find file");
+				   bitmap = BitmapFactory.decodeResource(
+							context.getResources(),
+							R.drawable.albumart_icon);
+				   return bitmap;
+				} else {
+					bitmap = MediaStore.Images.Media.getBitmap(cr, albumArtUri);
 					bitmap = Bitmap
 							.createScaledBitmap(bitmap, 60, 60, true);
 					// Add final bitmap to caches
 					AlbumArtLoader.addBitmapToMemoryCache(imageKey, bitmap);
-					return bitmap;
-				} else {
-					bitmap = BitmapFactory.decodeResource(
-							context.getResources(),
-							R.drawable.albumart_icon);
 					return bitmap;
 				}
 

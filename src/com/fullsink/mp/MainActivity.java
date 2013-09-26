@@ -466,7 +466,7 @@ public class MainActivity extends Activity implements Runnable,
 
 		if (!mPlaycuradapter.isEmpty()) {
 			playlist.setItemChecked(0, true);
-			mPlaycuradapter.updateSelectedPosition(0);
+			mMusicManager.setCurrentSongPosition(0);
 			mMusicManager.loadTrack(null);
 		}
 
@@ -774,7 +774,7 @@ public class MainActivity extends Activity implements Runnable,
 					}
 				});
 				mPlaycuradapter = new PlayCurAdapter(this,
-							MediaMeta.getMusicCursor(this, "artist_key"));
+							MediaMeta.getMusicCursor(this, this.getSongsSortOrder()));
 				playlist.setAdapter(mPlaycuradapter);
 				playlist.setOnItemClickListener(mPlaycuradapter);
 				playlist.setItemChecked(0, true);
@@ -1166,7 +1166,7 @@ public class MainActivity extends Activity implements Runnable,
 			}
 		}
 		playlist.setItemChecked(pos, true);
-		mPlaycuradapter.updateSelectedPosition(pos);
+		mMusicManager.setCurrentSongPosition(0);
 		playlist.smoothScrollToPosition(pos);
 		return (prevtrack);
 	}
@@ -1194,10 +1194,10 @@ public class MainActivity extends Activity implements Runnable,
 	
 	public void setSongsSubmenu(boolean active) {
 		Button tbtn = (Button) findViewById(R.id.btnSongs);
+		mSongsSubmenu = active;
 		if (active) {
 			tbtn.setTypeface(Typeface.DEFAULT_BOLD);
 			tbtn.setClickable(false);
-			mSongsSubmenu = true;
 		} else {
 			tbtn.setTypeface(Typeface.DEFAULT);
 			tbtn.setClickable(true);
@@ -1569,7 +1569,7 @@ public class MainActivity extends Activity implements Runnable,
 	@Override
 	public boolean onItemLongClick(AdapterView<?> adapter, View view,
 			int position, long id) {
-		if (mTabsManager.getActiveTab() == (R.id.btnSongs) || mSongsSubmenu){
+		if ((mTabsManager.getActiveTab() == (R.id.btnSongs)) || mSongsSubmenu){
 			ImageView imageView = (ImageView) view.findViewById(R.id.image);
 			int songId = Integer.valueOf(imageView.getTag().toString());
 			deletetitle = mPlaycuradapter.getCurrentTrack();
