@@ -1,0 +1,22 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+            <group
+                android:id="@+id/group1">
+                <item
+                    android:id="@+id/action_alphabetical"
+                    android:orderInCategory="100"
+                    android:showAsAction="never"
+                    android:title="@string/order_alphabetical"
+                    />
+                <item
+                    android:id="@+id/action_newest"
+                    android:orderInCategory="110"
+                    android:showAsAction="never"
+                    android:title="@string/order_newest"/>
+                <item
+                    android:id="@+id/action_oldest"
+                    android:orderInCategory="120"
+                    android:showAsAction="never"
+                    android:title="@string/order_oldest"/>
+            </group>
+
+</menu>

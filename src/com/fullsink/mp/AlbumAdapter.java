@@ -39,6 +39,7 @@ public class AlbumAdapter extends CursorAdapter implements
 	private int mTitle;
 	private final int highlight;
 	private PlayCurAdapter playCurAdapter;
+	private String mCurrAlbumId;
 
 	public AlbumAdapter(MainActivity mnact, Cursor cursor) {
 		super((Context) mnact, cursor, false);
@@ -117,28 +118,40 @@ public class AlbumAdapter extends CursorAdapter implements
 		selectedPosition = pos;
 		
 		if (android.os.Build.VERSION.SDK_INT > 15) {
-			// # or rows currently displayed
-			int childCount = ((ViewGroup) view.getParent()).getChildCount();
-			View v;
-			CheckableRelativeLayout currLayout;
-			for (int i = 0; i < childCount; i++) {
-				v = ((ViewGroup) view.getParent()).getChildAt(i);
-				if (v != null) {
-					currLayout = (CheckableRelativeLayout) v
-							.findViewById(R.id.checkableLayout);
-					currLayout.setBackgroundColor(Color.TRANSPARENT);
-				}
-			}
-			CheckableRelativeLayout cl = (CheckableRelativeLayout) view
-					.findViewById(R.id.checkableLayout);
-			cl.setBackgroundColor(mnact.getResources().getColor(
-					R.color.highlight));
+			moveHighlight(view);
 		}
-		
-		playCurAdapter = new PlayCurAdapter(mnact, MediaMeta.getAlbumSongsCursor(mnact, Long.valueOf(id).toString()));
+		this.setCurrAlbumId(Long.valueOf(id).toString());
+		playCurAdapter = new PlayCurAdapter(mnact, MediaMeta.getAlbumSongsCursor(mnact, Long.valueOf(id).toString(), mnact.getSongsSortOrder()));
 		((ListView)mnact.findViewById(R.id.playlist)).setAdapter(playCurAdapter);
 		((ListView)mnact.findViewById(R.id.playlist)).setOnItemClickListener(playCurAdapter);
 		mnact.setSongsSubmenu(true);
+		mnact.setPlayCurAdapter(playCurAdapter);
+		mnact.getPlaylist().setItemChecked(0, true);
+		MusicManager mm = mnact.getMusicManager();
+		if (!mm.isTuning()) {
+			mm.clearCurrentTrack();
+			mm.setTrack(mm.getTrack());
+		}
+		
+	}
+
+	public void moveHighlight(View view) {
+		// # or rows currently displayed
+					int childCount = ((ViewGroup) view.getParent()).getChildCount();
+					View v;
+					CheckableRelativeLayout currLayout;
+					for (int i = 0; i < childCount; i++) {
+						v = ((ViewGroup) view.getParent()).getChildAt(i);
+						if (v != null) {
+							currLayout = (CheckableRelativeLayout) v
+									.findViewById(R.id.checkableLayout);
+							currLayout.setBackgroundColor(Color.TRANSPARENT);
+						}
+					}
+					CheckableRelativeLayout cl = (CheckableRelativeLayout) view
+							.findViewById(R.id.checkableLayout);
+					cl.setBackgroundColor(mnact.getResources().getColor(
+							R.color.highlight));
 		
 	}
 
@@ -166,6 +179,14 @@ public class AlbumAdapter extends CursorAdapter implements
 		}
 
 		return (cutpath);
+	}
+
+	public String getCurrAlbumId() {
+		return this.mCurrAlbumId;
+	}
+	
+	public void setCurrAlbumId(String albumId){
+		mCurrAlbumId = albumId;
 	}
 
 

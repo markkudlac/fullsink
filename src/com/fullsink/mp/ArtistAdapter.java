@@ -38,9 +38,10 @@ public class ArtistAdapter extends CursorAdapter implements
 	private int mArtistIdx;
 	private int mTitle;
 	private final int highlight;
-	private ArtistContentAdapter artistContentAdapter;
+	private PlayCurAdapter artistContentAdapter;
 	private String ALBUM_PATH = "content://media/external/audio/albumart/";
 	private int mNumAlbum;
+	private String mArtistId;
 
 	public ArtistAdapter(MainActivity mnact, Cursor cursor) {
 		super((Context) mnact, cursor, false);
@@ -49,8 +50,8 @@ public class ArtistAdapter extends CursorAdapter implements
 		highlight = mnact.getResources().getColor(R.color.highlight);
 		mInflater = LayoutInflater.from(mnact);
 		artLoader = new AlbumArtLoader();
-        mArtistIdx = cursor.getColumnIndexOrThrow(MediaStore.Audio.Artists.ARTIST);
-        mNumAlbum = cursor.getColumnIndexOrThrow(MediaStore.Audio.Artists.NUMBER_OF_ALBUMS);
+        mArtistIdx = cursor.getColumnIndexOrThrow( MediaStore.Audio.Media.ARTIST);
+        //mNumAlbum = cursor.getColumnIndexOrThrow(MediaStore.Audio.Artists.NUMBER_OF_ALBUMS);
 	}
 
 	public void updateSelectedPosition(int currSelected) {
@@ -73,12 +74,13 @@ public class ArtistAdapter extends CursorAdapter implements
 		TextView artistField = (TextView) view.findViewById(R.id.title);
 		artistField.setText(cursor.getString(mArtistIdx));
 		
+		
 		TextView albumField = (TextView) view.findViewById(R.id.album);
-		numAlbums = cursor.getString(mNumAlbum);
-		albumField.setText(numAlbums + ' ' + "albums");
+//		numAlbums = cursor.getString(mNumAlbum);
+//		albumField.setText(numAlbums + ' ' + "albums");
 		ImageView imageView = (ImageView)view.findViewById(R.id.image);
 		imageView.setImageResource(R.drawable.albumart_icon);
-		SetArtistArt saa = new SetArtistArt(cursor.getString(mArtistIdx),  Integer.parseInt(numAlbums), mnact, imageView, context);
+		SetArtistArt saa = new SetArtistArt(cursor.getString(mArtistIdx), mnact, imageView, context);
 		saa.getNextArtistArt();
 
 			
@@ -99,28 +101,45 @@ public class ArtistAdapter extends CursorAdapter implements
 		selectedPosition = pos;
 		
 		if (android.os.Build.VERSION.SDK_INT > 15) {
-			// # or rows currently displayed
-			int childCount = ((ViewGroup) view.getParent()).getChildCount();
-			View v;
-			CheckableRelativeLayout currLayout;
-			for (int i = 0; i < childCount; i++) {
-				v = ((ViewGroup) view.getParent()).getChildAt(i);
-				if (v != null) {
-					currLayout = (CheckableRelativeLayout) v
-							.findViewById(R.id.checkableLayout);
-					currLayout.setBackgroundColor(Color.TRANSPARENT);
-				}
-			}
-			CheckableRelativeLayout cl = (CheckableRelativeLayout) view
-					.findViewById(R.id.checkableLayout);
-			cl.setBackgroundColor(mnact.getResources().getColor(
-					R.color.highlight));
+			moveHighlight(view);
 		}
 		
-		artistContentAdapter = new ArtistContentAdapter(mnact, MediaMeta.getArtistSongsCursor(mnact, Long.valueOf(id).toString()));
+		
+		Cursor tcur = (Cursor) getItem(pos);
+		String artistIdtoTest = tcur.getString(tcur
+				.getColumnIndexOrThrow( MediaStore.Audio.Media.ARTIST_ID));
+		
+		setCurrArtistId(Long.valueOf(artistIdtoTest).toString());
+		artistContentAdapter = new PlayCurAdapter(mnact, MediaMeta.getArtistSongsCursor(mnact, Long.valueOf(artistIdtoTest).toString(), mnact.getSongsSortOrder()));
 		((ListView)mnact.findViewById(R.id.playlist)).setAdapter(artistContentAdapter);
 		((ListView)mnact.findViewById(R.id.playlist)).setOnItemClickListener(artistContentAdapter);
 		mnact.setSongsSubmenu(true);
+		mnact.setPlayCurAdapter(artistContentAdapter);
+		mnact.getPlaylist().setItemChecked(0, true);
+		MusicManager mm = mnact.getMusicManager();
+		if (!mm.isTuning()) {
+			mm.clearCurrentTrack();
+			mm.setTrack(mm.getTrack());
+		}
+	}
+	
+	public void moveHighlight(View view) {
+		// # or rows currently displayed
+					int childCount = ((ViewGroup) view.getParent()).getChildCount();
+					View v;
+					CheckableRelativeLayout currLayout;
+					for (int i = 0; i < childCount; i++) {
+						v = ((ViewGroup) view.getParent()).getChildAt(i);
+						if (v != null) {
+							currLayout = (CheckableRelativeLayout) v
+									.findViewById(R.id.checkableLayout);
+							currLayout.setBackgroundColor(Color.TRANSPARENT);
+						}
+					}
+					CheckableRelativeLayout cl = (CheckableRelativeLayout) view
+							.findViewById(R.id.checkableLayout);
+					cl.setBackgroundColor(mnact.getResources().getColor(
+							R.color.highlight));
 		
 	}
 
@@ -132,23 +151,15 @@ public class ArtistAdapter extends CursorAdapter implements
 		currentTrack = curtrk;
 	}
 
-	public String getTrackPath(int pos) {
-
-		Cursor tcur;
-		String cutpath;
-
-		tcur = (Cursor) getItem(pos);
-		cutpath = tcur.getString(tcur
-				.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
-
-		int offset = cutpath.indexOf(FILTER_MUSIC);
-		if (offset >= 0) {
-			offset += FILTER_MUSIC.length();
-			cutpath = cutpath.substring(offset);
-		}
-
-		return (cutpath);
+	public void setCurrArtistId(String artistId){
+		mArtistId = artistId;
 	}
+	
+	public String getCurrAlbumId() {
+		return mArtistId;
+	}
+
+
 
 
 }

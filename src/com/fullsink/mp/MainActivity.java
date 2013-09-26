@@ -16,11 +16,19 @@ import android.annotation.SuppressLint;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Notification;
+import android.support.v4.app.NotificationCompat;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.ProgressDialog;
+import android.appwidget.AppWidgetManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.Configuration;
+import android.database.Cursor;
 import android.gesture.GestureOverlayView;
 import android.gesture.GestureOverlayView.OnGestureListener;
 import android.graphics.Bitmap;
@@ -41,21 +49,26 @@ import android.util.Log;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.ContextMenu.ContextMenuInfo;
+import android.view.MenuInflater;
 import android.view.MotionEvent;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup.LayoutParams;
 import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
-import android.view.WindowManager;
+import android.widget.AbsListView;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.PopupMenu;
+import android.widget.PopupMenu.OnMenuItemClickListener;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
@@ -64,787 +77,790 @@ import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.Toast;
 
-public class MainActivity extends Activity implements Runnable, OnGestureListener  {
-	
-	public static WebServer WServ = null;	
+public class MainActivity extends Activity implements Runnable,
+		OnGestureListener, OnItemLongClickListener {
+
+	public static WebServer WServ = null;
 	public static SimpleWebServer HttpdServ = null;
 	public static WebClient WClient = null;
-//	public static NsdHelper mNsdHelper = null;
 	public static DiscoverHttpd mDiscoverHttpd = null;
-	
+
 	private static int ShuffleLoop = MODE_NORMAL;
 	WakeLock wakeLock;
 
-	protected Music track; //currently loaded track
-
 	ListView playlist;
 	ListView serverlist;
-	
+
 	ServerAdapter serveradapter;
-	PlayCurAdapter playcuradapter;
+	PlayCurAdapter mPlaycuradapter;
 	AlbumAdapter albumAdapter;
 	ArtistAdapter artistAdapter;
-	
+
 	SeekBar seekbar;
 	ProgressBar progressbar;
 	ProgressDialog progressdialog = null;
-	
-	boolean isTuning; //is user currently jammin out, if so automatically start playing the next track
 	private boolean serverIndicator;
 	private boolean albumSelected;
 	private boolean artistSelected;
 	public final static int DELETE_ITEM = 0;
 	private long[] deleteList;
-	private View deleteView;
-	private String deleteSongName;
 	private MainActivity mnact;
 	private GestureDetector gestureDetector;
-	//private GestureDetector gestureDetector;
-    View.OnTouchListener gestureListener;
-	
+	private View.OnTouchListener gestureListener;
 
-    @SuppressLint("NewApi")
+	private NotificationReceiver mIntentReceiver;
+	private Intent musicIntent;
+	private NotificationManager mgr;
+	private static final int NOTIFY_ID = 1337;
+	public static final String PLAY = "com.fullsink.mp.play";
+	public static final String NEXT = "com.fullsink.mp.next";
+	public static final String PREVIOUS = "com.fullsink.mp.previous";
+	private PopupMenu popup;
+	private PopupMenu.OnMenuItemClickListener popuplistener;
+	private String mSongSortOrder;
+	private TabsManager mTabsManager;
+	private MusicManager mMusicManager;
+	private boolean mSongsSubmenu;
+	public String deletetitle;
+
+	@SuppressLint("NewApi")
 	@Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        NetStrat.setSsid(this);
-        //load action bar for OS 2.3 or greater
-        if(android.os.Build.VERSION.SDK_INT>=11) {
-        	 ActionBar ab = getActionBar();
-        	 ab.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM); 
-             ab.setCustomView(R.layout.actionbar);
-//             ImageView photoActionBarView = (ImageView) findViewById(R.id.photoActionBar);
-             
-             Bitmap bm = PhotoActivity.getPhotoBitmap(this);
-             if (bm != null){
-            	 ((ImageView) findViewById(R.id.photoActionBar)).setImageBitmap(bm);
-             }
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		NetStrat.setSsid(this);
+		// load action bar for OS 2.3 or greater
+		if (android.os.Build.VERSION.SDK_INT >= 11) {
+			ActionBar ab = getActionBar();
+			ab.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
+			ab.setCustomView(R.layout.actionbar);
+			// ImageView photoActionBarView = (ImageView)
+			// findViewById(R.id.photoActionBar);
 
-             ImageButton logoButton = (ImageButton) findViewById(R.id.logo_record);
-             final String ssid = NetStrat.getSsid();
+			Bitmap bm = PhotoActivity.getPhotoBitmap(this);
+			if (bm != null) {
+				((ImageView) findViewById(R.id.photoActionBar))
+						.setImageBitmap(bm);
+			}
 
-             logoButton.setOnClickListener(new View.OnClickListener() {
-                 public void onClick(View v) {
-                	 Toast.makeText(getApplicationContext(), ssid, Toast.LENGTH_LONG).show();
-                 }
-             });
-        }
-        
+			ImageButton logoButton = (ImageButton) findViewById(R.id.logo_record);
+			final String ssid = NetStrat.getSsid();
+			logoButton.setOnClickListener(new View.OnClickListener() {
+				public void onClick(View v) {
+					Toast.makeText(getApplicationContext(), ssid,
+							Toast.LENGTH_LONG).show();
+				}
+			});
+		}
+
 		setVolumeControlStream(AudioManager.STREAM_MUSIC);
-		
+
 		// Not sure if this is needed.
 		PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
-		wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Fullsink");
-        setContentView(R.layout.activity_main);
+		wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+				"Fullsink");
+		setContentView(R.layout.activity_main);
 
-        
-        gestureDetector = new GestureDetector(this, new FS_GestureDetector(this));
-        gestureListener = new View.OnTouchListener() {
+		gestureDetector = new GestureDetector(this,
+				new FS_GestureDetector(this));
+		gestureListener = new View.OnTouchListener() {
 			@Override
 			public boolean onTouch(View v, MotionEvent event) {
 				return gestureDetector.onTouchEvent(event);
 			}
-        };
-        
-        initialize();
-    }
-    
-    
-    @Override
-    public void onResume(){
-    	super.onResume();
-    	wakeLock.acquire();
-    	System.out.println("In RESUME");
-    	if (isSockServerOn()) WServ.sendTrackData(null);	// Will update changes in settings
-//    	mNsdHelper.discoverServices(); Keep out was problems
+		};
 
-    	if(android.os.Build.VERSION.SDK_INT>=11) {
-	    	ImageView photoActionBarView = (ImageView) findViewById(R.id.photoActionBar);
-	    	Bitmap bitmap = PhotoActivity.getPhotoBitmap(this);
-	    	if (bitmap != null)	photoActionBarView.setImageBitmap(bitmap);
-    	}
-    }
-	
-    
-    @Override
-	public void onPause(){
+		initialize();
+	}
+
+	@Override
+	public void onResume() {
+		super.onResume();
+		wakeLock.acquire();
+		System.out.println("In RESUME");
+		IntentFilter commandFilter = new IntentFilter();
+		commandFilter.addAction(PLAY);
+		commandFilter.addAction(NEXT);
+		commandFilter.addAction(PREVIOUS);
+		registerReceiver(mIntentReceiver, commandFilter);
+		if (isSockServerOn())
+			WServ.sendTrackData(null); // Will update changes in settings
+			// mNsdHelper.discoverServices(); Keep out was problems
+		if (android.os.Build.VERSION.SDK_INT >= 11) {
+			ImageView photoActionBarView = (ImageView) findViewById(R.id.photoActionBar);
+			Bitmap bitmap = PhotoActivity.getPhotoBitmap(this);
+			if (bitmap != null)
+				photoActionBarView.setImageBitmap(bitmap);
+		}
+	}
+
+	@Override
+	public void onPause() {
 		super.onPause();
-		
+
 		System.out.println("In PAUSE");
-		
+
 		wakeLock.release();
-//		mNsdHelper.stopDiscovery();		Keep out was problems
-		
-		if (isFinishing()){
-			clearCurrentTrack();
+		// mNsdHelper.stopDiscovery(); Keep out was problems
+
+		if (isFinishing()) {
+			mMusicManager.clearCurrentTrack();
 			finish();
 		}
 	}
-    
-    
-    @Override
+
+	@Override
+	public void onNewIntent(Intent intent) {
+		Bundle extras = getIntent().getExtras();
+		if (extras != null) {
+			String value = extras.getString(Const.CMD_PLAY);
+		}
+	}
+
+	@Override
 	public void onDestroy() {
-    	super.onDestroy();
-    	
-    	if (mDiscoverHttpd != null ) {
-    		mDiscoverHttpd.constantPoll(-1);
-    	}
-    	
+		super.onDestroy();
+
+		if (mDiscoverHttpd != null) {
+			mDiscoverHttpd.constantPoll(-1);
+		}
+
 		System.out.println("In DESTROY");
 		NetStrat.logServer(this, SERVER_OFFLINE);
 
 		stopSockServer(true);
 		stopHttpdServer();
 		stopSockClient();
+		unregisterReceiver(mIntentReceiver);
 		System.out.println("Destroy OUT");
 	}
-    
-    
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
 
-        // Checks the orientation of the screen
-        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-        	System.out.println("Got configuration change : Landscape");
-        } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT){
-        	System.out.println("Got configuration change : Portrait");
-        }
-    }
-    
-    
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu){
+	@Override
+	public void onConfigurationChanged(Configuration newConfig) {
+		super.onConfigurationChanged(newConfig);
+
+		// Checks the orientation of the screen
+		if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+			LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+				    LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
+				params.weight = 1.0f;
+				Button tbtn = (Button) findViewById(R.id.btnSongs);
+				tbtn.setLayoutParams(params);
+				tbtn = (Button) findViewById(R.id.btnAlbums);
+				tbtn.setLayoutParams(params);
+				tbtn = (Button) findViewById(R.id.btnArtists);
+				tbtn.setLayoutParams(params);
+			System.out.println("Got configuration change : Landscape");
+		} else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+			LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+				    LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
+				params.weight = 0.3f;
+				Button tbtn = (Button) findViewById(R.id.btnSongs);
+				tbtn.setLayoutParams(params);
+				tbtn = (Button) findViewById(R.id.btnAlbums);
+				tbtn.setLayoutParams(params);
+				tbtn = (Button) findViewById(R.id.btnArtists);
+				tbtn.setLayoutParams(params);
+			System.out.println("Got configuration change : Portrait");
+		}
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
-    
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-			case R.id.action_settings:
-				toSettings(item);
-				return true;
-			case R.id.action_photo:
-				toPhoto(item);
-				return true;
-			case R.id.action_ipaddress:
-				toIPAddress(item);
-				return true;
-      	default:
-            return super.onOptionsItemSelected(item);
-        }
-    }
-    
-    
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		switch (item.getItemId()) {
+		case R.id.action_settings:
+			toSettings(item);
+			return true;
+		case R.id.action_photo:
+			toPhoto(item);
+			return true;
+		case R.id.action_help:
+			toHelp(item);
+			return true;
+		case R.id.action_ipaddress:
+			toIPAddress(item);
+			return true;
+		default:
+			return super.onOptionsItemSelected(item);
+		}
+	}
+
 	public void toSettings(MenuItem item) {
-        Intent intent = new Intent(this,SettingsActivity.class);
-        startActivity(intent);
+		Intent intent = new Intent(this, SettingsActivity.class);
+		startActivity(intent);
 	}
-  
-	
+
 	public void toPhoto(MenuItem item) {
-        Intent intent = new Intent(this,PhotoActivity.class);
-        startActivity(intent);
+		Intent intent = new Intent(this, PhotoActivity.class);
+		startActivity(intent);
 	}
-   
 	
+	public void toHelp(MenuItem item) {
+		Intent intent = new Intent(this, HelpActivity.class);
+		startActivity(intent);
+	}
+
 	public void toIPAddress(MenuItem item) {
-		
-		if (!isSockServerOn()) turnServerOn(this);
-		
-        Intent intent = new Intent(this,IPAddressActivity.class);
-        startActivity(intent);
+
+		if (!isSockServerOn())
+			turnServerOn(this);
+
+		Intent intent = new Intent(this, IPAddressActivity.class);
+		startActivity(intent);
 	}
-    
-	
-    @Override
-    public void run() {
-        int currentPosition= 0;
- 
-        while (isTrack()) {
-        	
-        	try {
-                currentPosition = getTrack().getCurrentPosition();
-            } catch (Exception ex) {
-                System.out.println("Exception in thread run for seek : " + ex);
-            } 
-        	
-        	try {
-	        	if (track.isPlaying()) {
-	            	if (inClient()){
-	            		progressbar.setMax(getTrack().getDuration());
-	            		progressbar.setProgress(currentPosition);
-	            	} else {
-	            		seekbar.setProgress(currentPosition);
-	            	}
-	            }
-        	} catch (Exception ex){
-        		Log.e("Fullsink", "Error in track.isPlaying()", ex);
-        		StringBuffer result = new StringBuffer();
-                StackTraceElement[] trace = ex.getStackTrace();
-                ex.printStackTrace();
-                for (int i=0;i<trace.length;i++) {
-                    result.append(trace[i].toString()).append('\n');
-                }
-        		Log.e("Stack Trace", result.toString());
-        	 
-        	}
-            
-            try {
-                Thread.sleep(1000);
-            } catch (Exception ex) {	//InterruptedException
-                return;
-            }     
-        }
-    }
-    
-    
-    private void initialize(){
-    	mnact = this;
-    	WebSocketImpl.DEBUG = false;		//This was true originally
-    	
-    	playlist= (ListView) findViewById(R.id.playlist);
-    	playlist.setOnCreateContextMenuListener(this);
-        playlist.setOnTouchListener(gestureListener);
-    	serverlist = (ListView) View.inflate(this,R.layout.server_adapter, null);
-    	((ViewGroup) findViewById(R.id.midfield)).addView(serverlist);
-    	
-    	serveradapter = new ServerAdapter(this);
-    	serverlist.setOnItemClickListener(serveradapter);
-    	serverlist.setAdapter(serveradapter);
-    	
-    	loadPlayAdapter();
-    	
-        seekbar = (SeekBar) findViewById(R.id.seekbar);
-        progressbar = (ProgressBar) findViewById(R.id.progressbar);
-        
-        seekbar.setOnSeekBarChangeListener( new OnSeekBarChangeListener()
-        	{
-        		public void onProgressChanged(SeekBar seekBar, int progress,
-                                        boolean fromUser)
-        		{
-                                     //   textOut("SeekBar value is "+progress);
-                        }
 
-                        public void onStartTrackingTouch(SeekBar seekBar)
-                        { 
-                        	toClients(CMD_PAUSE);
-                        	track.pause();
-                        }
+	@Override
+	public void run() {
+		int currentPosition = 0;
 
-                        public void onStopTrackingTouch(SeekBar seekBar)
-                        {
-                        	int xseek;
-                        	
-                        	xseek = seekBar.getProgress();
-                        	track.seekTo(xseek);
-                        	toClients(CMD_RESUME + xseek);
-                        	track.play();
-                        }
-});
-        
+		while (mMusicManager.isTrack()) {
 
- //   	serverlist.setOnTouchListener(gestureListener);
- //   	playlist.setOnTouchListener(gestureListener);
-    	
- //   	 mNsdHelper = new NsdHelper(this, serveradapter);
-//		 mNsdHelper.initializeNsd();
-    	
-		 setActiveMenu(R.id.btnSongs);
-		 
-		 WebServer.versionChangeHTML(this);	// This must be set before call to turnServerON
-		 
-		 if (Prefs.getOnAir(this)) turnServerOn(this);
-		 
-//		 mNsdHelper.discoverServices();
-		 
-		 incrementLoadCount();
-		 int cnt = Prefs.getLoadCount(this);
-		 if (cnt <= INSTALL_AUTO) {
-//			 System.out.println("Before setName for first installs");
-			 PhotoActivity.setNamePhoto(this);
-	//		 WebClient.autoSelect(this, INSTALL_AUTO - cnt);	Leave this in used with nsd
-		 }
-		 
-		 Music.setMuted(false);
-//    	System.out.println("Out Initialize");
-    }
-    
-    
-    public void loadPlayAdapter() {
-    	
-    	playcuradapter = new PlayCurAdapter(this, MediaMeta.getMusicCursor(this));
-    	playlist.setOnItemClickListener(playcuradapter);
-    	playlist.setAdapter(playcuradapter);
-    	
-       	isTuning = false;
-
-    	if (!playcuradapter.isEmpty()) {
-    		playlist.setItemChecked(0, true);
-    		playcuradapter.updateSelectedPosition(0);
-    		loadTrack(null);
-    	}
-    	
-    }
-   
-    public void setStreamTrack(Music xtrk) {
-    	synchronized(this) {		// May not be needed not sure on Sync
-    		track = xtrk;
-    		
-    		if (!isTrack())	setServerIndicator(MODE_STOP);
-    	}
-    }
-    
-    
-    public void clearCurrentTrack() {
-  
-    	if (isTrack()){
-    		track.dispose();
-    		track = null;
-    	}
-    }
-    
-    public void setAlbumSelected(boolean selected){
-    	albumSelected = selected;
-    }
-    
-    public void setArtistSelected(boolean selected){
-    	artistSelected = selected;
-    }
-    
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if ((keyCode == KeyEvent.KEYCODE_BACK)) { //Back key pressed
-        	if(albumSelected){
-        		setAlbumSelected(false);
-        		playlist.setAdapter(albumAdapter);
-				playlist.setOnItemClickListener(albumAdapter);
-				setSongsSubmenu(false);
-	            return true;
-        	} else if(artistSelected) {
-        		setArtistSelected(false);
-        		playlist.setAdapter(artistAdapter);
-				playlist.setOnItemClickListener(artistAdapter);
-				setSongsSubmenu(false);
-	            return true;
-        	}
-        }
-        return super.onKeyDown(keyCode, event);
-    }
-    
-    public void setDownload(final boolean enable){
- 
-    	runOnUiThread(new Runnable() {
-            public void run() {
-		    	Button copybut = (Button) findViewById(R.id.btnclientCopy);
-		    	
-		    	if (enable) {
-			    	copybut.setBackgroundResource(R.drawable.buttonblack);
-			    	copybut.setClickable(true);
-		    	} else {
-		    		copybut.setBackgroundResource(R.drawable.buttongrey);
-			    	copybut.setClickable(false);
-		    	}
-            }
-        });
-    }
-    
-    
-    public void setServerIndicator(final int mode){
-    	 
-    	runOnUiThread(new Runnable() {
-            public void run() {
-		    	ImageView imgbut = (ImageView) findViewById(R.id.imgServerIndicator);
-		    	
-		    	if (mode == MODE_PAUSE) {
-			    	imgbut.setImageResource(R.drawable.ic_media_pause);
-		    	} else if (mode == MODE_PLAY) {
-		    		imgbut.setImageResource(R.drawable.ic_media_play);
-		    	} else {
-		    		imgbut.setImageResource(R.drawable.ic_media_stop);
-		    	}
-            }
-        });
-    }
-    
-    
-    public boolean isTrack() {
-    	return track != null;
-    }
-    
-    
-    public Music getTrack() {
-    	synchronized(this) {	// May not be needed not sure on Sync
-    		return(track);
-    	}
-    }
-
-  
-    private File getMusicDirectory() {
-    	
-    	File dirpath = null;
-    	try {
- //   		System.out.println("External storage state : "+Environment.getExternalStorageState());
-    		
-			if(Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED) 
-	    			|| Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED_READ_ONLY)){
-	    		dirpath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
-	
-			} else{
-				Toast.makeText(getBaseContext(), "SD Card is unreachable", Toast.LENGTH_LONG).show();
+			try {
+				currentPosition = getTrack().getCurrentPosition();
+			} catch (Exception ex) {
+				System.out.println("Exception in thread run for seek : " + ex);
 			}
-    	} catch(Exception ex) {
-    		System.out.println("Exception in loadFromSD : "+ex);
-    	}
-    	return dirpath;
-    }
 
-    
-    //Loads the track by calling loadMusic
-    private boolean loadTrack(String prevtrack){
-    	if (track != null){
-    		toClients(CMD_STOP);
-    		track.dispose();
-    		track = null;
-    		
-    		if (prevtrack != null && WServ != null){		//Cleanup server cue
-    			WebServer.DeleteRecursive(new File(getFilesDir(), prevtrack));
-    		}
-    	}
-    	
-    	track = loadMusic();
-    	return(track != null);
-    }
-    
-	//loads a Music instance using an external resource
-    private Music loadMusic(){
- 
-		Music xmu = null;
-	
-		if (getCurrentTrackName() != null) {
-			if (WServ != null){
-				WServ.cueTrack(getMusicDirectory(), getCurrentTrackName());
-				playcuradapter.setCurrentTrack(getCurrentTrackName());  // Logg file for removal when next song up
+			try {
+				boolean playing = mMusicManager.getTrack().isPlaying();
+				if (playing) {
+					if (inClient()) {
+						progressbar.setMax(getTrack().getDuration());
+						progressbar.setProgress(currentPosition);
+					} else {
+						seekbar.setProgress(currentPosition);
+					}
+				}
+			} catch (Exception ex) {
+				Log.e("Fullsink", "Error in track.isPlaying()", ex);
+				StringBuffer result = new StringBuffer();
+				StackTraceElement[] trace = ex.getStackTrace();
+				ex.printStackTrace();
+				for (int i = 0; i < trace.length; i++) {
+					result.append(trace[i].toString()).append('\n');
+				}
+				Log.e("Stack Trace", result.toString());
+
 			}
-	
-			try{
-				FileInputStream fis = new FileInputStream(new File(getMusicDirectory(), getCurrentTrackName()));
-				FileDescriptor fileDescriptor = fis.getFD();
-				xmu =  new Music(fileDescriptor, (MainActivity)this);
-				toClients(CMD_PREP + getCurrentTrackName());	// make sure music play is loaded
-				
-			} catch(IOException e){
-				e.printStackTrace();
-				Toast.makeText(getBaseContext(), "Error Loading " + getCurrentTrackName(), Toast.LENGTH_LONG).show();
+
+			try {
+				Thread.sleep(1000);
+			} catch (Exception ex) { // InterruptedException
+				return;
 			}
 		}
-		return xmu;
-    }
-    
-    
-    public String getCurrentTrackName(){
-    	int pos;
-    	String track = null;
-    	
-    	pos = playlist.getCheckedItemPosition();
-    	if (pos != ListView.INVALID_POSITION) {
-    		track = playcuradapter.getTrackPath(pos);	//Path to song in music dir
-    	}
-    	
-    	return(track);
-    }
-    
-    
+	}
+
+	@SuppressLint("NewApi")
+	private void initialize() {
+		mnact = this;
+		WebSocketImpl.DEBUG = false;
+		mIntentReceiver = new NotificationReceiver(mnact);
+		mTabsManager = new TabsManager(this);
+		IntentFilter commandFilter = new IntentFilter();
+		
+		commandFilter.addAction(PLAY);
+		commandFilter.addAction(NEXT);
+		commandFilter.addAction(PREVIOUS);
+		registerReceiver(mIntentReceiver, commandFilter);
+
+
+		playlist = (ListView) findViewById(R.id.playlist);
+		//playlist.setOnCreateContextMenuListener(this);
+		playlist.setOnItemLongClickListener(this);
+		playlist.setOnTouchListener(gestureListener);
+		serverlist = (ListView) View.inflate(this, R.layout.server_adapter,
+				null);
+		((ViewGroup) findViewById(R.id.midfield)).addView(serverlist);
+
+		serveradapter = new ServerAdapter(this);
+		serverlist.setOnItemClickListener(serveradapter);
+		serverlist.setAdapter(serveradapter);
+
+		mMusicManager = new MusicManager(this);
+		loadPlayAdapter();
+
+		seekbar = (SeekBar) findViewById(R.id.seekbar);
+		progressbar = (ProgressBar) findViewById(R.id.progressbar);
+
+		seekbar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+			public void onProgressChanged(SeekBar seekBar, int progress,
+					boolean fromUser) {
+				// textOut("SeekBar value is "+progress);
+			}
+
+			public void onStartTrackingTouch(SeekBar seekBar) {
+				toClients(CMD_PAUSE);
+				mMusicManager.getTrack().pause();
+			}
+
+			public void onStopTrackingTouch(SeekBar seekBar) {
+				int xseek;
+
+				xseek = seekBar.getProgress();
+				mMusicManager.getTrack().seekTo(xseek);
+				toClients(CMD_RESUME + xseek);
+				mMusicManager.getTrack().play();
+			}
+		});
+
+		mTabsManager.setActiveMenu(R.id.btnSongs);
+
+		WebServer.versionChangeHTML(this); // This must be set before call to
+											// turnServerON
+
+		if (Prefs.getOnAir(this))
+			turnServerOn(this);
+
+		// mNsdHelper.discoverServices();
+
+		incrementLoadCount();
+		int cnt = Prefs.getLoadCount(this);
+		if (cnt <= INSTALL_AUTO) {
+			// System.out.println("Before setName for first installs");
+			PhotoActivity.setNamePhoto(this);
+			// WebClient.autoSelect(this, INSTALL_AUTO - cnt); Leave this in
+			// used with nsd
+		}
+
+		Music.setMuted(false);
+		// System.out.println("Out Initialize");
+		if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+			LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+				    LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
+				params.weight = 1.0f;
+				Button tbtn = (Button) findViewById(R.id.btnSongs);
+				tbtn.setLayoutParams(params);
+				tbtn = (Button) findViewById(R.id.btnAlbums);
+				tbtn.setLayoutParams(params);
+				tbtn = (Button) findViewById(R.id.btnArtists);
+				tbtn.setLayoutParams(params);
+			System.out.println("Got configuration change : Landscape");
+		} else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+			LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+				    LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
+				params.weight = 0.3f;
+				Button tbtn = (Button) findViewById(R.id.btnSongs);
+				tbtn.setLayoutParams(params);
+				tbtn = (Button) findViewById(R.id.btnAlbums);
+				tbtn.setLayoutParams(params);
+				tbtn = (Button) findViewById(R.id.btnArtists);
+				tbtn.setLayoutParams(params);
+			System.out.println("Got configuration change : Portrait");
+		}
+	}
+
+	public void loadPlayAdapter() {
+
+		mPlaycuradapter = new PlayCurAdapter(this,
+				MediaMeta.getMusicCursor(this, MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
+		playlist.setOnItemClickListener(mPlaycuradapter);
+		playlist.setAdapter(mPlaycuradapter);
+
+		mMusicManager.setIsTuning(false);
+
+		if (!mPlaycuradapter.isEmpty()) {
+			playlist.setItemChecked(0, true);
+			mPlaycuradapter.updateSelectedPosition(0);
+			mMusicManager.loadTrack(null);
+		}
+
+	}
+
+
+	public void setAlbumSelected(boolean selected) {
+		albumSelected = selected;
+	}
+
+	public void setArtistSelected(boolean selected) {
+		artistSelected = selected;
+	}
+
+	@Override
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		if ((keyCode == KeyEvent.KEYCODE_BACK)) { // Back key pressed
+			if (albumSelected) {
+				setAlbumSelected(false);
+				playlist.setAdapter(albumAdapter);
+				playlist.setOnItemClickListener(albumAdapter);
+				setSongsSubmenu(false);
+				return true;
+			} else if (artistSelected) {
+				setArtistSelected(false);
+				playlist.setAdapter(artistAdapter);
+				playlist.setOnItemClickListener(artistAdapter);
+				setSongsSubmenu(false);
+				return true;
+			}
+		}
+		return super.onKeyDown(keyCode, event);
+	}
+
+	public void setDownload(final boolean enable) {
+
+		runOnUiThread(new Runnable() {
+			public void run() {
+				Button copybut = (Button) findViewById(R.id.btnclientCopy);
+
+				if (enable) {
+					copybut.setBackgroundResource(R.drawable.buttonblack);
+					copybut.setClickable(true);
+				} else {
+					copybut.setBackgroundResource(R.drawable.buttongrey);
+					copybut.setClickable(false);
+				}
+			}
+		});
+	}
+
+	public void setServerIndicator(final int mode) {
+
+		runOnUiThread(new Runnable() {
+			public void run() {
+				ImageView imgbut = (ImageView) findViewById(R.id.imgServerIndicator);
+
+				if (mode == MODE_PAUSE) {
+					imgbut.setImageResource(R.drawable.ic_media_pause);
+				} else if (mode == MODE_PLAY) {
+					imgbut.setImageResource(R.drawable.ic_media_play);
+				} else {
+					imgbut.setImageResource(R.drawable.ic_media_stop);
+				}
+			}
+		});
+	}
+
+
+	public Music getTrack() {
+		synchronized (this) { // May not be needed not sure on Sync
+			return (mMusicManager.getTrack());
+		}
+	}
+
+	public File getMusicDirectory() {
+
+		File dirpath = null;
+		String dir = null;
+
+		int pos = playlist.getCheckedItemPosition();
+		if (pos != ListView.INVALID_POSITION) {
+			dir = mPlaycuradapter.getTrackDir(pos); // Path to song in music
+														// dir
+		}
+
+		return new File(dir);
+	}
+
+	
+
+	public String getCurrentTrackName() {
+		int pos;
+		String track = null;
+
+		pos = playlist.getCheckedItemPosition();
+		if (pos != ListView.INVALID_POSITION) {
+			track = mPlaycuradapter.getTrackPath(pos); // Path to song in music
+														// dir
+		}
+
+		return (track);
+	}
+
 	public void onPlayClick(String prevFile) {
-			   	
- 		loadTrack(prevFile);
- 		if (!isTuning) {
- 			isTuning = true;
- 			((ImageView) findViewById(R.id.imgPlayPause)).setImageResource(R.drawable.ic_media_pause);
- 		}
- 		playTrack(false);
- 
+
+		mMusicManager.loadTrack(prevFile);
+		if (!mMusicManager.isTuning()) {
+			mMusicManager.setIsTuning(true);
+			((ImageView) findViewById(R.id.imgPlayPause))
+					.setImageResource(R.drawable.ic_media_pause);
+		}
+		mMusicManager.playTrack(false);
+
 	}
 	
-	
-    public void playStream(int offset) {
-    	
-    	if (isTrack()){
-        	try {
-        		getTrack().seekTo(offset);
-        		progressbar.setMax(track.getDuration());
-        		getTrack().play();
-        	   	setServerIndicator(MODE_PAUSE);
-        	   	setDownload(WClient.getDownload());
-        	   	new Thread(this).start();
+	public void prepClientScreen() {
+		progressbar.setProgress(0);
+		setDownload(false);
+		setServerIndicator(MODE_STOP);
+	}
 
-        	} catch (Exception e) {
-                    System.out.println("Thread exception : "+ e); 
-            }   
-    	}	
-    }
-    
-    
-    
-    public void clearStream() {
-    	clearCurrentTrack();
-    	prepClientScreen();
-    }
-    
-    
-    public void prepClientScreen() {
-       	progressbar.setProgress(0);
-    	setDownload(false);
-    	setServerIndicator(MODE_STOP);
-    }
-    
-    
-    public void turnServerOn(final MainActivity mnact) {
-    	
-    	final String ipadd = NetStrat.getWifiApIpAddress();
+	public void turnServerOn(final MainActivity mnact) {
+
+		final String ipadd = NetStrat.getWifiApIpAddress();
 		final int httpdPort = NetStrat.getHttpdPort(mnact);
 		final int webSockPort = NetStrat.getSocketPort(mnact);
-		
-    	NetStrat.logServer(mnact, ipadd, Prefs.getName(mnact), webSockPort, httpdPort );
-    	
-    	new Thread(new Runnable() {
-            public void run() {
-        		try {
-		
-		startHttpdServer(httpdPort, ipadd);
-		
-		System.out.println("WebSock Port : " + webSockPort + "  IPADD : " + ipadd);
-		startSockServer(webSockPort,ipadd);
 
-        		} catch(Exception ex) {
-        			System.out.println("Select thread exception : "+ex);
-        		}      
-            
-            runOnUiThread(new Runnable() {
-                public void run() {
-                	((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_on_holo_blue);
-                }
-            });
-            }     	
-       }).start();
-    }
- 
-    
+		NetStrat.logServer(mnact, ipadd, Prefs.getName(mnact), webSockPort,
+				httpdPort);
+
+		new Thread(new Runnable() {
+			public void run() {
+				try {
+
+					startHttpdServer(httpdPort, ipadd);
+
+					System.out.println("WebSock Port : " + webSockPort
+							+ "  IPADD : " + ipadd);
+					startSockServer(webSockPort, ipadd);
+
+				} catch (Exception ex) {
+					System.out.println("Select thread exception : " + ex);
+				}
+
+				runOnUiThread(new Runnable() {
+					public void run() {
+						((ImageView) findViewById(R.id.imgServer))
+								.setImageResource(R.drawable.ic_media_route_on_holo_blue);
+					}
+				});
+			}
+		}).start();
+	}
+
 	public void turnServerOff(final MainActivity mnact) {
-	
+
 		stopHttpdServer();
 		stopSockServer(false);
-		
-		NetStrat.logServer(mnact,SERVER_OFFLINE);	//Server is turned off
-		
-	} 	
-	 
-    
-    public void callLocal() {
+
+		NetStrat.logServer(mnact, SERVER_OFFLINE); // Server is turned off
+
+	}
+
+	public void callLocal() {
 		RelativeLayout viewMute;
 		LinearLayout parentbuts;
-	
+
 		// Move the mute button
-		mDiscoverHttpd = new DiscoverHttpd(this,serveradapter,
-   			 NetStrat.getWifiApIpAddress(), NetStrat.getHttpdPort(this));
-	//	mDiscoverHttpd.constantPoll(20);	// Increase poll frequency when in client
-		
+		mDiscoverHttpd = new DiscoverHttpd(this, serveradapter,
+				NetStrat.getWifiApIpAddress(), NetStrat.getHttpdPort(this));
+		// mDiscoverHttpd.constantPoll(20); // Increase poll frequency when in
+		// client
+
 		viewMute = (RelativeLayout) findViewById(R.id.viewMute);
 		parentbuts = (LinearLayout) findViewById(R.id.mediabuts);
 		parentbuts.removeView(viewMute);
 		parentbuts = (LinearLayout) findViewById(R.id.clientbuts);
 		LinearLayout.LayoutParams layoutp = new LinearLayout.LayoutParams(0,
-				LayoutParams.WRAP_CONTENT,3.0f);
-		layoutp.setMargins(FS_Util.scaleDipPx(this, 8), 0, FS_Util.scaleDipPx(this, 8), 0);
+				LayoutParams.WRAP_CONTENT, 3.0f);
+		layoutp.setMargins(FS_Util.scaleDipPx(this, 8), 0,
+				FS_Util.scaleDipPx(this, 8), 0);
 		viewMute.setLayoutParams(layoutp);
-		parentbuts.addView(viewMute,0);
-		
-		clearActiveMenu();
-		((ImageView) findViewById(R.id.imgReceiver)).setImageResource(R.drawable.fs_receive_blue);
+		parentbuts.addView(viewMute, 0);
+
+		mTabsManager.clearActiveMenu();
+		((ImageView) findViewById(R.id.imgReceiver))
+				.setImageResource(R.drawable.fs_receive_blue);
 		((Button) findViewById(R.id.btnReceiver)).setClickable(false);
 		Button serverButton = ((Button) findViewById(R.id.btnServer));
 		serverButton.setClickable(false);
 		serverButton.setBackgroundResource(R.drawable.buttongrey);
-		((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_off_holo_dark);
-		
+		((ImageView) findViewById(R.id.imgServer))
+				.setImageResource(R.drawable.ic_media_route_off_holo_dark);
+
 		prepClientScreen();
 		findViewById(R.id.seekbar).setVisibility(View.GONE);
-		
+
 		findViewById(R.id.progressbar).setVisibility(View.VISIBLE);
 		findViewById(R.id.mediabuts).setVisibility(View.GONE);
 		findViewById(R.id.clientbuts).setVisibility(View.VISIBLE);
 		findViewById(R.id.playlist).setVisibility(View.GONE);
-		findViewById(R.id.serverlist).setVisibility(View.VISIBLE);	
-    }
-    
-    
-    /*****************************************  LOOK HERE *******************************/
-    
-    public void click(View view){
+		findViewById(R.id.serverlist).setVisibility(View.VISIBLE);
+	}
+
+	/***************************************** LOOK HERE *******************************/
+
+	public void click(View view) {
 		int id = view.getId();
 		Button serverButton = ((Button) findViewById(R.id.btnServer));
-		
-		switch(id){
-		case R.id.btnServer:	
+
+		switch (id) {
+		case R.id.btnServer:
 			if (!isSockServerOn()) {
 				turnServerOn(this);
-				((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_on_holo_blue);
+				((ImageView) findViewById(R.id.imgServer))
+						.setImageResource(R.drawable.ic_media_route_on_holo_blue);
 				serverIndicator = true;
 			} else {
 				turnServerOff(this);
-				((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_off_holo_dark);
+				((ImageView) findViewById(R.id.imgServer))
+						.setImageResource(R.drawable.ic_media_route_off_holo_dark);
 				serverIndicator = false;
-			}
-			return;
-			
-		case R.id.btnRemote:
-			toClients(CMD_REMOTE+"S");		// Make me the current station on client
-			return;
-			
-		case R.id.btnSongs: case R.id.btnAlbums: case R.id.btnArtists:
-			{
-				RelativeLayout viewMute;
-				LinearLayout parentbuts;
-			
-				if (!isSockServerOn() || !serverIndicator) {
-					turnServerOn(this);
-					((ImageView) findViewById(R.id.imgServer)).setImageResource(R.drawable.ic_media_route_on_holo_blue);
-					serverButton.setBackgroundResource(R.drawable.buttonblack);
-					serverButton.setClickable(true);
-					serverIndicator = true;
-				}
-				
-				// Put mute button back
-				viewMute = (RelativeLayout) findViewById(R.id.viewMute);
-				parentbuts = (LinearLayout) findViewById(R.id.clientbuts);
-				
-				parentbuts.removeView(viewMute);
-				
-				LinearLayout.LayoutParams layoutp = new LinearLayout.LayoutParams(0,
-						LayoutParams.WRAP_CONTENT,1.0f);
-				layoutp.setMargins(FS_Util.scaleDipPx(this, 2), 0, FS_Util.scaleDipPx(this, 8), 0);
-				viewMute.setLayoutParams(layoutp);
-				viewMute.setLayoutParams(layoutp);
-				
-				
-				findViewById(R.id.seekbar).setVisibility(View.VISIBLE);
-				findViewById(R.id.progressbar).setVisibility(View.GONE);
-				findViewById(R.id.mediabuts).setVisibility(View.VISIBLE);
-				findViewById(R.id.clientbuts).setVisibility(View.GONE);
-		    	playlist.setOnItemClickListener(playcuradapter);
-		    	playlist.setAdapter(playcuradapter);
-				
-				findViewById(R.id.playlist).setVisibility(View.VISIBLE);
-				findViewById(R.id.serverlist).setVisibility(View.GONE);
-				
-				if (DownloadFile.fileWasDownloaded()) {	//If a song was dowloaded, reload playlist
-//					System.out.println("File was dowloaded, reload adapter");
-					DownloadFile.clearWasDownloaded();
-					loadPlayAdapter();
-					((ImageView) findViewById(R.id.imgPlayPause)).setImageResource(R.drawable.ic_media_play);
-					seekbar.setProgress(0);
-				} else if (inClient()){	// a stream was started so restart track
-//					System.out.println("Coming from receiver, track cued");
-					isTuning = false;
-					((ImageView) findViewById(R.id.imgPlayPause)).setImageResource(R.drawable.ic_media_play);
-					seekbar.setProgress(0);
-					loadTrack(null);
-				}
-				
-				stopSockClient();
-				serverlist.clearChoices();	// Need both of these statements
-				serveradapter.clear();
-				
-				
-				if(id == R.id.btnSongs){
-					setActiveMenu(R.id.btnSongs);
-					parentbuts = (LinearLayout) findViewById(R.id.mediabuts);
-					if(parentbuts.indexOfChild(viewMute) < 0){
-						parentbuts.addView(viewMute,0);
-					}
-					if (mDiscoverHttpd != null ) {
-						mDiscoverHttpd.constantPoll(-1);
-					}
-				} else if(id == R.id.btnAlbums){
-					((Button) findViewById(R.id.btnAlbums)).setClickable(true);
-					setActiveMenu(R.id.btnAlbums);
-					if(albumAdapter == null){
-						albumAdapter = new AlbumAdapter(this, MediaMeta.getAlbumCursor(this));
-					}
-					playlist.setAdapter(albumAdapter);
-					playlist.setOnItemClickListener(albumAdapter);
-				} else {
-					setActiveMenu(R.id.btnArtists);
-					if(artistAdapter == null){
-						artistAdapter = new ArtistAdapter(this, MediaMeta.getArtistCursor(this));
-					}
-					playlist.setAdapter(artistAdapter);
-					playlist.setOnItemClickListener(artistAdapter);
-				}
 			}
 			return;
 
-			
-		case R.id.btnReceiver:	
-			{
-				serverIndicator = false;
-				callLocal();
-			}
+		case R.id.btnRemote:
+			toClients(CMD_REMOTE + "S"); // Make me the current station on
+											// client
 			return;
-			
-				
+
+		case R.id.btnSongs:
+		case R.id.btnAlbums:
+		case R.id.btnArtists: {
+			RelativeLayout viewMute;
+			LinearLayout parentbuts;
+
+			if (!isSockServerOn() || !serverIndicator) {
+				turnServerOn(this);
+				((ImageView) findViewById(R.id.imgServer))
+						.setImageResource(R.drawable.ic_media_route_on_holo_blue);
+				serverButton.setBackgroundResource(R.drawable.buttonblack);
+				serverButton.setClickable(true);
+				serverIndicator = true;
+			}
+
+			// Put mute button back
+			viewMute = (RelativeLayout) findViewById(R.id.viewMute);
+			parentbuts = (LinearLayout) findViewById(R.id.clientbuts);
+
+			parentbuts.removeView(viewMute);
+
+			LinearLayout.LayoutParams layoutp = new LinearLayout.LayoutParams(
+					0, LayoutParams.WRAP_CONTENT, 1.0f);
+			layoutp.setMargins(FS_Util.scaleDipPx(this, 2), 0,
+					FS_Util.scaleDipPx(this, 8), 0);
+			viewMute.setLayoutParams(layoutp);
+			viewMute.setLayoutParams(layoutp);
+
+			findViewById(R.id.seekbar).setVisibility(View.VISIBLE);
+			findViewById(R.id.progressbar).setVisibility(View.GONE);
+			findViewById(R.id.mediabuts).setVisibility(View.VISIBLE);
+			findViewById(R.id.clientbuts).setVisibility(View.GONE);
+
+			findViewById(R.id.playlist).setVisibility(View.VISIBLE);
+			findViewById(R.id.serverlist).setVisibility(View.GONE);
+
+			if (DownloadFile.fileWasDownloaded()) { // If a song was dowloaded,
+													// reload playlist
+			// System.out.println("File was dowloaded, reload adapter");
+				DownloadFile.clearWasDownloaded();
+				loadPlayAdapter();
+				((ImageView) findViewById(R.id.imgPlayPause))
+						.setImageResource(R.drawable.ic_media_play);
+				seekbar.setProgress(0);
+			} else if (inClient()) { // a stream was started so restart track
+			// System.out.println("Coming from receiver, track cued");
+				mMusicManager.setIsTuning(false);
+				((ImageView) findViewById(R.id.imgPlayPause))
+						.setImageResource(R.drawable.ic_media_play);
+				seekbar.setProgress(0);
+				mMusicManager.loadTrack(null);
+			}
+
+			stopSockClient();
+			serverlist.clearChoices(); // Need both of these statements
+			serveradapter.clear();
+			parentbuts = (LinearLayout) findViewById(R.id.mediabuts);
+			if (parentbuts.indexOfChild(viewMute) < 0) {
+				parentbuts.addView(viewMute, 0);
+			}
+			if (mDiscoverHttpd != null) {
+				mDiscoverHttpd.constantPoll(-1);
+			}
+
+			if (id == R.id.btnSongs) {
+				mTabsManager.setActiveMenu(R.id.btnSongs);
+				Button songsButton = ((Button) findViewById(R.id.btnSongs));
+				songsButton.setOnClickListener(new OnClickListener() {
+					@SuppressLint("NewApi")
+					@Override
+					public void onClick(View view) {
+						customSelectedMenuOnclick(view);
+
+					}
+				});
+				mPlaycuradapter = new PlayCurAdapter(this,
+							MediaMeta.getMusicCursor(this, "artist_key"));
+				playlist.setAdapter(mPlaycuradapter);
+				playlist.setOnItemClickListener(mPlaycuradapter);
+				playlist.setItemChecked(0, true);
+			} else if (id == R.id.btnAlbums) {
+				mTabsManager.setActiveMenu(R.id.btnAlbums);
+				Button albumButton = ((Button) findViewById(R.id.btnAlbums));
+				albumButton.setClickable(true);
+				albumButton.setOnClickListener(new OnClickListener() {
+					@SuppressLint("NewApi")
+					@Override
+					public void onClick(View view) {
+						customSelectedMenuOnclick(view);
+					}
+				});
+				if (albumAdapter == null) {
+					albumAdapter = new AlbumAdapter(this,
+							MediaMeta.getAlbumCursor(this,
+									MediaStore.Audio.Albums.DEFAULT_SORT_ORDER));
+				}
+				playlist.setAdapter(albumAdapter);
+				playlist.setOnItemClickListener(albumAdapter);
+			} else {
+				mTabsManager.setActiveMenu(R.id.btnArtists);
+				Button artistButton = ((Button) findViewById(R.id.btnArtists));
+				artistButton.setClickable(true);
+				artistButton.setOnClickListener(new OnClickListener() {
+					@SuppressLint("NewApi")
+					@Override
+					public void onClick(View view) {
+						customSelectedMenuOnclick(view);
+					}
+				});
+				if (artistAdapter == null) {
+					artistAdapter = new ArtistAdapter(this,
+							MediaMeta.getArtistCursor(this, "artist_key"));
+				}
+				playlist.setAdapter(artistAdapter);
+				playlist.setOnItemClickListener(artistAdapter);
+			}
+		}
+			return;
+
+		case R.id.btnReceiver: {
+			serverIndicator = false;
+			callLocal();
+		}
+			return;
+
 		case R.id.btnMute:
 			if (!Music.isMuted()) {
-				((ImageView) findViewById(R.id.imgVolMute)).setImageResource(R.drawable.ic_audio_vol_mute);
-				if (track != null) {
-					track.onMuted();
+				((ImageView) findViewById(R.id.imgVolMute))
+						.setImageResource(R.drawable.ic_audio_vol_mute);
+				if (mMusicManager.getTrack() != null) {
+					mMusicManager.getTrack().onMuted();
 				} else {
 					Music.setMuted(true);
 				}
 			} else {
-				((ImageView) findViewById(R.id.imgVolMute)).setImageResource(R.drawable.ic_volume_small);
-				if (track != null) {
-					track.clearMuted();
+				((ImageView) findViewById(R.id.imgVolMute))
+						.setImageResource(R.drawable.ic_volume_small);
+				if (mMusicManager.getTrack() != null) {
+					mMusicManager.getTrack().clearMuted();
 				} else {
 					Music.setMuted(false);
 				}
 			}
 			return;
-			
-		
+
 		case R.id.btnPrevious:
-			loadTrack(setTrack(-1));
-			playTrack(false);
+			previousTrack();
 			return;
-			
-			
+
 		case R.id.btnPlay:
-			synchronized(this){
-				
-				if(isTuning){
-					toClients(CMD_PAUSE);
-					isTuning = false;
-					((ImageView) findViewById(R.id.imgPlayPause)).setImageResource(R.drawable.ic_media_play);
-					track.pause();
-				} else{
-					isTuning = true;
-					((ImageView) findViewById(R.id.imgPlayPause)).setImageResource(R.drawable.ic_media_pause);
-					playTrack(true);
-				}
+			synchronized (this) {
+				playPause();
 			}
 			return;
-			
-			
+
 		case R.id.btnNext:
-			butNext(1);
+			nextTrack();
 			return;
-			
-			
+
 		case R.id.btnShuffleLoop:
-	        ImageView imgShuffleLoop = (ImageView) findViewById(R.id.imgShuffleLoop);
-	        
+			ImageView imgShuffleLoop = (ImageView) findViewById(R.id.imgShuffleLoop);
+
 			if (ShuffleLoop == MODE_NORMAL) {
 				ShuffleLoop = MODE_SHUFFLE;
 				imgShuffleLoop.setImageResource(R.drawable.fs_shuffle_blue);
@@ -856,515 +872,722 @@ public class MainActivity extends Activity implements Runnable, OnGestureListene
 				imgShuffleLoop.setImageResource(R.drawable.fs_shuffle_white);
 			}
 			return;
-			
-				
+
 		case R.id.btnclientCopy:
-			
-			if (isTrack()) {
-				((Button) view).setClickable(false); 	//Click only once
+
+			if (mMusicManager.isTrack()) {
+				((Button) view).setClickable(false); // Click only once
 				progressdialog = new ProgressDialog(this);
-				progressdialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-				
+				progressdialog
+						.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+
 				progressdialog.setMax(100);
 				progressdialog.setProgress(0);
-				
-				progressdialog.setMessage(getResources().getString(R.string.download) +
-						" : " + WClient.getSongData()[0]);
+
+				progressdialog.setMessage(getResources().getString(
+						R.string.download)
+						+ " : " + WClient.getSongData()[0]);
 				progressdialog.setCancelable(false);
-				
+
 				progressdialog.setButton(DialogInterface.BUTTON_NEGATIVE,
-						getResources().getString(R.string.cancel), new DialogInterface.OnClickListener() {
-				    @Override
-				    public void onClick(DialogInterface dialog, int which) {
-				    	WClient.cancelFileCopy();
-				        dialog.dismiss();
-				        downloadClickable();
-				        Toast.makeText(getBaseContext(), R.string.downcanc, Toast.LENGTH_SHORT).show();
-				    }
-				});
-				
+						getResources().getString(R.string.cancel),
+						new DialogInterface.OnClickListener() {
+							@Override
+							public void onClick(DialogInterface dialog,
+									int which) {
+								WClient.cancelFileCopy();
+								dialog.dismiss();
+								downloadClickable();
+								Toast.makeText(getBaseContext(),
+										R.string.downcanc, Toast.LENGTH_SHORT)
+										.show();
+							}
+						});
+
 				progressdialog.show();
 				WClient.startCopyFile();
 				File filePath;
-				filePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
+				filePath = Environment
+						.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
 				String currTrack = WClient.getCurrentTrack();
-				if(currTrack != null){
+				if (currTrack != null) {
 					int slashIndex = currTrack.lastIndexOf("/");
-					if(slashIndex >= 0){
-						currTrack.substring(slashIndex-1);
+					if (slashIndex >= 0) {
+						currTrack.substring(slashIndex - 1);
 					}
 				}
-				String newSongPath = filePath.toString() + "/" + MUSIC_DIR + "/" + currTrack;
-				sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(new File(newSongPath))));
+				String newSongPath = filePath.toString() + "/" + MUSIC_DIR
+						+ "/" + currTrack;
+				sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
+						Uri.fromFile(new File(newSongPath))));
 			}
-		return;
-			
+			return;
+
 		default:
 			return;
 		}
 	}
-    
-    
-    public void downloadClickable() {
-    	 ((Button) findViewById(R.id.btnclientCopy)).setClickable(true);
-    }
 
-    
-    private void butNext(int offset) {
-    	
-		loadTrack(setTrack(offset));
-		playTrack(false);
-    }
-    
-    
-    private String setTrack(int direction){
-    
-    	int pos = 0;
-    	String prevtrack = null;
-    	
-    	// Get current position and if none check, should not happen, got to top
-    	pos = playlist.getCheckedItemPosition();
-    	if (pos == ListView.INVALID_POSITION) {
-        	if (playcuradapter.isEmpty()){
-        		pos = -1;
-        	}
-        	else {
-        		pos = 0;
-        	}
-        	return(prevtrack);
-    	}
-    	
-    	prevtrack = getCurrentTrackName();
-    	
-    	if (ShuffleLoop == MODE_SHUFFLE && playcuradapter.getCount() > 3){
-			int temp = new Random().nextInt(playcuradapter.getCount());
+	@SuppressLint("NewApi")
+	private void customSelectedMenuOnclick(View view) {
+		final CharSequence[] items = { getString(R.string.order_alphabetical),
+				getString(R.string.order_newest),
+				getString(R.string.order_oldest) };
+		if (android.os.Build.VERSION.SDK_INT >= 13) {
+			popup = new PopupMenu(mnact, view);
+			popuplistener = new OnMenuItemClickListener() {
+				@Override
+				public boolean onMenuItemClick(MenuItem item) {
+					// switch (item.getItemId()) {
+					// case R.id.vibrate:
+					// case R.id.dont_vibrate:
+					// if (item.isChecked()) item.setChecked(false);
+					// else item.setChecked(true);
+					// return true;
+					// default:
+					// return super.onOptionsItemSelected(item);
+					// }
+
+					Toast.makeText(getApplicationContext(), item.toString(),
+							Toast.LENGTH_SHORT).show();
+					orderItems(item.toString());
+					View view = item.getActionView();
+					return true;
+				}
+
+			};
+
+			popup.setOnMenuItemClickListener(popuplistener);
+			MenuInflater inflater = popup.getMenuInflater();
+			Menu popupMenu = popup.getMenu();
+			inflater.inflate(R.menu.ontouch_menu, popup.getMenu());
+			popup.show();
+		} else {
+			AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			builder.setTitle("Order:");
+			builder.setItems(items, new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int item) {
+					Toast.makeText(getApplicationContext(), items[item],
+							Toast.LENGTH_SHORT).show();
+					orderItems((String) items[item]);
+				}
+			});
+			AlertDialog alert = builder.create();
+			alert.show();
+		}
+	}
+
+	public void nextTrack() {
+		mMusicManager.loadTrack(setTrack(1));
+		mMusicManager.playTrack(false);
+	}
+
+	private void orderItems(String order) {
+		int selectedTab = mTabsManager.getActiveTab();
+		if (order.equals(getString(R.string.order_alphabetical))) {
+			switch (mTabsManager.ACTIVE_TAB) {
+			case R.id.btnSongs: {
+				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact, MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
+				setSongsSortOrder(MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
+				return;
+			}
+			case R.id.btnAlbums: {
+				albumAdapter.changeCursor(MediaMeta.getAlbumCursor(
+						this, MediaStore.Audio.Albums.DEFAULT_SORT_ORDER));
+				return;
+			}
+			case R.id.btnArtists: {
+			}
+			}
+		} else if (order.equals(getString(R.string.order_newest))) {
+			switch (mTabsManager.ACTIVE_TAB) {
+			case R.id.btnSongs: {
+				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact, MediaStore.Audio.Media.DATE_MODIFIED));
+				setSongsSortOrder(MediaStore.Audio.Media.DATE_MODIFIED);
+				return;
+			}
+			case R.id.btnAlbums: {
+				albumAdapter.changeCursor(MediaMeta.getAlbumCursor(
+						this, MediaStore.Audio.Albums.FIRST_YEAR  + " ASC"));
+				return;
+			}
+			case R.id.btnArtists: {
+				artistAdapter.changeCursor(MediaMeta.getArtistCursor(this,  MediaStore.Audio.Media.DATE_MODIFIED));
+				return;
+			}
+			}
+		} else if (order.equals(getString(R.string.order_oldest))) {
+			switch (mTabsManager.ACTIVE_TAB) {
+			case R.id.btnSongs: {
+				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact, MediaStore.Audio.Media.DATE_MODIFIED  + " DESC"));
+				setSongsSortOrder(MediaStore.Audio.Media.DATE_MODIFIED  + " DESC");
+				return;
+			}
+			case R.id.btnAlbums: {
+				albumAdapter.changeCursor(MediaMeta.getAlbumCursor(this, MediaStore.Audio.Albums.FIRST_YEAR  + " DESC"));
+				return;
+			}
+			case R.id.btnArtists: {
+				artistAdapter.changeCursor(MediaMeta.getArtistCursor(this,  MediaStore.Audio.Media.DATE_MODIFIED  + " DESC"));
+				return;
+			}
+			}
+
+		}
+	}
+
+	public void previousTrack() {
+		mMusicManager.loadTrack(setTrack(-1));
+		mMusicManager.playTrack(false);
+	}
+
+	public void playPause() {
+		Intent notifIntent = new Intent(this, MainActivity.class);
+		notifIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
+				| Intent.FLAG_ACTIVITY_SINGLE_TOP);
+		PendingIntent pIntent = PendingIntent.getActivity(this, 0, notifIntent,
+				0);
+
+		PendingIntent pIntentPlay = PendingIntent.getBroadcast(this, 0,
+				new Intent(PLAY), 0);
+
+		PendingIntent pIntentNext = PendingIntent.getBroadcast(this, 0,
+				new Intent(NEXT), 0);
+
+		PendingIntent pIntentPrevious = PendingIntent.getBroadcast(this, 0,
+				new Intent(PREVIOUS), 0);
+
+		if (mMusicManager.isTuning()) {
+			toClients(CMD_PAUSE);
+			mMusicManager.setIsTuning(false);
+			((ImageView) findViewById(R.id.imgPlayPause))
+					.setImageResource(R.drawable.ic_media_play);
+			mMusicManager.getTrack().pause();
+			mgr = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+			NotificationCompat.Builder notific = new NotificationCompat.Builder(
+					this);
+			Notification notify = notific
+					.setPriority(Notification.PRIORITY_HIGH)
+					.setContentTitle("Fullsink")
+					.setContentText(getCurrentTrackName())
+					.setSmallIcon(R.drawable.ic_launcher)
+					.setContentIntent(pIntent)
+					.addAction(R.drawable.ic_media_previous,
+							this.getString(R.string.previous), pIntentPrevious)
+					.addAction(R.drawable.ic_media_play,
+							this.getString(R.string.play), pIntentPlay)
+					.addAction(R.drawable.ic_media_next,
+							this.getString(R.string.next), pIntentNext).build();
+			notify.flags |= Notification.FLAG_ONGOING_EVENT
+					| Intent.FLAG_ACTIVITY_CLEAR_TOP
+					| Intent.FLAG_ACTIVITY_SINGLE_TOP;
+			mgr.notify(NOTIFY_ID, notify);
+
+		} else {
+			mMusicManager.setIsTuning(true);
+			((ImageView) findViewById(R.id.imgPlayPause))
+					.setImageResource(R.drawable.ic_media_pause);
+			mMusicManager.playTrack(true);
+			mgr = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+			NotificationCompat.Builder notific = new NotificationCompat.Builder(
+					this);
+			Notification notify = notific
+					.setPriority(Notification.PRIORITY_HIGH)
+					.setContentTitle("Fullsink")
+					.setContentText(getCurrentTrackName())
+					.setSmallIcon(R.drawable.ic_launcher)
+					.setContentIntent(pIntent)
+					.addAction(R.drawable.ic_media_previous,
+							this.getString(R.string.previous), pIntentPrevious)
+					.addAction(R.drawable.ic_media_pause,
+							this.getString(R.string.play), pIntentPlay)
+					.addAction(R.drawable.ic_media_next,
+							this.getString(R.string.next), pIntentNext).build();
+			notify.flags |= Notification.FLAG_ONGOING_EVENT
+					| Intent.FLAG_ACTIVITY_CLEAR_TOP
+					| Intent.FLAG_ACTIVITY_SINGLE_TOP;
+			mgr.notify(NOTIFY_ID, notify);
+
+		}
+
+	}
+
+	public void downloadClickable() {
+		((Button) findViewById(R.id.btnclientCopy)).setClickable(true);
+	}
+
+	private void butNext(int offset) {
+
+		mMusicManager.loadTrack(setTrack(offset));
+		mMusicManager.playTrack(false);
+		// notify change
+	}
+
+	private String setTrack(int direction) {
+
+		int pos = 0;
+		String prevtrack = null;
+
+		// Get current position and if none check, should not happen, got to top
+		pos = playlist.getCheckedItemPosition();
+		if (pos == ListView.INVALID_POSITION) {
+			if (mPlaycuradapter.isEmpty()) {
+				pos = -1;
+			} else {
+				pos = 0;
+			}
+			return (prevtrack);
+		}
+
+		prevtrack = getCurrentTrackName();
+
+		if (ShuffleLoop == MODE_SHUFFLE && mPlaycuradapter.getCount() > 3) {
+			int temp = new Random().nextInt(mPlaycuradapter.getCount());
 			int safety = 0;
-			while (safety < 20){
-				if(temp != pos){
+			while (safety < 20) {
+				if (temp != pos) {
 					pos = temp;
 					break;
 				}
 				temp++;
-				if(temp > playcuradapter.getCount()-1){
+				if (temp > mPlaycuradapter.getCount() - 1) {
 					temp = 0;
 				}
 				++safety;
 			}
-		} else if (direction == -1){
-    		pos--;
-			if (pos < 0){
-				 pos = playcuradapter.getCount()-1;
+		} else if (direction == -1) {
+			pos--;
+			if (pos < 0) {
+				pos = mPlaycuradapter.getCount() - 1;
 			}
-    	} else if(direction == 1){
-    		pos++;
-			if (pos > playcuradapter.getCount()-1){
+		} else if (direction == 1) {
+			pos++;
+			if (pos > mPlaycuradapter.getCount() - 1) {
 				pos = 0;
 			}
-    	}  
-    	playlist.setItemChecked(pos, true);
-    	playcuradapter.updateSelectedPosition(pos);
-    	playlist.smoothScrollToPosition(pos);
-    	return(prevtrack);
-    }
-     
-    
-    //Plays the Track
-    private void playTrack(boolean resume){
-    	if(isTuning && track != null){
-    				 		
-       		if (isSockServerOn() && resume) {
-           		toClients(CMD_RESUME + track.getCurrentPosition());
-       		} 
-       		
-       		if (isSockServerOn()) WServ.sendTrackData(null);
-      
-			track.play();
-			
-	    	seekbar.setMax(track.getDuration());
-	    	try {
-	    		
-	    		new Thread(this).start();
-
-	    	} catch (Exception e) {
-	                System.out.println("Thread exception : "+ e); 
-	            }   
 		}
-    }
-    
-    
-    
-    private void clearActiveMenu() {
-       	Button tbtn;
-       	
-    	ViewGroup menu = (ViewGroup)findViewById(R.id.topMenu);
-    	for (int i=2; i<menu.getChildCount()-1; i++) {
-    		tbtn = (Button) menu.getChildAt(i);
-    		tbtn.setPaintFlags(0);
-    		tbtn.setTypeface(Typeface.DEFAULT);
-    		tbtn.setClickable(true);
-    	}
-    	
-    	((Button) findViewById(R.id.btnReceiver)).setClickable(true);
-    	((ImageView) findViewById(R.id.imgReceiver)).setImageResource(R.drawable.fs_receive_white);
-    }
-    
-    
-    
-    void setActiveMenu(int select) {
-    	
-    	Button tbtn;
-    	
-    	clearActiveMenu();
-    	tbtn = (Button) findViewById(select);
-    	tbtn.setTypeface(Typeface.DEFAULT_BOLD);
-    	tbtn.setPaintFlags(Paint.UNDERLINE_TEXT_FLAG);
-    	tbtn.setClickable(false);
-    }
-    
-    public void setSongsSubmenu(boolean active){
-    	Button tbtn = (Button) findViewById(R.id.btnSongs);
-    	if(active){
-	    	tbtn.setTypeface(Typeface.DEFAULT_BOLD);
-	    	tbtn.setClickable(false);
-    	} else {
-    		tbtn.setTypeface(Typeface.DEFAULT);
-    		tbtn.setClickable(true);
-    	}
-    }
-    
-    
-    public void playNextTrack() {
-    	
+		playlist.setItemChecked(pos, true);
+		mPlaycuradapter.updateSelectedPosition(pos);
+		playlist.smoothScrollToPosition(pos);
+		return (prevtrack);
+	}
+
+
+	// private void notifyChange(String what) {
+	//
+	// Intent i = new Intent(what);
+	// i.putExtra("id", Long.valueOf(getAudioId()));
+	// i.putExtra("artist", getArtistName());
+	// i.putExtra("album",getAlbumName());
+	// i.putExtra("track", getTrackName());
+	// sendBroadcast(i);
+	//
+	// if (what.equals(QUEUE_CHANGED)) {
+	// saveQueue(true);
+	// } else {
+	// saveQueue(false);
+	// }
+	//
+	// // Share this notification directly with our widgets
+	// mAppWidgetProvider.notifyChange(this, what);
+	// }
+
 	
-	if (!inClient()) {
-		if (ShuffleLoop == MODE_LOOP) {
-			butNext(0);
+	public void setSongsSubmenu(boolean active) {
+		Button tbtn = (Button) findViewById(R.id.btnSongs);
+		if (active) {
+			tbtn.setTypeface(Typeface.DEFAULT_BOLD);
+			tbtn.setClickable(false);
+			mSongsSubmenu = true;
 		} else {
-			butNext(1);
+			tbtn.setTypeface(Typeface.DEFAULT);
+			tbtn.setClickable(true);
 		}
 	}
-}
 
+	public void playNextTrack() {
 
-
-public void startSockServer(int port, String ipadd) {
-    WebSocketImpl.DEBUG = false;		//This was true originally
-    boolean serverinit = false;
-    
- //   System.out.println( "In WebSockServer : "+ipadd);
-   try {
-//	stopSockServer();
-// This was changed to allow websocket server to remain running for 2.3 bug
-	   
-	if (!isSockServerOn()) {
-		System.out.println( "In startSockServer");
-		WServ = new WebServer( port, ipadd, MainActivity.this );
-		serverinit = true;
-		
-	}
-	
-    WServ.deleteCues();
-    WServ.cueTrack(getMusicDirectory(), getCurrentTrackName());		//Copy for stream
-     
-    if (serverinit) {
-    	WServ.start(); 
-    }
-
-    System.out.println( "WebSockServ started on port: " + WServ.getPort() );
-    System.out.println("WebSockServ start Add : " + WServ.getAddress());
-    WServ.generateServerId(WServ.getPort());
-    		
-   } catch ( Exception ex ) {
-	   System.out.println( "WebSockServer host not found error" + ex);
-   }
-  }
-
-
-
-public void stopSockServer(boolean closeflg) {
-	
-	try {
-		if (isSockServerOn()) {
-//			System.out.println( "WebSockServer there are clients : " + WServ.isClient());
-	// There seems to be a bug when there are no connections the stop hangs in 2.3
-	// To get around this just let the socketserver run if no connections as no one will be able
-	// to connect as the Httpd server is the contact point for a live server
-			
-			if (android.os.Build.VERSION.SDK_INT > 10 || closeflg || WServ.isClient()) {
-//				System.out.println("WebSockServ stopping");
-				WServ.stop();
-				WServ = null;
-			}
-			
-		}
-	} catch(Exception ex ) {
-	   System.out.println( "WebSockServer stop error" + ex);
-   }
-}
-
-
-public boolean isSockServerOn() {
-	return(WServ != null);
-}
-
-
-public void startSockClient(int webSockPort, String ipadd, int httpdPort){
-	
-	try {
-		System.out.println( "In startSockClient");
-		stopSockClient();
-		 WClient = new WebClient(webSockPort, ipadd, httpdPort,  MainActivity.this);
-		 WClient.connect();
-		 
-	} catch ( Exception ex ) {
-		   System.out.println( "WebClient error : " + ex);
-	   }
-	
-	}
-
-
-public void toClients(String mess){
-	
-	if (isSockServerOn()){
-		WServ.sendToAll(mess);
-	}
-}
-
-
-public void stopSockClient() {
-	
-	try {
-		if (WClient != null) {
-			WClient.close();
-			WClient = null;
-		}
-	} catch(Exception ex ) {
-		   System.out.println( "WebSockClient stop error" + ex);
-	   }
-	}
-
-
-public boolean inClient() {
-	return(WClient != null);
-}
-
-
-public void startHttpdServer(int httpdPort, String ipadd) {
-    
-   try {
-	stopHttpdServer();
-    HttpdServ = new SimpleWebServer( ipadd, httpdPort, getFilesDir() ); 
-    HttpdServ.start();  
- //   mNsdHelper.registerService(httpdPort);
-    System.out.println("HttpdServ started Add : " + ipadd + "  Port : "+httpdPort);
-    NetStrat.storeHttpdPort(httpdPort);
-   } catch ( Exception ex ) {
-	   System.out.println( "HttpdServer error  : " + ex);
-   }
-  }
-
-
-public void stopHttpdServer() {
-	
-	try {
-		if (HttpdServ != null) {
-//			mNsdHelper.unregisterService();
-			HttpdServ.stop();
-			HttpdServ = null;
-			NetStrat.storeHttpdPort(0);
-
-		}
-		
-	} catch(Exception ex ) {
-	   System.out.println( "HttpdServer stop : " + ex);
-   }
-}
-
-
-
-// This is not good and should be reviewed
-public void toastOut(final String xmess, final int length){
-
-	runOnUiThread(new Runnable() {
-        public void run() {
-        	Toast.makeText(getBaseContext(), xmess, length).show();
-        }
-    });
-}
-
-
-
-public void adapterOut(final boolean remove, final int item){
-
-	runOnUiThread(new Runnable() {
-		@Override
-        public void run() {
-        	
-        	if (remove ) {
-        		serveradapter.setNotifyOnChange(true);	//turn auto upadte back on
-        		if (item >= 0 ) {		// it is in the list else just leave
-        			serverlist.setItemChecked(item,false);	// This is dumb and should not be required
-        			serveradapter.updateSelectedPosition(item);
-        		} else {
-        			return;
-        		}
-        	}
-        	
-        	serveradapter.notifyDataSetChanged();
-        	
-        	//There may be a hole here as not sure if notify is completed here. Seems to work
-
-        	int serverCount = serverlist.getCheckedItemPosition();
-        	System.out.println( "Checked count : " + serverCount);
-        	// Stop stream if the check (current connection) is lost count zero
-			if (remove && serverCount == ListView.INVALID_POSITION) {
-			 clearStream();
-			}
-        }
-    });
-}
-
-
-
-public void fileProgressControl(final int xprog){
-
-	runOnUiThread(new Runnable() {
-        public void run() {
-        	if (xprog == DOWNLOADERR) {
-           		downloadClickable();			// Can download again
-        		progressdialog.dismiss();
-        		Toast.makeText(getBaseContext(), "Copy error. Re-try", Toast.LENGTH_LONG).show();
-        		
-        	} else if (xprog == 0) {
-        		downloadClickable();
-        		progressdialog.dismiss();
-        		Toast.makeText(getBaseContext(), "Copy Complete", Toast.LENGTH_SHORT).show();
-        	} else if (xprog < 0) {
-        		progressdialog.setMax(-xprog);
-        	} else {
-        		progressdialog.setProgress(xprog);
-        	}
-        }
-    });
-}
-
-
-private void incrementLoadCount() {
-	
-	int cnt = Prefs.getLoadCount(this) + 1;
-	System.out.println("Increment loadcount : "+cnt);
-	Prefs.setLoadCount(this, cnt); 
-}
-
-
-public void manageRemote(final String arg){
-			
-	runOnUiThread(new Runnable() {
-        public void run() {
-       
-			if (arg.equals("T")) {
-				findViewById(R.id.viewRemote).setVisibility(View.VISIBLE);
-			} else if (arg.equals("F")) {
-				findViewById(R.id.viewRemote).setVisibility(View.GONE);
-				((ImageView) findViewById(R.id.imgRemote)).setImageResource(R.drawable.fs_remote_white_dot);
-			} else if (NetStrat.getWifiApIpAddress().indexOf(arg) >= 0){
-				((ImageView) findViewById(R.id.imgRemote)).setImageResource(R.drawable.fs_remote_blue_dot);
+		if (!inClient()) {
+			if (ShuffleLoop == MODE_LOOP) {
+				butNext(0);
 			} else {
-				((ImageView) findViewById(R.id.imgRemote)).setImageResource(R.drawable.fs_remote_white_dot);
+				butNext(1);
 			}
-        }
-        
-    });
-}
+		}
+	}
 
-@Override
-public void onCreateContextMenu(ContextMenu menu, View view, ContextMenuInfo menuInfoIn) {
-    menu.add(0, DELETE_ITEM, 0, R.string.delete);
+	public void startSockServer(int port, String ipadd) {
+		WebSocketImpl.DEBUG = false; // This was true originally
+		boolean serverinit = false;
 
-}
+		// System.out.println( "In WebSockServer : "+ipadd);
+		try {
+			// stopSockServer();
+			// This was changed to allow websocket server to remain running for
+			// 2.3 bug
 
-@Override
-public boolean onContextItemSelected(MenuItem item) {
+			if (!isSockServerOn()) {
+				System.out.println("In startSockServer");
+				WServ = new WebServer(port, ipadd, MainActivity.this);
+				serverinit = true;
 
-    switch (item.getItemId()) {
-        case DELETE_ITEM: {
-        	AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
-        	View view = info.targetView;
-        	deleteView = view;
-            ImageView imageView = (ImageView)view.findViewById(R.id.image);
-            TextView field = (TextView) view.findViewById(R.id.title);
-           deleteSongName = (String) field.getText();
-            int songId = Integer.valueOf(imageView.getTag().toString());
-        	 deleteList = new long[1];
-        	 deleteList[0] = (int) songId;
-        	 AlertDialog diaBox = AskOption();
-        	 diaBox.show();
-            return true;
-        }
-    }
-    return super.onContextItemSelected(item);
-}
+			}
 
+			WServ.deleteCues();
+			WServ.cueTrack(getMusicDirectory(), getCurrentTrackName()); // Copy
+																		// for
+																		// stream
 
+			if (serverinit) {
+				WServ.start();
+			}
 
-private AlertDialog AskOption()
-{
-   AlertDialog myQuittingDialogBox =new AlertDialog.Builder(this) 
-       //set message, title, and icon
-       .setTitle("Delete") 
-       .setMessage(getResources().getString(R.string.delete_confirm_button_text))
-       //.setIcon(R.drawable.delete)
+			System.out.println("WebSockServ started on port: "
+					+ WServ.getPort());
+			System.out.println("WebSockServ start Add : " + WServ.getAddress());
+			WServ.generateServerId(WServ.getPort());
 
-       .setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+		} catch (Exception ex) {
+			System.out.println("WebSockServer host not found error" + ex);
+		}
+	}
 
-           public void onClick(DialogInterface dialog, int whichButton) { 
-        	   MusicUtils.deleteTracks(MainActivity.this, deleteList);
-               //playlist.removeView(deleteView);
-        	    playcuradapter.changeCursor(MediaMeta.getMusicCursor(mnact));
-               dialog.dismiss();
-           }   
+	public void stopSockServer(boolean closeflg) {
 
-       })
+		try {
+			if (isSockServerOn()) {
+				// System.out.println( "WebSockServer there are clients : " +
+				// WServ.isClient());
+				// There seems to be a bug when there are no connections the
+				// stop hangs in 2.3
+				// To get around this just let the socketserver run if no
+				// connections as no one will be able
+				// to connect as the Httpd server is the contact point for a
+				// live server
 
-       .setNegativeButton("cancel", new DialogInterface.OnClickListener() {
-           public void onClick(DialogInterface dialog, int which) {
+				if (android.os.Build.VERSION.SDK_INT > 10 || closeflg
+						|| WServ.isClient()) {
+					// System.out.println("WebSockServ stopping");
+					WServ.stop();
+					WServ = null;
+				}
 
-               dialog.dismiss();
+			}
+		} catch (Exception ex) {
+			System.out.println("WebSockServer stop error" + ex);
+		}
+	}
 
-           }
-       })
-       .create();
-       return myQuittingDialogBox;
+	public boolean isSockServerOn() {
+		return (WServ != null);
+	}
 
-   }
+	public void startSockClient(int webSockPort, String ipadd, int httpdPort) {
 
+		try {
+			System.out.println("In startSockClient");
+			stopSockClient();
+			WClient = new WebClient(webSockPort, ipadd, httpdPort,
+					MainActivity.this);
+			WClient.connect();
 
-@Override
-public void onGesture(GestureOverlayView overlay, MotionEvent event) {
-	// TODO Auto-generated method stub
+		} catch (Exception ex) {
+			System.out.println("WebClient error : " + ex);
+		}
+
+	}
+
+	public void toClients(String mess) {
+
+		if (isSockServerOn()) {
+			WServ.sendToAll(mess);
+		}
+	}
+
+	public void stopSockClient() {
+
+		try {
+			if (WClient != null) {
+				WClient.close();
+				WClient = null;
+			}
+		} catch (Exception ex) {
+			System.out.println("WebSockClient stop error" + ex);
+		}
+	}
+
+	public boolean inClient() {
+		return (WClient != null);
+	}
+
+	public void startHttpdServer(int httpdPort, String ipadd) {
+
+		try {
+			stopHttpdServer();
+			HttpdServ = new SimpleWebServer(ipadd, httpdPort, getFilesDir());
+			HttpdServ.start();
+			// mNsdHelper.registerService(httpdPort);
+			System.out.println("HttpdServ started Add : " + ipadd + "  Port : "
+					+ httpdPort);
+			NetStrat.storeHttpdPort(httpdPort);
+		} catch (Exception ex) {
+			System.out.println("HttpdServer error  : " + ex);
+		}
+	}
+
+	public void stopHttpdServer() {
+
+		try {
+			if (HttpdServ != null) {
+				// mNsdHelper.unregisterService();
+				HttpdServ.stop();
+				HttpdServ = null;
+				NetStrat.storeHttpdPort(0);
+			}
+
+		} catch (Exception ex) {
+			System.out.println("HttpdServer stop : " + ex);
+		}
+	}
+
+	// This is not good and should be reviewed
+	public void toastOut(final String xmess, final int length) {
+
+		runOnUiThread(new Runnable() {
+			public void run() {
+				Toast.makeText(getBaseContext(), xmess, length).show();
+			}
+		});
+	}
+
+	public void adapterOut(final boolean remove, final int item) {
+
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+
+				if (remove) {
+					serveradapter.setNotifyOnChange(true); // turn auto upadte
+															// back on
+					if (item >= 0) { // it is in the list else just leave
+						serverlist.setItemChecked(item, false); // This is dumb
+																// and should
+																// not be
+																// required
+						serveradapter.updateSelectedPosition(item);
+					} else {
+						return;
+					}
+				}
+
+				serveradapter.notifyDataSetChanged();
+
+				// There may be a hole here as not sure if notify is completed
+				// here. Seems to work
+				int serverCount = serverlist.getCheckedItemPosition();
+				System.out.println("Checked count : " + serverCount);
+				// Stop stream if the check (current connection) is lost count
+				// zero
+				if (remove && serverCount == ListView.INVALID_POSITION) {
+					mMusicManager.clearStream();
+				}
+			}
+		});
+	}
+
+	public void fileProgressControl(final int xprog) {
+
+		runOnUiThread(new Runnable() {
+			public void run() {
+				if (xprog == DOWNLOADERR) {
+					downloadClickable(); // Can download again
+					progressdialog.dismiss();
+					Toast.makeText(getBaseContext(), "Copy error. Re-try",
+							Toast.LENGTH_LONG).show();
+
+				} else if (xprog == 0) {
+					downloadClickable();
+					progressdialog.dismiss();
+					Toast.makeText(getBaseContext(), "Copy Complete",
+							Toast.LENGTH_SHORT).show();
+				} else if (xprog < 0) {
+					progressdialog.setMax(-xprog);
+				} else {
+					progressdialog.setProgress(xprog);
+				}
+			}
+		});
+	}
+
+	private void incrementLoadCount() {
+
+		int cnt = Prefs.getLoadCount(this) + 1;
+		System.out.println("Increment loadcount : " + cnt);
+		Prefs.setLoadCount(this, cnt);
+	}
+
+	public void manageRemote(final String arg) {
+
+		runOnUiThread(new Runnable() {
+			public void run() {
+
+				if (arg.equals("T")) {
+					findViewById(R.id.viewRemote).setVisibility(View.VISIBLE);
+				} else if (arg.equals("F")) {
+					findViewById(R.id.viewRemote).setVisibility(View.GONE);
+					((ImageView) findViewById(R.id.imgRemote))
+							.setImageResource(R.drawable.fs_remote_white_dot);
+				} else if (NetStrat.getWifiApIpAddress().indexOf(arg) >= 0) {
+					((ImageView) findViewById(R.id.imgRemote))
+							.setImageResource(R.drawable.fs_remote_blue_dot);
+				} else {
+					((ImageView) findViewById(R.id.imgRemote))
+							.setImageResource(R.drawable.fs_remote_white_dot);
+				}
+			}
+
+		});
+	}
+
+	@Override
+	public void onCreateContextMenu(ContextMenu menu, View view,
+			ContextMenuInfo menuInfoIn) {
+		if (mTabsManager.getActiveTab() == (R.id.btnSongs) || mSongsSubmenu){
+			menu.add(0, DELETE_ITEM, 0, R.string.delete);
+		} 
+	}
 	
-}
 
+	private AlertDialog Delete() {
+		AlertDialog myQuittingDialogBox = new AlertDialog.Builder(this)
+				// set message, title, and icon
+				.setTitle("Delete")
+				.setMessage(
+						getResources().getString(
+								R.string.delete_confirm_button_text))
+				// .setIcon(R.drawable.delete)
 
-@Override
-public void onGestureCancelled(GestureOverlayView overlay, MotionEvent event) {
-	// TODO Auto-generated method stub
+				.setPositiveButton("Delete",
+						new DialogInterface.OnClickListener() {
+
+							public void onClick(DialogInterface dialog,
+									int whichButton) {
+								Music music = mMusicManager.getTrack();
+								String curTrack = mPlaycuradapter.getCurrentTrack();
+								String deleteSong = mnact.deletetitle;
+								if(curTrack.equals(deletetitle)){
+									playPause();
+									progressbar.setProgress(0);
+									//nextTrack();
+								}
+								MusicUtils.deleteTracks(MainActivity.this,
+										deleteList);
+								int tab = mTabsManager.getActiveTab();
+								if(tab == (R.id.btnSongs)){
+									mPlaycuradapter.changeCursor(MediaMeta
+										.getMusicCursor(mnact, MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
+								} else if(tab == (R.id.btnAlbums) ){
+									String albumId = albumAdapter.getCurrAlbumId();
+									mPlaycuradapter.changeCursor(MediaMeta.getAlbumSongsCursor(mnact, albumId, mnact.getSongsSortOrder()));
+								} else if(tab == (R.id.btnArtists) ){
+									String artistId= artistAdapter.getCurrAlbumId();
+
+									mPlaycuradapter.changeCursor(MediaMeta.getArtistSongsCursor(mnact, artistId, mnact.getSongsSortOrder()));
+								}
+								dialog.dismiss();
+							}
+
+						})
+
+				.setNegativeButton("Cancel",
+						new DialogInterface.OnClickListener() {
+							public void onClick(DialogInterface dialog,
+									int which) {
+
+								dialog.dismiss();
+
+							}
+						}).create();
+		return myQuittingDialogBox;
+
+	}
+
+	@Override
+	public void onGesture(GestureOverlayView overlay, MotionEvent event) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void onGestureCancelled(GestureOverlayView overlay, MotionEvent event) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void onGestureEnded(GestureOverlayView overlay, MotionEvent event) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void onGestureStarted(GestureOverlayView overlay, MotionEvent event) {
+		// TODO Auto-generated method stub
+
+	}
+
+	public void setPlayCurAdapter(PlayCurAdapter playCurAdapter) {
+		mPlaycuradapter = playCurAdapter;
+		
+	}
+
+	public PlayCurAdapter getPlayCurAdapter() {
+		// TODO Auto-generated method stub
+		return mPlaycuradapter;
+	}
+
+	public String getSongsSortOrder() {
+		// TODO Auto-generated method stub
+		return mSongSortOrder;
+	}
 	
-}
+	public void setSongsSortOrder(String sortOrder) {
+		mSongSortOrder = sortOrder;
+	}
 
+	public TabsManager getTabsManager() {
+		return mTabsManager;
+	}
 
-@Override
-public void onGestureEnded(GestureOverlayView overlay, MotionEvent event) {
-	// TODO Auto-generated method stub
-	
-}
+	public MusicManager getMusicManager() {
+		return mMusicManager;
+	}
 
+	public ListView getPlaylist() {
+		return playlist;
+	}
 
-@Override
-public void onGestureStarted(GestureOverlayView overlay, MotionEvent event) {
-	// TODO Auto-generated method stub
-	
-}
-
+	@Override
+	public boolean onItemLongClick(AdapterView<?> adapter, View view,
+			int position, long id) {
+		if (mTabsManager.getActiveTab() == (R.id.btnSongs) || mSongsSubmenu){
+			ImageView imageView = (ImageView) view.findViewById(R.id.image);
+			int songId = Integer.valueOf(imageView.getTag().toString());
+			deletetitle = mPlaycuradapter.getCurrentTrack();
+			deleteList = new long[1];
+			deleteList[0] = (int) songId;
+			AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			String items[] = {"Delete"};
+			builder.setItems(items, new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int item) {
+					AlertDialog deleteDialog = Delete();
+					deleteDialog.show();
+				}
+			});
+			AlertDialog alert = builder.create();
+			alert.show();
+		}
+		return false;
+	}
 
 }

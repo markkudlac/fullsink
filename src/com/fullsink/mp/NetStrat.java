@@ -22,7 +22,7 @@ static String ssid = null;
 
 static	public String getWifiApIpAddress() {
 	
-	    try {;
+	    try {
 	        for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); 
 	        		en.hasMoreElements();) {
 	        	

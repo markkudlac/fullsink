@@ -36,19 +36,24 @@ public class PlayCurAdapter extends CursorAdapter implements
 	private int mAlbumIdx;
 	private int mArtistIdx;
 	private int mTitle;
-	private final int highlight;
+	private final int mHighlight;
+	private String [] mxTTA;
 	private String SONG_PATH = "content://media/external/audio/media/";
+	private String mTrackName;
+	private int mAlbum;
+	private int mArtist;
+	private String mCurrTrackName;
 
 	public PlayCurAdapter(MainActivity mnact, Cursor cursor) {
 		super((Context) mnact, cursor, false);
 		this.mnact = mnact;
 		currentTrack = null;
-		highlight = mnact.getResources().getColor(R.color.highlight);
+	    mHighlight = mnact.getResources().getColor(R.color.highlight);
 		mInflater = LayoutInflater.from(mnact);
 		artLoader = new AlbumArtLoader();
-		mAlbumIdx = cursor.getColumnIndexOrThrow(MediaStore.Audio.Albums.ALBUM);
-        mArtistIdx = cursor.getColumnIndexOrThrow(MediaStore.Audio.Albums.ARTIST);
         mTitle = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
+        mAlbum = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM);
+        mArtist = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
 	}
 
 	public void updateSelectedPosition(int currSelected) {
@@ -67,15 +72,15 @@ public class PlayCurAdapter extends CursorAdapter implements
 			CheckableRelativeLayout cl = (CheckableRelativeLayout) view
 					.findViewById(R.id.checkableLayout);
 			if (currPosition == this.selectedPosition) {
-				cl.setBackgroundColor(highlight);
+				cl.setBackgroundColor(mHighlight);
 			} else {
 				cl.setBackgroundColor(Color.TRANSPARENT);
 			}
 
 			field = (TextView) view.findViewById(R.id.album);
-			album = cursor.getString(mAlbumIdx);
+			album = cursor.getString(mAlbum);
 
-			artist = cursor.getString(mArtistIdx);
+			artist = cursor.getString(mArtist);
 
 			if (artist.indexOf("<unknown>") == -1
 					&& artist.indexOf("Unknown") == -1) {
@@ -116,36 +121,49 @@ public class PlayCurAdapter extends CursorAdapter implements
 	@Override
 	public void onItemClick(AdapterView<?> adapter, View view, int pos, long id) {
 		selectedPosition = pos;
+		TextView field = (TextView) view.findViewById(R.id.title);
+		setCurrentTrack((String)field.getText());
 		mnact.onPlayClick(currentTrack);
 		// in api > 15 bindview is not called,as a result need to update
 		// background
 		// for each row in view
 		if (android.os.Build.VERSION.SDK_INT > 15) {
-			// # or rows currently displayed
-			int childCount = ((ViewGroup) view.getParent()).getChildCount();
-			View v;
-			CheckableRelativeLayout currLayout;
-			for (int i = 0; i < childCount; i++) {
-				v = ((ViewGroup) view.getParent()).getChildAt(i);
-				if (v != null) {
-					currLayout = (CheckableRelativeLayout) v
-							.findViewById(R.id.checkableLayout);
-					currLayout.setBackgroundColor(Color.TRANSPARENT);
-				}
-			}
-			CheckableRelativeLayout cl = (CheckableRelativeLayout) view
-					.findViewById(R.id.checkableLayout);
-			cl.setBackgroundColor(mnact.getResources().getColor(
-					R.color.highlight));
+			moveHighlight(view);
 		}
+		//mnact.registerForContextMenu(view);
+		//view.setOnItemLongClickListener();
+		
+		//mnact.openContextMenu(view);
+	}
+	
+	public void moveHighlight(View view) {
+		// # or rows currently displayed
+					int childCount = ((ViewGroup) view.getParent()).getChildCount();
+					View v;
+					CheckableRelativeLayout currLayout;
+					for (int i = 0; i < childCount; i++) {
+						v = ((ViewGroup) view.getParent()).getChildAt(i);
+						if (v != null) {
+							currLayout = (CheckableRelativeLayout) v
+									.findViewById(R.id.checkableLayout);
+							if(currLayout != null) {
+								currLayout.setBackgroundColor(Color.TRANSPARENT);
+							}
+						}
+					}
+					CheckableRelativeLayout cl = (CheckableRelativeLayout) view
+							.findViewById(R.id.checkableLayout);
+					cl.setBackgroundColor(mnact.getResources().getColor(
+							R.color.highlight));
+		
 	}
 
 	public String getCurrentTrack() {
-		return currentTrack;
+		return mCurrTrackName;
 	}
 
 	public void setCurrentTrack(String curtrk) {
-		currentTrack = curtrk;
+		mCurrTrackName = curtrk;
 	}
 	
 
@@ -158,15 +176,16 @@ public class PlayCurAdapter extends CursorAdapter implements
 		cutpath = tcur.getString(tcur
 				.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
 
-		int offset = cutpath.indexOf(FILTER_MUSIC);
+		int offset = cutpath.lastIndexOf("/");
 		if (offset >= 0) {
-			offset += FILTER_MUSIC.length();
-			cutpath = cutpath.substring(offset);
+			cutpath = cutpath.substring(offset + 1);
 		}
 
 		return (cutpath);
 	}
-
+	private void setTAA(String [] xTTA){
+		mxTTA = xTTA;
+	}
 	public String[] getTAA(int pos) {
 		String[] xTTA = new String[3];
 
@@ -176,14 +195,27 @@ public class PlayCurAdapter extends CursorAdapter implements
 
 		tcur = (Cursor) getItem(pos);
 		if (tcur != null) {
-			xTTA[0] = tcur.getString(tcur
-					.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE));
-			xTTA[1] = tcur.getString(tcur
-					.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM));
-			xTTA[2] = tcur.getString(tcur
-					.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST));
+			xTTA[0] = tcur.getString(mTitle);
+			xTTA[1] = tcur.getString(mAlbum);
+			xTTA[2] = tcur.getString(mArtist);
 		}
 		return xTTA;
+	}
+
+	public String getTrackDir(int pos) {
+		Cursor tcur;
+		String cutpath;
+
+		tcur = (Cursor) getItem(pos);
+		cutpath = tcur.getString(tcur
+				.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
+
+		int offset = cutpath.lastIndexOf("/");
+		if (offset >= 0) {
+			cutpath = cutpath.substring(0, offset + 1);
+		}
+
+		return (cutpath);
 	}
 
 }

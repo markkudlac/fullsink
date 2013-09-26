@@ -16,15 +16,14 @@
         android:gravity="center"
         android:orientation="horizontal"
         android:paddingBottom="12dip"
-        android:paddingTop="8dip"
-        android:weightSum="0.0" >
+        android:paddingTop="8dip" >
 
         <RelativeLayout
             android:id="@+id/viewServer"
             android:layout_width="0dip"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="2dip"
-            android:layout_marginRight="10dip"
+            android:layout_marginLeft="1dip"
+            android:layout_marginRight="1dip"
             android:layout_weight="1" >
 
             <Button
@@ -75,37 +74,38 @@
         <Button
             android:id="@+id/btnSongs"
             style="?android:attr/buttonBarButtonStyle"
-            android:layout_width="0dip"
-            android:layout_height="37dp"
-            android:layout_marginLeft="5dip"
-            android:layout_marginRight="5dip"
-            android:layout_weight="2"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginLeft="1dip"
+            android:layout_marginRight="1dip"
             android:onClick="click"
             android:text="@string/menuSongs"
-            android:textColor="#111" />
+            android:textColor="#111" 
+            android:layout_weight="0.3" />
 
         <Button
             android:id="@+id/btnAlbums"
             style="?android:attr/buttonBarButtonStyle"
             android:layout_width="wrap_content"
-            android:layout_height="37dp"
-            android:layout_marginLeft="5dip"
-            android:layout_marginRight="5dip"
+            android:layout_height="36dp"
+            android:layout_marginLeft="1dip"
+            android:layout_marginRight="1dip"
             android:onClick="click"
             android:text="@string/menuAlbums"
-            android:textColor="#111" />
+            android:textColor="#111"
+            android:layout_weight="0.3"  />
 
         <Button
             android:id="@+id/btnArtists"
             style="?android:attr/buttonBarButtonStyle"
-            android:layout_width="0dip"
-            android:layout_height="37dp"
-            android:layout_marginLeft="5dip"
-            android:layout_marginRight="5dip"
-            android:layout_weight="2"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginLeft="1dip"
+            android:layout_marginRight="1dip"
             android:onClick="click"
             android:text="@string/menuArtists"
-            android:textColor="#111" />
+            android:textColor="#111"            
+            android:layout_weight="0.3" />
 
         <!--
    		<Button android:id="@+id/btnLocal" style="?android:attr/buttonBarButtonStyle"
@@ -119,8 +119,8 @@
             android:id="@+id/viewReceiver"
             android:layout_width="0dip"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="5dip"
-            android:layout_marginRight="6dip"
+            android:layout_marginLeft="2dip"
+            android:layout_marginRight="2dip"
             android:layout_weight="1" >
 
             <Button
@@ -182,8 +182,7 @@
             android:gravity="center"
             android:orientation="horizontal"
             android:paddingBottom="12dip"
-            android:paddingTop="8dip"
-            android:weightSum="0.0" >
+            android:paddingTop="8dip" >
 
             <RelativeLayout
                 android:id="@+id/viewMute"
@@ -221,13 +220,13 @@
                     android:id="@+id/btnPrevious"
                     style="?android:attr/buttonBarButtonStyle"
                     android:layout_width="match_parent"
-                    android:layout_height="35dip"
+                    android:layout_height="33dip"
                     android:background="@drawable/buttonblack"
                     android:onClick="click" />
 
                 <ImageView
                     android:layout_width="wrap_content"
-                    android:layout_height="35dip"
+                    android:layout_height="33dip"
                     android:layout_centerHorizontal="true"
                     android:layout_centerVertical="true"
                     android:src="@drawable/ic_media_previous" />
@@ -244,7 +243,7 @@
                     android:id="@+id/btnPlay"
                     style="?android:attr/buttonBarButtonStyle"
                     android:layout_width="match_parent"
-                    android:layout_height="35dip"
+                    android:layout_height="33dip"
                     android:background="@drawable/buttonblack"
                     android:onClick="click" />
 

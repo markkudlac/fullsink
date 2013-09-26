@@ -46,6 +46,8 @@ public interface Const extends BaseColumns {
 	public static final String CMD_ZIPREADY = "ZIPREADY";
 	public static final String CMD_PLAYING = "PLAYING:";
 	public static final String CMD_WHATPLAY = "WHATPLAY";
+	public static final String CMD_NEXT = "NEXT";
+	public static final String CMD_PREVIOUS = "PREVIOUS";
 	public static final String CMD_REMOTE = "REMOTE:";	// T,F,S=seize,IP Addres resonse to seize
 	public int MSG_CONTINUE = 1;
 	

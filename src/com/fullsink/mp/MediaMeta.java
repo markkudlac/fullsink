@@ -54,15 +54,14 @@ static  void loadMusic(MainActivity mnact, PlayAdapter playadapter ) {
 */
 	
 
-static  Cursor getMusicCursor(MainActivity mnact ) {
+static  Cursor getMusicCursor(MainActivity mnact, String sortOrder ) {
 	Uri contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
     String[] proj = { MediaStore.Audio.Media._ID, MediaStore.Audio.Media.DATA, 
     		MediaStore.Audio.Media.TITLE,
     		MediaStore.Audio.Media.ALBUM,
     		MediaStore.Audio.Media.ARTIST};
     String select = MediaStore.Audio.Media.DATA + " LIKE ? ";
-    String[] args = { "%" + FILTER_MUSIC + "%" };
-    String  sortOrder = MediaStore.Audio.Media.TITLE + " COLLATE UNICODE";
+   String[] args = { "%" + FILTER_MUSIC + "%" };
 
     CursorLoader loader = new CursorLoader(mnact, contentUri, proj, select, args, sortOrder);
     Cursor cursor = loader.loadInBackground();   
@@ -70,7 +69,7 @@ static  Cursor getMusicCursor(MainActivity mnact ) {
     return cursor;
 }
 
-static Cursor getAlbumCursor(MainActivity mnact) {
+static Cursor getAlbumCursor(MainActivity mnact, String sortorder) {
 	Uri contentUri = MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI;
     String select = MediaStore.Audio.Albums.ALBUM + " != ''";  
     String[] proj = new String[] {
@@ -79,55 +78,56 @@ static Cursor getAlbumCursor(MainActivity mnact) {
     		MediaStore.Audio.Albums.ARTIST
     };
    // String[] args = { "%" + FILTER_MUSIC + "%" };
-    CursorLoader loader = new CursorLoader(mnact, contentUri, proj, select, null, MediaStore.Audio.Albums.DEFAULT_SORT_ORDER);
+    CursorLoader loader = new CursorLoader(mnact, contentUri, proj, select, null, sortorder);
     Cursor cursor = loader.loadInBackground();
     return cursor;
 }
 
 
-static Cursor getAlbumSongsCursor(MainActivity mnact, String albumId) {
+static Cursor getAlbumSongsCursor(MainActivity mnact, String albumId, String sortOrder) {
 	Uri contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
     String select = MediaStore.Audio.Media.TITLE + " != ''" + " AND " + MediaStore.Audio.Media.ALBUM_ID + "=" + albumId;
     String[] proj = new String[] {
             MediaStore.Audio.Media._ID, 
             MediaStore.Audio.Media.ALBUM,
     		MediaStore.Audio.Media.ARTIST,
+    		MediaStore.Audio.Media.DATA,
     		MediaStore.Audio.Media.TITLE_KEY,
     		MediaStore.Audio.Media.TITLE
     };
    // String[] args = { "%" + FILTER_MUSIC + "%" };
-    String  sortOrder = MediaStore.Audio.Media.TITLE + " COLLATE UNICODE";
     CursorLoader loader = new CursorLoader(mnact, contentUri, proj, select, null, sortOrder);
     Cursor cursor = loader.loadInBackground();
     return cursor;
 }
 
-static Cursor getArtistCursor(MainActivity mnact) {
-	Uri contentUri = MediaStore.Audio.Artists.EXTERNAL_CONTENT_URI;
-    String select = MediaStore.Audio.Artists.ARTIST + " != ''";
-    String[] proj = new String[] {
-	        MediaStore.Audio.Artists._ID,
-	        MediaStore.Audio.Artists.ARTIST,
-	        MediaStore.Audio.Artists.NUMBER_OF_ALBUMS
-	};
-    //String sortOrder = MediaStore.Audio.Artists.DEFAULT_SORT_ORDER;
-    CursorLoader loader = new CursorLoader(mnact, contentUri, proj, select, null, null);
-    Cursor cursor = loader.loadInBackground();
+static Cursor getArtistCursor(MainActivity mnact, String sortOrder) {
+	Uri contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+    String[] proj = { MediaStore.Audio.Media._ID, MediaStore.Audio.Media.DATA, 
+    		MediaStore.Audio.Media.ARTIST_ID,
+    		MediaStore.Audio.Media.TITLE,
+    		MediaStore.Audio.Media.ALBUM,
+    		MediaStore.Audio.Media.ARTIST};
+    String select = MediaStore.Audio.Media.DATA + " LIKE ? " + ") GROUP BY (" + "artist";
+    String[] args = { "%" + FILTER_MUSIC + "%" };
+
+    CursorLoader loader = new CursorLoader(mnact, contentUri, proj, select, args, sortOrder);
+    Cursor cursor = loader.loadInBackground();   
+   // System.out.println("Out with media cursor");
     return cursor;
 }
 
-static Cursor getArtistSongsCursor(MainActivity mnact, String artistId) {
+static Cursor getArtistSongsCursor(MainActivity mnact, String artistId, String sortOrder) {
 	Uri contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
     String select = MediaStore.Audio.Media.TITLE + " != ''" + " AND " + MediaStore.Audio.Media.ARTIST_ID + "=" + artistId;
     String[] proj = new String[] {
-            MediaStore.Audio.Media._ID, 
-            MediaStore.Audio.Media.ALBUM,
-    		MediaStore.Audio.Media.ARTIST,
-    		MediaStore.Audio.Media.TITLE_KEY,
-    		MediaStore.Audio.Media.TITLE
+    		MediaStore.Audio.Media._ID, 
+    		MediaStore.Audio.Media.DATA, 
+    		MediaStore.Audio.Media.TITLE,
+    		MediaStore.Audio.Media.ALBUM,
+    		MediaStore.Audio.Media.ARTIST
     };
-   // String[] args = { "%" + FILTER_MUSIC + "%" };
-    String  sortOrder = MediaStore.Audio.Media.TITLE + " COLLATE UNICODE";
+    //String[] args = { "%" + FILTER_MUSIC + "%" };
     CursorLoader loader = new CursorLoader(mnact, contentUri, proj, select, null, sortOrder);
     Cursor cursor = loader.loadInBackground();
     return cursor;

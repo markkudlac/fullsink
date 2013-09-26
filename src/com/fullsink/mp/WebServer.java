@@ -72,10 +72,10 @@ public class WebServer extends WebSocketServer {
             	conn.send(CMD_PREP + mnact.getCurrentTrackName());
             } else if (message.startsWith(CMD_READY)) {	
             	
-            		if (mnact.track.isPlaying()) {
-            			conn.send(CMD_PLAY + (mnact.track.getCurrentPosition()));
+            		if (mnact.getMusicManager().getTrack().isPlaying()) {
+            			conn.send(CMD_PLAY + (mnact.getMusicManager().getTrack().getCurrentPosition()));
             		} else {
-            			conn.send(CMD_SEEK + mnact.track.getCurrentPosition());
+            			conn.send(CMD_SEEK + mnact.getMusicManager().getTrack().getCurrentPosition());
             		}
             		sendTrackData(conn);
             } else if (message.startsWith(CMD_WHATPLAY)) {
@@ -352,7 +352,7 @@ port: "12345",     //websocket port
         			
     		if (pos != ListView.INVALID_POSITION ) {
     			
-    			String[] xx = mnact.playcuradapter.getTAA(pos);
+    			String[] xx = mnact.getPlayCurAdapter().getTAA(pos);
     			
     			rtn = "";
     			for (int i=0; i < xx.length; i++){

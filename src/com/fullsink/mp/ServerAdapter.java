@@ -150,7 +150,7 @@ public String[] getSongData(int pos) {
 	   	System.out.println("Got item click: "+ xdata.ipAddr + "pos : "+position);
     	clearSongData();
     	
-	   	mnact.clearCurrentTrack();
+	   	mnact.getMusicManager().clearCurrentTrack();
 	   	mnact.startSockClient(xdata.webSockPort, xdata.ipAddr, xdata.httpdPort) ;
 	   }
     
@@ -161,7 +161,7 @@ public String[] getSongData(int pos) {
     	
 //	   	System.out.println("Got Selected: "+ xdata.ipAddr + "pos : "+pos);
     	
-	   	mnact.clearCurrentTrack();
+	   	mnact.getMusicManager().clearCurrentTrack();
 	   	mnact.startSockClient(xdata.webSockPort, xdata.ipAddr, xdata.httpdPort) ;
     	
     }

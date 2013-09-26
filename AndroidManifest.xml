@@ -57,5 +57,11 @@
             android:parentActivityName="com.fullsink.mp.MainActivity" >
        </activity>
        
+           <activity
+            android:name="com.fullsink.mp.HelpActivity"
+            android:label="@string/action_help"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:parentActivityName="com.fullsink.mp.MainActivity" >
+       </activity>
     </application>
 </manifest>

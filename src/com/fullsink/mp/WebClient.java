@@ -23,6 +23,7 @@ public class WebClient extends WebSocketClient {
 	private int httpdport;
 	private DownloadFile fileTask;
  	private boolean downloadEnabled;
+ 	private MusicManager mMusicManager;
 	
 	public WebClient( int websocketport, String ipAddress, int httpdport, MainActivity mnact ) throws URISyntaxException {
 	
@@ -31,6 +32,7 @@ public class WebClient extends WebSocketClient {
         	);
         
         this.mnact = mnact;
+        mMusicManager = mnact.getMusicManager();
         this.ipAddress = ipAddress;
         this.httpdport = httpdport;
         copyTrack = null;
@@ -49,15 +51,15 @@ public class WebClient extends WebSocketClient {
 		} else if (message.startsWith(CMD_PREP)) {	
 			streamTrack(WebServer.getArg(message));
 		} else if (message.startsWith(CMD_PLAY)) {	
-			mnact.playStream(Integer.parseInt(WebServer.getArg(message)));
+			mMusicManager.playStream(Integer.parseInt(WebServer.getArg(message)));
 		} else if (message.startsWith(CMD_RESUME)) {	
-			mnact.playStream(Integer.parseInt(WebServer.getArg(message)));
+			mMusicManager.playStream(Integer.parseInt(WebServer.getArg(message)));
 		} else if (message.startsWith(CMD_PAUSE)) {	
 			mnact.setServerIndicator(MODE_PLAY);
 			mnact.getTrack().pause();
 		} else if (message.startsWith(CMD_STOP)) {	
 			mnact.getTrack().dispose();
-			mnact.setStreamTrack(null);
+			mMusicManager.setStreamTrack(null);
 		} else if (message.startsWith(CMD_PLAYING)) {
 			setSongData(WebServer.getArg(message));
 		} else if (message.startsWith(CMD_FILE)){
@@ -175,7 +177,7 @@ public class WebClient extends WebSocketClient {
     	String url = "http://" + ipAddress + ":" +
 				httpdport + "/"+Uri.encode(strmfile);
     	System.out.println( "Stream URL : " +url);
-    	mnact.setStreamTrack(new Music(url, mnact));
+    	mMusicManager.setStreamTrack(new Music(url, mnact));
 
     }
 
