@@ -160,15 +160,6 @@ public class MainActivity extends Activity implements Runnable,
 				"Fullsink");
 		setContentView(R.layout.activity_main);
 
-		gestureDetector = new GestureDetector(this,
-				new FS_GestureDetector(this));
-		gestureListener = new View.OnTouchListener() {
-			@Override
-			public boolean onTouch(View v, MotionEvent event) {
-				return gestureDetector.onTouchEvent(event);
-			}
-		};
-
 		initialize();
 	}
 
@@ -363,6 +354,14 @@ public class MainActivity extends Activity implements Runnable,
 		WebSocketImpl.DEBUG = false;
 		mIntentReceiver = new NotificationReceiver(mnact);
 		mTabsManager = new TabsManager(this);
+		gestureDetector = new GestureDetector(this,
+				new FS_GestureDetector(this));
+		gestureListener = new View.OnTouchListener() {
+			@Override
+			public boolean onTouch(View v, MotionEvent event) {
+				return gestureDetector.onTouchEvent(event);
+			}
+		};
 		IntentFilter commandFilter = new IntentFilter();
 		
 		commandFilter.addAction(PLAY);
@@ -1464,7 +1463,7 @@ public class MainActivity extends Activity implements Runnable,
 				.setTitle("Delete")
 				.setMessage(
 						getResources().getString(
-								R.string.delete_confirm_button_text))
+								R.string.delete_confirm_button_text) + " " + this.getCurrentTrackName() + "?")
 				// .setIcon(R.drawable.delete)
 
 				.setPositiveButton("Delete",
@@ -1478,7 +1477,7 @@ public class MainActivity extends Activity implements Runnable,
 								if(curTrack.equals(deletetitle)){
 									playPause();
 									progressbar.setProgress(0);
-									//nextTrack();
+									nextTrack();
 								}
 								MusicUtils.deleteTracks(MainActivity.this,
 										deleteList);
@@ -1577,6 +1576,7 @@ public class MainActivity extends Activity implements Runnable,
 			deleteList = new long[1];
 			deleteList[0] = (int) songId;
 			AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			builder.setTitle(this.getCurrentTrackName());
 			String items[] = {"Delete"};
 			builder.setItems(items, new DialogInterface.OnClickListener() {
 				public void onClick(DialogInterface dialog, int item) {

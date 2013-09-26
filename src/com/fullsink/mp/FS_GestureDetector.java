@@ -1,6 +1,7 @@
 package com.fullsink.mp;
 
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -39,7 +40,7 @@ class FS_GestureDetector extends SimpleOnGestureListener {
             
             // right to left swipe
             if(e1.getX() - e2.getX() > swipeMinDistance && Math.abs(velocityX) > swipeThresholdVelocity) {
-            	Toast.makeText(mnact, "Left Swipe", Toast.LENGTH_SHORT).show(); 
+            	Log.d("FS_GestureDetector", "Left Swipe"); 
             	switch(mTabsManager.getActiveTab()){
             	case ARTISTS:
             		mTabsManager.setActiveMenu(R.id.btnSongs);
@@ -68,7 +69,7 @@ class FS_GestureDetector extends SimpleOnGestureListener {
             	}
 
             }  else if (e2.getX() - e1.getX() > swipeMinDistance && Math.abs(velocityX) > swipeThresholdVelocity) {
-            	Toast.makeText(mnact, "Right Swipe", Toast.LENGTH_SHORT).show();
+            	Log.d("FS_GestureDetector", "Right Swipe");
             	switch(mTabsManager.getActiveTab()){
             	case ARTISTS:
             		mTabsManager.setActiveMenu(R.id.btnAlbums);
