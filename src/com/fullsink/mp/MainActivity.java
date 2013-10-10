@@ -1,66 +1,68 @@
 package com.fullsink.mp;
 
+import static com.fullsink.mp.Const.CMD_PAUSE;
+import static com.fullsink.mp.Const.CMD_REMOTE;
+import static com.fullsink.mp.Const.CMD_RESUME;
+import static com.fullsink.mp.Const.DOWNLOADERR;
+import static com.fullsink.mp.Const.INSTALL_AUTO;
+import static com.fullsink.mp.Const.MODE_LOOP;
+import static com.fullsink.mp.Const.MODE_NORMAL;
+import static com.fullsink.mp.Const.MODE_PAUSE;
+import static com.fullsink.mp.Const.MODE_PLAY;
+import static com.fullsink.mp.Const.MODE_SHUFFLE;
+import static com.fullsink.mp.Const.MODE_STOP;
+import static com.fullsink.mp.Const.MUSIC_DIR;
+import static com.fullsink.mp.Const.SERVER_OFFLINE;
+
 import java.io.File;
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import org.java_websocket.WebSocketImpl;
-import static com.fullsink.mp.Const.*;
-import fi.iki.elonen.SimpleWebServer;
 
-import android.annotation.TargetApi;
 import android.annotation.SuppressLint;
 
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Notification;
-import android.support.v4.app.NotificationCompat;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.ProgressDialog;
-import android.appwidget.AppWidgetManager;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Configuration;
-import android.database.Cursor;
 import android.gesture.GestureOverlayView;
 import android.gesture.GestureOverlayView.OnGestureListener;
 import android.graphics.Bitmap;
-import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.media.AudioManager;
-
-import android.os.Build;
 import android.net.Uri;
 
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.PowerManager;
-import android.os.RemoteException;
 import android.os.PowerManager.WakeLock;
 import android.provider.MediaStore;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
+import android.view.ContextMenu;
+import android.view.ContextMenu.ContextMenuInfo;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
-import android.view.ContextMenu.ContextMenuInfo;
-import android.view.MenuInflater;
-import android.view.MotionEvent;
-import android.view.View.OnClickListener;
-import android.view.ViewGroup.LayoutParams;
-import android.view.ContextMenu;
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.View.OnTouchListener;
 import android.view.ViewGroup;
-import android.widget.AbsListView;
+import android.view.ViewGroup.LayoutParams;
 import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
 import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -72,10 +74,9 @@ import android.widget.PopupMenu.OnMenuItemClickListener;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
-import android.widget.TextView;
-import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.Toast;
+import fi.iki.elonen.SimpleWebServer;
 
 public class MainActivity extends Activity implements Runnable,
 		OnGestureListener, OnItemLongClickListener {
@@ -104,8 +105,9 @@ public class MainActivity extends Activity implements Runnable,
 	private boolean artistSelected;
 	public final static int DELETE_ITEM = 0;
 	private long[] deleteList;
-	private MainActivity mnact;
+	private static MainActivity mnact;
 	private GestureDetector gestureDetector;
+	private GestureDetector gestureDetector2;
 	private View.OnTouchListener gestureListener;
 
 	private NotificationReceiver mIntentReceiver;
@@ -122,6 +124,7 @@ public class MainActivity extends Activity implements Runnable,
 	private MusicManager mMusicManager;
 	private boolean mSongsSubmenu;
 	public String deletetitle;
+	private OnTouchListener gestureListener2;
 
 	@SuppressLint("NewApi")
 	@Override
@@ -175,7 +178,7 @@ public class MainActivity extends Activity implements Runnable,
 		registerReceiver(mIntentReceiver, commandFilter);
 		if (isSockServerOn())
 			WServ.sendTrackData(null); // Will update changes in settings
-			// mNsdHelper.discoverServices(); Keep out was problems
+		// mNsdHelper.discoverServices(); Keep out was problems
 		if (android.os.Build.VERSION.SDK_INT >= 11) {
 			ImageView photoActionBarView = (ImageView) findViewById(R.id.photoActionBar);
 			Bitmap bitmap = PhotoActivity.getPhotoBitmap(this);
@@ -232,25 +235,25 @@ public class MainActivity extends Activity implements Runnable,
 		// Checks the orientation of the screen
 		if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
 			LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-				    LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
-				params.weight = 1.0f;
-				Button tbtn = (Button) findViewById(R.id.btnSongs);
-				tbtn.setLayoutParams(params);
-				tbtn = (Button) findViewById(R.id.btnAlbums);
-				tbtn.setLayoutParams(params);
-				tbtn = (Button) findViewById(R.id.btnArtists);
-				tbtn.setLayoutParams(params);
+					LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
+			params.weight = 1.0f;
+			Button tbtn = (Button) findViewById(R.id.btnSongs);
+			tbtn.setLayoutParams(params);
+			tbtn = (Button) findViewById(R.id.btnAlbums);
+			tbtn.setLayoutParams(params);
+			tbtn = (Button) findViewById(R.id.btnArtists);
+			tbtn.setLayoutParams(params);
 			System.out.println("Got configuration change : Landscape");
 		} else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
 			LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-				    LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
-				params.weight = 0.3f;
-				Button tbtn = (Button) findViewById(R.id.btnSongs);
-				tbtn.setLayoutParams(params);
-				tbtn = (Button) findViewById(R.id.btnAlbums);
-				tbtn.setLayoutParams(params);
-				tbtn = (Button) findViewById(R.id.btnArtists);
-				tbtn.setLayoutParams(params);
+					LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
+			params.weight = 0.3f;
+			Button tbtn = (Button) findViewById(R.id.btnSongs);
+			tbtn.setLayoutParams(params);
+			tbtn = (Button) findViewById(R.id.btnAlbums);
+			tbtn.setLayoutParams(params);
+			tbtn = (Button) findViewById(R.id.btnArtists);
+			tbtn.setLayoutParams(params);
 			System.out.println("Got configuration change : Portrait");
 		}
 	}
@@ -291,7 +294,7 @@ public class MainActivity extends Activity implements Runnable,
 		Intent intent = new Intent(this, PhotoActivity.class);
 		startActivity(intent);
 	}
-	
+
 	public void toHelp(MenuItem item) {
 		Intent intent = new Intent(this, HelpActivity.class);
 		startActivity(intent);
@@ -363,7 +366,7 @@ public class MainActivity extends Activity implements Runnable,
 			}
 		};
 		IntentFilter commandFilter = new IntentFilter();
-		
+
 		commandFilter.addAction(PLAY);
 		commandFilter.addAction(NEXT);
 		commandFilter.addAction(PREVIOUS);
@@ -371,7 +374,7 @@ public class MainActivity extends Activity implements Runnable,
 
 
 		playlist = (ListView) findViewById(R.id.playlist);
-		//playlist.setOnCreateContextMenuListener(this);
+		// playlist.setOnCreateContextMenuListener(this);
 		playlist.setOnItemLongClickListener(this);
 		playlist.setOnTouchListener(gestureListener);
 		serverlist = (ListView) View.inflate(this, R.layout.server_adapter,
@@ -381,7 +384,7 @@ public class MainActivity extends Activity implements Runnable,
 		serveradapter = new ServerAdapter(this);
 		serverlist.setOnItemClickListener(serveradapter);
 		serverlist.setAdapter(serveradapter);
-
+		serverlist.setOnTouchListener(gestureListener);
 		mMusicManager = new MusicManager(this);
 		loadPlayAdapter();
 
@@ -432,33 +435,33 @@ public class MainActivity extends Activity implements Runnable,
 		// System.out.println("Out Initialize");
 		if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
 			LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-				    LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
-				params.weight = 1.0f;
-				Button tbtn = (Button) findViewById(R.id.btnSongs);
-				tbtn.setLayoutParams(params);
-				tbtn = (Button) findViewById(R.id.btnAlbums);
-				tbtn.setLayoutParams(params);
-				tbtn = (Button) findViewById(R.id.btnArtists);
-				tbtn.setLayoutParams(params);
+					LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
+			params.weight = 1.0f;
+			Button tbtn = (Button) findViewById(R.id.btnSongs);
+			tbtn.setLayoutParams(params);
+			tbtn = (Button) findViewById(R.id.btnAlbums);
+			tbtn.setLayoutParams(params);
+			tbtn = (Button) findViewById(R.id.btnArtists);
+			tbtn.setLayoutParams(params);
 			System.out.println("Got configuration change : Landscape");
 		} else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
 			LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-				    LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
-				params.weight = 0.3f;
-				Button tbtn = (Button) findViewById(R.id.btnSongs);
-				tbtn.setLayoutParams(params);
-				tbtn = (Button) findViewById(R.id.btnAlbums);
-				tbtn.setLayoutParams(params);
-				tbtn = (Button) findViewById(R.id.btnArtists);
-				tbtn.setLayoutParams(params);
+					LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
+			params.weight = 0.3f;
+			Button tbtn = (Button) findViewById(R.id.btnSongs);
+			tbtn.setLayoutParams(params);
+			tbtn = (Button) findViewById(R.id.btnAlbums);
+			tbtn.setLayoutParams(params);
+			tbtn = (Button) findViewById(R.id.btnArtists);
+			tbtn.setLayoutParams(params);
 			System.out.println("Got configuration change : Portrait");
 		}
 	}
 
 	public void loadPlayAdapter() {
 
-		mPlaycuradapter = new PlayCurAdapter(this,
-				MediaMeta.getMusicCursor(this, MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
+		mPlaycuradapter = new PlayCurAdapter(this, MediaMeta.getMusicCursor(
+				this, MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
 		playlist.setOnItemClickListener(mPlaycuradapter);
 		playlist.setAdapter(mPlaycuradapter);
 
@@ -550,13 +553,11 @@ public class MainActivity extends Activity implements Runnable,
 		int pos = playlist.getCheckedItemPosition();
 		if (pos != ListView.INVALID_POSITION) {
 			dir = mPlaycuradapter.getTrackDir(pos); // Path to song in music
-														// dir
+													// dir
 		}
 
 		return new File(dir);
 	}
-
-	
 
 	public String getCurrentTrackName() {
 		int pos;
@@ -582,7 +583,7 @@ public class MainActivity extends Activity implements Runnable,
 		mMusicManager.playTrack(false);
 
 	}
-	
+
 	public void prepClientScreen() {
 		progressbar.setProgress(0);
 		setDownload(false);
@@ -592,34 +593,38 @@ public class MainActivity extends Activity implements Runnable,
 	public void turnServerOn(final MainActivity mnact) {
 
 		final String ipadd = NetStrat.getWifiApIpAddress();
-		final int httpdPort = NetStrat.getHttpdPort(mnact);
-		final int webSockPort = NetStrat.getSocketPort(mnact);
+		if (ipadd != null) {
+			final int httpdPort = NetStrat.getHttpdPort(mnact);
+			final int webSockPort = NetStrat.getSocketPort(mnact);
 
-		NetStrat.logServer(mnact, ipadd, Prefs.getName(mnact), webSockPort,
-				httpdPort);
+			NetStrat.logServer(mnact, ipadd, Prefs.getName(mnact), webSockPort,
+					httpdPort);
 
-		new Thread(new Runnable() {
-			public void run() {
-				try {
+			new Thread(new Runnable() {
+				public void run() {
+					try {
 
-					startHttpdServer(httpdPort, ipadd);
+						startHttpdServer(httpdPort, ipadd);
 
-					System.out.println("WebSock Port : " + webSockPort
-							+ "  IPADD : " + ipadd);
-					startSockServer(webSockPort, ipadd);
+						System.out.println("WebSock Port : " + webSockPort
+								+ "  IPADD : " + ipadd);
+						startSockServer(webSockPort, ipadd);
 
-				} catch (Exception ex) {
-					System.out.println("Select thread exception : " + ex);
-				}
-
-				runOnUiThread(new Runnable() {
-					public void run() {
-						((ImageView) findViewById(R.id.imgServer))
-								.setImageResource(R.drawable.ic_media_route_on_holo_blue);
+					} catch (Exception ex) {
+						System.out.println("Select thread exception : " + ex);
 					}
-				});
-			}
-		}).start();
+
+					runOnUiThread(new Runnable() {
+						public void run() {
+							((ImageView) findViewById(R.id.imgServer))
+									.setImageResource(R.drawable.ic_media_route_on_holo_blue);
+						}
+					});
+				}
+			}).start();
+		} else {
+			FS_Util.showConnectionWarning(mnact);
+		}
 	}
 
 	public void turnServerOff(final MainActivity mnact) {
@@ -632,44 +637,51 @@ public class MainActivity extends Activity implements Runnable,
 	}
 
 	public void callLocal() {
+		serverIndicator = false;
 		RelativeLayout viewMute;
 		LinearLayout parentbuts;
+		String wifiIPaddress = NetStrat.getWifiApIpAddress();
+		if (wifiIPaddress != null) {
+			// Move the mute button
+			mDiscoverHttpd = new DiscoverHttpd(this, serveradapter,
+					wifiIPaddress, NetStrat.getHttpdPort(this));
+			// mDiscoverHttpd.constantPoll(20); // Increase poll frequency when
+			// in
+			// client
 
-		// Move the mute button
-		mDiscoverHttpd = new DiscoverHttpd(this, serveradapter,
-				NetStrat.getWifiApIpAddress(), NetStrat.getHttpdPort(this));
-		// mDiscoverHttpd.constantPoll(20); // Increase poll frequency when in
-		// client
+			viewMute = (RelativeLayout) findViewById(R.id.viewMute);
+			parentbuts = (LinearLayout) findViewById(R.id.mediabuts);
+			parentbuts.removeView(viewMute);
+			parentbuts = (LinearLayout) findViewById(R.id.clientbuts);
+			LinearLayout.LayoutParams layoutp = new LinearLayout.LayoutParams(
+					0, LayoutParams.WRAP_CONTENT, 3.0f);
+			layoutp.setMargins(FS_Util.scaleDipPx(this, 8), 0,
+					FS_Util.scaleDipPx(this, 8), 0);
+			viewMute.setLayoutParams(layoutp);
+			parentbuts.addView(viewMute, 0);
 
-		viewMute = (RelativeLayout) findViewById(R.id.viewMute);
-		parentbuts = (LinearLayout) findViewById(R.id.mediabuts);
-		parentbuts.removeView(viewMute);
-		parentbuts = (LinearLayout) findViewById(R.id.clientbuts);
-		LinearLayout.LayoutParams layoutp = new LinearLayout.LayoutParams(0,
-				LayoutParams.WRAP_CONTENT, 3.0f);
-		layoutp.setMargins(FS_Util.scaleDipPx(this, 8), 0,
-				FS_Util.scaleDipPx(this, 8), 0);
-		viewMute.setLayoutParams(layoutp);
-		parentbuts.addView(viewMute, 0);
+			mTabsManager.clearActiveMenu();
+			((ImageView) findViewById(R.id.imgReceiver))
+					.setImageResource(R.drawable.fs_receive_blue);
+			((Button) findViewById(R.id.btnReceiver)).setClickable(false);
+			Button serverButton = ((Button) findViewById(R.id.btnServer));
+			serverButton.setClickable(false);
+			serverButton.setBackgroundResource(R.drawable.buttongrey);
+			((ImageView) findViewById(R.id.imgServer))
+					.setImageResource(R.drawable.ic_media_route_off_holo_dark);
 
-		mTabsManager.clearActiveMenu();
-		((ImageView) findViewById(R.id.imgReceiver))
-				.setImageResource(R.drawable.fs_receive_blue);
-		((Button) findViewById(R.id.btnReceiver)).setClickable(false);
-		Button serverButton = ((Button) findViewById(R.id.btnServer));
-		serverButton.setClickable(false);
-		serverButton.setBackgroundResource(R.drawable.buttongrey);
-		((ImageView) findViewById(R.id.imgServer))
-				.setImageResource(R.drawable.ic_media_route_off_holo_dark);
+			prepClientScreen();
+			findViewById(R.id.seekbar).setVisibility(View.GONE);
 
-		prepClientScreen();
-		findViewById(R.id.seekbar).setVisibility(View.GONE);
+			findViewById(R.id.progressbar).setVisibility(View.VISIBLE);
+			findViewById(R.id.mediabuts).setVisibility(View.GONE);
+			findViewById(R.id.clientbuts).setVisibility(View.VISIBLE);
+			findViewById(R.id.playlist).setVisibility(View.GONE);
+			findViewById(R.id.serverlist).setVisibility(View.VISIBLE);
 
-		findViewById(R.id.progressbar).setVisibility(View.VISIBLE);
-		findViewById(R.id.mediabuts).setVisibility(View.GONE);
-		findViewById(R.id.clientbuts).setVisibility(View.VISIBLE);
-		findViewById(R.id.playlist).setVisibility(View.GONE);
-		findViewById(R.id.serverlist).setVisibility(View.VISIBLE);
+		} else {
+			FS_Util.showConnectionWarning(mnact);
+		}
 	}
 
 	/***************************************** LOOK HERE *******************************/
@@ -736,14 +748,14 @@ public class MainActivity extends Activity implements Runnable,
 
 			if (DownloadFile.fileWasDownloaded()) { // If a song was dowloaded,
 													// reload playlist
-			// System.out.println("File was dowloaded, reload adapter");
+				// System.out.println("File was dowloaded, reload adapter");
 				DownloadFile.clearWasDownloaded();
 				loadPlayAdapter();
 				((ImageView) findViewById(R.id.imgPlayPause))
 						.setImageResource(R.drawable.ic_media_play);
 				seekbar.setProgress(0);
 			} else if (inClient()) { // a stream was started so restart track
-			// System.out.println("Coming from receiver, track cued");
+				// System.out.println("Coming from receiver, track cued");
 				mMusicManager.setIsTuning(false);
 				((ImageView) findViewById(R.id.imgPlayPause))
 						.setImageResource(R.drawable.ic_media_play);
@@ -773,8 +785,9 @@ public class MainActivity extends Activity implements Runnable,
 
 					}
 				});
-				mPlaycuradapter = new PlayCurAdapter(this,
-							MediaMeta.getMusicCursor(this, this.getSongsSortOrder()));
+				mPlaycuradapter = new PlayCurAdapter(
+						this,
+						MediaMeta.getMusicCursor(this, this.getSongsSortOrder()));
 				playlist.setAdapter(mPlaycuradapter);
 				playlist.setOnItemClickListener(mPlaycuradapter);
 				playlist.setItemChecked(0, true);
@@ -818,7 +831,7 @@ public class MainActivity extends Activity implements Runnable,
 			return;
 
 		case R.id.btnReceiver: {
-			serverIndicator = false;
+			mTabsManager.setActiveMenu(R.id.btnReceiver);
 			callLocal();
 		}
 			return;
@@ -986,13 +999,14 @@ public class MainActivity extends Activity implements Runnable,
 		if (order.equals(getString(R.string.order_alphabetical))) {
 			switch (mTabsManager.ACTIVE_TAB) {
 			case R.id.btnSongs: {
-				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact, MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
+				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact,
+						MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
 				setSongsSortOrder(MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
 				return;
 			}
 			case R.id.btnAlbums: {
-				albumAdapter.changeCursor(MediaMeta.getAlbumCursor(
-						this, MediaStore.Audio.Albums.DEFAULT_SORT_ORDER));
+				albumAdapter.changeCursor(MediaMeta.getAlbumCursor(this,
+						MediaStore.Audio.Albums.DEFAULT_SORT_ORDER));
 				return;
 			}
 			case R.id.btnArtists: {
@@ -1001,33 +1015,39 @@ public class MainActivity extends Activity implements Runnable,
 		} else if (order.equals(getString(R.string.order_newest))) {
 			switch (mTabsManager.ACTIVE_TAB) {
 			case R.id.btnSongs: {
-				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact, MediaStore.Audio.Media.DATE_MODIFIED));
+				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact,
+						MediaStore.Audio.Media.DATE_MODIFIED));
 				setSongsSortOrder(MediaStore.Audio.Media.DATE_MODIFIED);
 				return;
 			}
 			case R.id.btnAlbums: {
-				albumAdapter.changeCursor(MediaMeta.getAlbumCursor(
-						this, MediaStore.Audio.Albums.FIRST_YEAR  + " ASC"));
+				albumAdapter.changeCursor(MediaMeta.getAlbumCursor(this,
+						MediaStore.Audio.Albums.FIRST_YEAR + " ASC"));
 				return;
 			}
 			case R.id.btnArtists: {
-				artistAdapter.changeCursor(MediaMeta.getArtistCursor(this,  MediaStore.Audio.Media.DATE_MODIFIED));
+				artistAdapter.changeCursor(MediaMeta.getArtistCursor(this,
+						MediaStore.Audio.Media.DATE_MODIFIED));
 				return;
 			}
 			}
 		} else if (order.equals(getString(R.string.order_oldest))) {
 			switch (mTabsManager.ACTIVE_TAB) {
 			case R.id.btnSongs: {
-				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact, MediaStore.Audio.Media.DATE_MODIFIED  + " DESC"));
-				setSongsSortOrder(MediaStore.Audio.Media.DATE_MODIFIED  + " DESC");
+				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact,
+						MediaStore.Audio.Media.DATE_MODIFIED + " DESC"));
+				setSongsSortOrder(MediaStore.Audio.Media.DATE_MODIFIED
+						+ " DESC");
 				return;
 			}
 			case R.id.btnAlbums: {
-				albumAdapter.changeCursor(MediaMeta.getAlbumCursor(this, MediaStore.Audio.Albums.FIRST_YEAR  + " DESC"));
+				albumAdapter.changeCursor(MediaMeta.getAlbumCursor(this,
+						MediaStore.Audio.Albums.FIRST_YEAR + " DESC"));
 				return;
 			}
 			case R.id.btnArtists: {
-				artistAdapter.changeCursor(MediaMeta.getArtistCursor(this,  MediaStore.Audio.Media.DATE_MODIFIED  + " DESC"));
+				artistAdapter.changeCursor(MediaMeta.getArtistCursor(this,
+						MediaStore.Audio.Media.DATE_MODIFIED + " DESC"));
 				return;
 			}
 			}
@@ -1035,6 +1055,10 @@ public class MainActivity extends Activity implements Runnable,
 		}
 	}
 
+	public static MainActivity getMainObject(){
+		return mnact;
+	}
+	
 	public void previousTrack() {
 		mMusicManager.loadTrack(setTrack(-1));
 		mMusicManager.playTrack(false);
@@ -1191,7 +1215,6 @@ public class MainActivity extends Activity implements Runnable,
 	// mAppWidgetProvider.notifyChange(this, what);
 	// }
 
-	
 	public void setSongsSubmenu(boolean active) {
 		Button tbtn = (Button) findViewById(R.id.btnSongs);
 		mSongsSubmenu = active;
@@ -1451,11 +1474,10 @@ public class MainActivity extends Activity implements Runnable,
 	@Override
 	public void onCreateContextMenu(ContextMenu menu, View view,
 			ContextMenuInfo menuInfoIn) {
-		if (mTabsManager.getActiveTab() == (R.id.btnSongs) || mSongsSubmenu){
+		if (mTabsManager.getActiveTab() == (R.id.btnSongs) || mSongsSubmenu) {
 			menu.add(0, DELETE_ITEM, 0, R.string.delete);
-		} 
+		}
 	}
-	
 
 	private AlertDialog Delete() {
 		AlertDialog myQuittingDialogBox = new AlertDialog.Builder(this)
@@ -1463,7 +1485,8 @@ public class MainActivity extends Activity implements Runnable,
 				.setTitle("Delete")
 				.setMessage(
 						getResources().getString(
-								R.string.delete_confirm_button_text) + " " + this.getCurrentTrackName() + "?")
+								R.string.delete_confirm_button_text)
+								+ " " + this.getCurrentTrackName() + "?")
 				// .setIcon(R.drawable.delete)
 
 				.setPositiveButton("Delete",
@@ -1472,9 +1495,10 @@ public class MainActivity extends Activity implements Runnable,
 							public void onClick(DialogInterface dialog,
 									int whichButton) {
 								Music music = mMusicManager.getTrack();
-								String curTrack = mPlaycuradapter.getCurrentTrack();
+								String curTrack = mPlaycuradapter
+										.getCurrentTrack();
 								String deleteSong = mnact.deletetitle;
-								if(curTrack.equals(deletetitle)){
+								if (curTrack.equals(deletetitle)) {
 									playPause();
 									progressbar.setProgress(0);
 									nextTrack();
@@ -1482,16 +1506,26 @@ public class MainActivity extends Activity implements Runnable,
 								MusicUtils.deleteTracks(MainActivity.this,
 										deleteList);
 								int tab = mTabsManager.getActiveTab();
-								if(tab == (R.id.btnSongs)){
+								if (tab == (R.id.btnSongs)) {
 									mPlaycuradapter.changeCursor(MediaMeta
-										.getMusicCursor(mnact, MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
-								} else if(tab == (R.id.btnAlbums) ){
-									String albumId = albumAdapter.getCurrAlbumId();
-									mPlaycuradapter.changeCursor(MediaMeta.getAlbumSongsCursor(mnact, albumId, mnact.getSongsSortOrder()));
-								} else if(tab == (R.id.btnArtists) ){
-									String artistId= artistAdapter.getCurrAlbumId();
+											.getMusicCursor(
+													mnact,
+													MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
+								} else if (tab == (R.id.btnAlbums)) {
+									String albumId = albumAdapter
+											.getCurrAlbumId();
+									mPlaycuradapter.changeCursor(MediaMeta
+											.getAlbumSongsCursor(mnact,
+													albumId,
+													mnact.getSongsSortOrder()));
+								} else if (tab == (R.id.btnArtists)) {
+									String artistId = artistAdapter
+											.getCurrAlbumId();
 
-									mPlaycuradapter.changeCursor(MediaMeta.getArtistSongsCursor(mnact, artistId, mnact.getSongsSortOrder()));
+									mPlaycuradapter.changeCursor(MediaMeta
+											.getArtistSongsCursor(mnact,
+													artistId,
+													mnact.getSongsSortOrder()));
 								}
 								dialog.dismiss();
 							}
@@ -1537,7 +1571,7 @@ public class MainActivity extends Activity implements Runnable,
 
 	public void setPlayCurAdapter(PlayCurAdapter playCurAdapter) {
 		mPlaycuradapter = playCurAdapter;
-		
+
 	}
 
 	public PlayCurAdapter getPlayCurAdapter() {
@@ -1549,7 +1583,7 @@ public class MainActivity extends Activity implements Runnable,
 		// TODO Auto-generated method stub
 		return mSongSortOrder;
 	}
-	
+
 	public void setSongsSortOrder(String sortOrder) {
 		mSongSortOrder = sortOrder;
 	}
@@ -1569,25 +1603,38 @@ public class MainActivity extends Activity implements Runnable,
 	@Override
 	public boolean onItemLongClick(AdapterView<?> adapter, View view,
 			int position, long id) {
-		if ((mTabsManager.getActiveTab() == (R.id.btnSongs)) || mSongsSubmenu){
-			ImageView imageView = (ImageView) view.findViewById(R.id.image);
-			int songId = Integer.valueOf(imageView.getTag().toString());
-			deletetitle = mPlaycuradapter.getCurrentTrack();
-			deleteList = new long[1];
-			deleteList[0] = (int) songId;
-			AlertDialog.Builder builder = new AlertDialog.Builder(this);
-			builder.setTitle(this.getCurrentTrackName());
-			String items[] = {"Delete"};
-			builder.setItems(items, new DialogInterface.OnClickListener() {
-				public void onClick(DialogInterface dialog, int item) {
-					AlertDialog deleteDialog = Delete();
-					deleteDialog.show();
-				}
-			});
-			AlertDialog alert = builder.create();
-			alert.show();
-		}
-		return false;
+		Timer longpressTimer = new Timer();
+		FS_GestureDetector.moving = false;
+        longpressTimer.schedule(new TimerTask(){
+
+			@Override
+			public void run() {
+			if (((mTabsManager.getActiveTab() == (R.id.btnSongs)) || mSongsSubmenu) && !FS_GestureDetector.moving) {
+				ImageView imageView = (ImageView) mnact.findViewById(R.id.image);
+				int songId = Integer.valueOf(imageView.getTag().toString());
+				deletetitle = mPlaycuradapter.getCurrentTrack();
+				deleteList = new long[1];
+				deleteList[0] = (int) songId;
+				final AlertDialog.Builder builder = new AlertDialog.Builder(mnact);
+				builder.setTitle(mnact.getCurrentTrackName());
+				String items[] = { "Delete" };
+				builder.setItems(items, new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int item) {
+						AlertDialog deleteDialog = Delete();
+						deleteDialog.show();
+					}
+				});
+				mnact.runOnUiThread(new Runnable() {
+					  public void run() {
+						  AlertDialog alert = builder.create();
+							alert.show();
+					  }
+					});
+				
+			}
+			}
+	     }, 1000); //1 second delay
+		return true;
 	}
 
 }

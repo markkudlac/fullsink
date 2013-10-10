@@ -43,8 +43,9 @@ public class DiscoverHttpd {
             	
             	int LOWER_lim = 0;
             	int UPPER_lim = 255;
-            	
-            	int ipend =  Integer.valueOf(ipadd.substring(ipadd.lastIndexOf(".")+1));
+            	int intIndex = ipadd.lastIndexOf(".")+1;
+            	String ipadSubstring = ipadd.substring(intIndex);
+            	int ipend =  Integer.valueOf(ipadSubstring);
 		    	String ipbase =  ipadd.substring(0,ipadd.lastIndexOf(".")+1);
 		    	
             	while (timerSecs > 0) {

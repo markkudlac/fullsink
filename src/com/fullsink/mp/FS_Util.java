@@ -1,8 +1,13 @@
 package com.fullsink.mp;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageInfo;
+import android.provider.Settings;
+import android.widget.Toast;
 
 
 public class FS_Util {
@@ -39,6 +44,23 @@ public class FS_Util {
 		} else {
 			return false;
 		}
+	}
+	
+	public static void showConnectionWarning(Activity act){
+		final Context ctx = act;
+		AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
+		builder.setTitle(ctx.getResources().getString(R.string.warning))
+		.setMessage(ctx.getResources().getString(R.string.warning_connection_msg));
+		 builder.setPositiveButton(ctx.getResources().getString(R.string.settings), new DialogInterface.OnClickListener() {
+		        public void onClick(DialogInterface dialog, int which) 
+		        {
+		        	ctx.startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
+		        }
+		    });
+
+		    builder.setNegativeButton(R.string.cancel, null);
+		AlertDialog alert = builder.create();
+		alert.show();
 	}
 	
 

@@ -1,5 +1,9 @@
 package com.fullsink.mp;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
+import android.graphics.Point;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -19,7 +23,9 @@ class FS_GestureDetector extends SimpleOnGestureListener {
     private final int SONGS = R.id.btnSongs;
     private final int ALBUMS = R.id.btnAlbums;
     private final int ARTISTS = R.id.btnArtists;
+    private final int RECEIVER = R.id.btnReceiver;
     private TabsManager mTabsManager;
+     static boolean moving = false;
 	
 	
 	public FS_GestureDetector(MainActivity xmnact){
@@ -34,24 +40,24 @@ class FS_GestureDetector extends SimpleOnGestureListener {
 	
 	@Override
     public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-        try {
-            if (Math.abs(e1.getY() - e2.getY()) > 100)
+		moving = true;
+		try {
+            if (Math.abs(e1.getY() - e2.getY()) > 100){
                 return false;
+            }
             
             // right to left swipe
             if(e1.getX() - e2.getX() > swipeMinDistance && Math.abs(velocityX) > swipeThresholdVelocity) {
             	Log.d("FS_GestureDetector", "Left Swipe"); 
             	switch(mTabsManager.getActiveTab()){
             	case ARTISTS:
-            		mTabsManager.setActiveMenu(R.id.btnSongs);
-                	if(mnact.getPlayCurAdapter() == null) {
-                		mnact.setPlayCurAdapter(new PlayCurAdapter(mnact, MediaMeta.getMusicCursor(mnact, mnact.getSongsSortOrder())));
+            		mTabsManager.setActiveMenu(R.id.btnArtists);
+                	if(mnact.artistAdapter == null) {
+                		mnact.artistAdapter = new ArtistAdapter(mnact, MediaMeta.getArtistCursor(mnact, mnact.getSongsSortOrder()));
     				}
-                	PlayCurAdapter playcuradapter = new PlayCurAdapter(mnact,
-							MediaMeta.getMusicCursor(mnact, mnact.getSongsSortOrder()));
-                	mnact.playlist.setAdapter(playcuradapter);
-                	mnact.playlist.setOnItemClickListener(playcuradapter);
-    				return true;
+    				mnact.playlist.setAdapter(mnact.artistAdapter);
+    				mnact.playlist.setOnItemClickListener(mnact.artistAdapter);
+    				return false;
             	case ALBUMS:
             		mTabsManager.setActiveMenu(R.id.btnArtists);
                 	if(mnact.artistAdapter == null) {
@@ -59,7 +65,7 @@ class FS_GestureDetector extends SimpleOnGestureListener {
     				}
     				mnact.playlist.setAdapter(mnact.artistAdapter);
     				mnact.playlist.setOnItemClickListener(mnact.artistAdapter);
-    				return true;
+    				return false;
             	case SONGS:
             		mTabsManager.setActiveMenu(R.id.btnAlbums);
                 	if(mnact.albumAdapter == null) {
@@ -67,7 +73,7 @@ class FS_GestureDetector extends SimpleOnGestureListener {
     				}
     				mnact.playlist.setAdapter(mnact.albumAdapter);
     				mnact.playlist.setOnItemClickListener(mnact.albumAdapter);
-    				return true;
+    				return false;
             	}
 
             }  else if (e2.getX() - e1.getX() > swipeMinDistance && Math.abs(velocityX) > swipeThresholdVelocity) {
@@ -80,7 +86,7 @@ class FS_GestureDetector extends SimpleOnGestureListener {
     				}
     				mnact.playlist.setAdapter(mnact.albumAdapter);
     				mnact.playlist.setOnItemClickListener(mnact.albumAdapter);
-    				return true;
+    				return false;
             	case ALBUMS:
             		mTabsManager.setActiveMenu(R.id.btnSongs);
                 	if(mnact.getPlayCurAdapter() == null) {
@@ -90,15 +96,15 @@ class FS_GestureDetector extends SimpleOnGestureListener {
                 	playcuradaptor.changeCursor(MediaMeta.getMusicCursor(mnact, mnact.getSongsSortOrder()));
     				mnact.playlist.setAdapter(playcuradaptor);
     				mnact.playlist.setOnItemClickListener(playcuradaptor);
-    				return true;
+    				return false;
             	case SONGS:
             		mTabsManager.setActiveMenu(R.id.btnArtists);
                 	if(mnact.artistAdapter == null) {
-                		mnact.artistAdapter = new ArtistAdapter(mnact, MediaMeta.getArtistCursor(mnact, MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
+                		mnact.artistAdapter = new ArtistAdapter(mnact, MediaMeta.getArtistCursor(mnact, mnact.getSongsSortOrder()));
     				}
     				mnact.playlist.setAdapter(mnact.artistAdapter);
     				mnact.playlist.setOnItemClickListener(mnact.artistAdapter);
-    				return true;
+    				return false;
             	}
 
 
@@ -108,4 +114,5 @@ class FS_GestureDetector extends SimpleOnGestureListener {
         }
         return true;
     }
+	
 }

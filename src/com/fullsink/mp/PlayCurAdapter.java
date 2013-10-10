@@ -71,6 +71,7 @@ public class PlayCurAdapter extends CursorAdapter implements
 			ListView playlist = mnact.getPlaylist();
 			if (currPosition == mnact.getMusicManager().getCurrentSongPosition()) {
 				cl.setBackgroundColor(mHighlight);
+				playlist.setItemChecked(currPosition, true);
 			} else {
 				cl.setBackgroundColor(Color.TRANSPARENT);
 			}

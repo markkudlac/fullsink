@@ -14,19 +14,13 @@
                android:orientation="vertical" >
 
             <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_horizontal"
-                android:padding="16dip"
-                android:text="Help"
-                android:textStyle="bold" />
-
-            <TextView
                 android:id="@+id/help_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:padding="16dip"
-                android:text="@string/help_html" />
+                android:text="@string/help_html"
+                android:textSize="20dp" />
+
         </LinearLayout>
     </ScrollView>
 

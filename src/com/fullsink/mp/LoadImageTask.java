@@ -3,6 +3,7 @@ package com.fullsink.mp;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 
 import android.content.ContentResolver;
 import android.content.Context;
@@ -46,7 +47,7 @@ public class LoadImageTask extends AsyncTask {
 		final String imageKey = (String) args[0];
 		this.tag = imageKey;
 		final String path = (String) args[1];
-		this.mImageView = (ImageView) args[2];
+		this.mImageView = (ImageView) args[2]; 
 		this.context = (Context)args[3];
 		if(args.length > 4){
 			this.setArtistArt = (SetArtistArt) args[4];
@@ -59,35 +60,24 @@ public class LoadImageTask extends AsyncTask {
 			Uri albumArtUri = Uri.parse(path);
 			try {
 				ContentResolver cr = context.getContentResolver();
-				File bitmapFile = new File(path);
-				if(!bitmapFile.exists()) {
-				   System.out.println("Failed to find file");
+
 				   bitmap = BitmapFactory.decodeResource(
 							context.getResources(),
 							R.drawable.albumart_icon);
-				   return bitmap;
-				} else {
+
 					bitmap = MediaStore.Images.Media.getBitmap(cr, albumArtUri);
 					bitmap = Bitmap
 							.createScaledBitmap(bitmap, 60, 60, true);
 					// Add final bitmap to caches
 					AlbumArtLoader.addBitmapToMemoryCache(imageKey, bitmap);
 					return bitmap;
-				}
 
 			} catch (FileNotFoundException exception) {
-				exception.printStackTrace();
 
 			} catch (IOException e) {
 
-				Log.e("AlbumArtLoader", "IOEXception in bitmap");
-				e.printStackTrace();
 			} catch (Exception ex) {
-				Log.e("AlbumArtLoader", "other error in bitmap");
-				ex.printStackTrace();
-				bitmap = BitmapFactory.decodeResource(
-						context.getResources(), R.drawable.albumart_icon);
-				return bitmap;
+	
 			}
 		}
 		return bitmap;
