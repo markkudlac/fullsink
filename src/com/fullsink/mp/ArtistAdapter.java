@@ -98,7 +98,7 @@ public class ArtistAdapter extends CursorAdapter implements
 				.getColumnIndexOrThrow( MediaStore.Audio.Media.ARTIST_ID));
 		
 		setCurrArtistId(Long.valueOf(artistIdtoTest).toString());
-		artistContentAdapter = new PlayCurAdapter(mnact, MediaMeta.getArtistSongsCursor(mnact, Long.valueOf(artistIdtoTest).toString(), mnact.getSongsSortOrder()));
+		artistContentAdapter = new PlayCurAdapter(mnact, MediaMeta.getArtistSongsCursor(mnact, Long.valueOf(artistIdtoTest).toString(), mnact.getSortOrderString()));
 		((ListView)mnact.findViewById(R.id.playlist)).setAdapter(artistContentAdapter);
 		((ListView)mnact.findViewById(R.id.playlist)).setOnItemClickListener(artistContentAdapter);
 		mnact.setSongsSubmenu(true);

@@ -112,7 +112,7 @@ public class AlbumAdapter extends CursorAdapter implements
 		selectedPosition = pos;
 		
 		this.setCurrAlbumId(Long.valueOf(id).toString());
-		playCurAdapter = new PlayCurAdapter(mnact, MediaMeta.getAlbumSongsCursor(mnact, Long.valueOf(id).toString(), mnact.getSongsSortOrder()));
+		playCurAdapter = new PlayCurAdapter(mnact, MediaMeta.getAlbumSongsCursor(mnact, Long.valueOf(id).toString(), mnact.getSortOrderString()));
 		((ListView)mnact.findViewById(R.id.playlist)).setAdapter(playCurAdapter);
 		((ListView)mnact.findViewById(R.id.playlist)).setOnItemClickListener(playCurAdapter);
 		mnact.setSongsSubmenu(true);

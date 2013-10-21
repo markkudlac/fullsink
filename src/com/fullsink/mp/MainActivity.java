@@ -26,6 +26,7 @@ import android.annotation.SuppressLint;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -53,6 +54,7 @@ import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -70,8 +72,12 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.PopupMenu;
+import android.widget.RadioButton;
+import android.widget.TextView;
 import android.widget.PopupMenu.OnMenuItemClickListener;
 import android.widget.ProgressBar;
+import android.widget.RadioGroup;
+import android.widget.RadioGroup.OnCheckedChangeListener;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
@@ -105,7 +111,7 @@ public class MainActivity extends Activity implements Runnable,
 	private boolean artistSelected;
 	public final static int DELETE_ITEM = 0;
 	private long[] deleteList;
-	private static MainActivity mnact;
+	static MainActivity mnact;
 	private GestureDetector gestureDetector;
 	private GestureDetector gestureDetector2;
 	private View.OnTouchListener gestureListener;
@@ -119,12 +125,14 @@ public class MainActivity extends Activity implements Runnable,
 	public static final String PREVIOUS = "com.fullsink.mp.previous";
 	private PopupMenu popup;
 	private PopupMenu.OnMenuItemClickListener popuplistener;
-	private String mSongSortOrder;
+	private String mSortOrderString;
 	private TabsManager mTabsManager;
 	private MusicManager mMusicManager;
 	private boolean mSongsSubmenu;
-	public String deletetitle;
+	public String mDeletetitle;
 	private OnTouchListener gestureListener2;
+	private int mSortOrderInt;
+	private CheckableRelativeLayout mPreviousView;
 
 	@SuppressLint("NewApi")
 	@Override
@@ -413,7 +421,15 @@ public class MainActivity extends Activity implements Runnable,
 		});
 
 		mTabsManager.setActiveMenu(R.id.btnSongs);
+		Button songsButton = ((Button) findViewById(R.id.btnSongs));
+		songsButton.setOnClickListener(new OnClickListener() {
+			@SuppressLint("NewApi")
+			@Override
+			public void onClick(View view) {
+				customSelectedMenuOnclick(view);
 
+			}
+		});
 		WebServer.versionChangeHTML(this); // This must be set before call to
 											// turnServerON
 
@@ -787,7 +803,7 @@ public class MainActivity extends Activity implements Runnable,
 				});
 				mPlaycuradapter = new PlayCurAdapter(
 						this,
-						MediaMeta.getMusicCursor(this, this.getSongsSortOrder()));
+						MediaMeta.getMusicCursor(this, this.getSortOrderString()));
 				playlist.setAdapter(mPlaycuradapter);
 				playlist.setOnItemClickListener(mPlaycuradapter);
 				playlist.setItemChecked(0, true);
@@ -945,21 +961,11 @@ public class MainActivity extends Activity implements Runnable,
 		final CharSequence[] items = { getString(R.string.order_alphabetical),
 				getString(R.string.order_newest),
 				getString(R.string.order_oldest) };
-		if (android.os.Build.VERSION.SDK_INT >= 13) {
+		/*if (android.os.Build.VERSION.SDK_INT >= 13) {
 			popup = new PopupMenu(mnact, view);
 			popuplistener = new OnMenuItemClickListener() {
 				@Override
 				public boolean onMenuItemClick(MenuItem item) {
-					// switch (item.getItemId()) {
-					// case R.id.vibrate:
-					// case R.id.dont_vibrate:
-					// if (item.isChecked()) item.setChecked(false);
-					// else item.setChecked(true);
-					// return true;
-					// default:
-					// return super.onOptionsItemSelected(item);
-					// }
-
 					Toast.makeText(getApplicationContext(), item.toString(),
 							Toast.LENGTH_SHORT).show();
 					orderItems(item.toString());
@@ -974,19 +980,32 @@ public class MainActivity extends Activity implements Runnable,
 			Menu popupMenu = popup.getMenu();
 			inflater.inflate(R.menu.ontouch_menu, popup.getMenu());
 			popup.show();
-		} else {
-			AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		} else {*/
+			final AlertDialog builder = new AlertDialog.Builder(this).create();
 			builder.setTitle("Order:");
-			builder.setItems(items, new DialogInterface.OnClickListener() {
-				public void onClick(DialogInterface dialog, int item) {
-					Toast.makeText(getApplicationContext(), items[item],
-							Toast.LENGTH_SHORT).show();
-					orderItems((String) items[item]);
-				}
-			});
-			AlertDialog alert = builder.create();
-			alert.show();
-		}
+			LayoutInflater adbInflater = this.getLayoutInflater();
+            final View checkboxLayout = adbInflater.inflate(R.layout.order_menu, null);
+            builder.setView(checkboxLayout);
+
+            RadioGroup rg = (RadioGroup) checkboxLayout.findViewById(R.id.order_group);
+            
+            rg.check(this.getSortOrderInt());
+           
+            rg.setOnCheckedChangeListener(new OnCheckedChangeListener()
+            {
+                @Override
+                public void onCheckedChanged(RadioGroup group, int checkedId)
+                {
+                	group.check(checkedId);
+                	mnact.setSortOrderInt(checkedId);
+                	RadioButton checkedOption = (RadioButton)checkboxLayout.findViewById(checkedId);
+                	String selectedRadioValue = (String)checkedOption.getText();
+                	mnact.orderItems(selectedRadioValue);
+                	builder.dismiss();                    
+                }
+            });
+            builder.show(); 
+		//}
 	}
 
 	public void nextTrack() {
@@ -1001,7 +1020,7 @@ public class MainActivity extends Activity implements Runnable,
 			case R.id.btnSongs: {
 				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact,
 						MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
-				setSongsSortOrder(MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
+				setSortOrderString(MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
 				return;
 			}
 			case R.id.btnAlbums: {
@@ -1017,7 +1036,7 @@ public class MainActivity extends Activity implements Runnable,
 			case R.id.btnSongs: {
 				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact,
 						MediaStore.Audio.Media.DATE_MODIFIED));
-				setSongsSortOrder(MediaStore.Audio.Media.DATE_MODIFIED);
+				setSortOrderString(MediaStore.Audio.Media.DATE_MODIFIED);
 				return;
 			}
 			case R.id.btnAlbums: {
@@ -1036,7 +1055,7 @@ public class MainActivity extends Activity implements Runnable,
 			case R.id.btnSongs: {
 				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact,
 						MediaStore.Audio.Media.DATE_MODIFIED + " DESC"));
-				setSongsSortOrder(MediaStore.Audio.Media.DATE_MODIFIED
+				setSortOrderString(MediaStore.Audio.Media.DATE_MODIFIED
 						+ " DESC");
 				return;
 			}
@@ -1190,7 +1209,13 @@ public class MainActivity extends Activity implements Runnable,
 			}
 		}
 		playlist.setItemChecked(pos, true);
-		mMusicManager.setCurrentSongPosition(0);
+		if(!mMusicManager.isTuning()){
+			mMusicManager.setIsTuning(true);
+			((ImageView) findViewById(R.id.imgPlayPause))
+			.setImageResource(R.drawable.ic_media_pause);
+		}
+		mMusicManager.setCurrentSongPosition(pos);//used to be 0 instead of pos
+		//might need to move highlight here as well
 		playlist.smoothScrollToPosition(pos);
 		return (prevtrack);
 	}
@@ -1497,8 +1522,8 @@ public class MainActivity extends Activity implements Runnable,
 								Music music = mMusicManager.getTrack();
 								String curTrack = mPlaycuradapter
 										.getCurrentTrack();
-								String deleteSong = mnact.deletetitle;
-								if (curTrack.equals(deletetitle)) {
+								String deleteSong = mnact.mDeletetitle;
+								if (curTrack.equals(mDeletetitle)) {
 									playPause();
 									progressbar.setProgress(0);
 									nextTrack();
@@ -1517,7 +1542,7 @@ public class MainActivity extends Activity implements Runnable,
 									mPlaycuradapter.changeCursor(MediaMeta
 											.getAlbumSongsCursor(mnact,
 													albumId,
-													mnact.getSongsSortOrder()));
+													mnact.getSortOrderString()));
 								} else if (tab == (R.id.btnArtists)) {
 									String artistId = artistAdapter
 											.getCurrAlbumId();
@@ -1525,9 +1550,9 @@ public class MainActivity extends Activity implements Runnable,
 									mPlaycuradapter.changeCursor(MediaMeta
 											.getArtistSongsCursor(mnact,
 													artistId,
-													mnact.getSongsSortOrder()));
+													mnact.getSortOrderString()));
 								}
-								dialog.dismiss();
+								dialog.dismiss();	
 							}
 
 						})
@@ -1536,8 +1561,7 @@ public class MainActivity extends Activity implements Runnable,
 						new DialogInterface.OnClickListener() {
 							public void onClick(DialogInterface dialog,
 									int which) {
-
-								dialog.dismiss();
+								dialog.dismiss();	
 
 							}
 						}).create();
@@ -1579,13 +1603,21 @@ public class MainActivity extends Activity implements Runnable,
 		return mPlaycuradapter;
 	}
 
-	public String getSongsSortOrder() {
-		// TODO Auto-generated method stub
-		return mSongSortOrder;
+	public String getSortOrderString() {
+		return mSortOrderString;
+	}
+	
+	public int getSortOrderInt() {
+		return mSortOrderInt;
 	}
 
-	public void setSongsSortOrder(String sortOrder) {
-		mSongSortOrder = sortOrder;
+
+	public void setSortOrderString(String sortOrder) {
+		mSortOrderString = sortOrder;
+	}
+	
+	public void setSortOrderInt(int sortOrder) {
+		mSortOrderInt = sortOrder;
 	}
 
 	public TabsManager getTabsManager() {
@@ -1603,6 +1635,25 @@ public class MainActivity extends Activity implements Runnable,
 	@Override
 	public boolean onItemLongClick(AdapterView<?> adapter, View view,
 			int position, long id) {
+		final View deleteview = view;
+		
+		int previousSelected = playlist.getCheckedItemPosition();
+		mPreviousView = (CheckableRelativeLayout) playlist.getChildAt(previousSelected);
+		
+		//debug
+		TextView fieldTest = (TextView) mPreviousView.findViewById(R.id.title);
+		final String title = (String)fieldTest.getText();
+		
+		//debug
+		
+		getMusicManager().setCurrentSongPosition(position);
+		playlist.setItemChecked(position, true);
+		TextView field = (TextView) view.findViewById(R.id.title);
+		final String deleteTitle = (String)field.getText();
+		mPlaycuradapter.setCurrentTrack(deleteTitle);
+		mPlaycuradapter.moveHighlight(view);
+
+		
 		Timer longpressTimer = new Timer();
 		FS_GestureDetector.moving = false;
         longpressTimer.schedule(new TimerTask(){
@@ -1610,12 +1661,22 @@ public class MainActivity extends Activity implements Runnable,
 			@Override
 			public void run() {
 			if (((mTabsManager.getActiveTab() == (R.id.btnSongs)) || mSongsSubmenu) && !FS_GestureDetector.moving) {
-				ImageView imageView = (ImageView) mnact.findViewById(R.id.image);
+				mDeletetitle = deleteTitle;
+				ImageView imageView = (ImageView) deleteview.findViewById(R.id.image);
 				int songId = Integer.valueOf(imageView.getTag().toString());
-				deletetitle = mPlaycuradapter.getCurrentTrack();
 				deleteList = new long[1];
 				deleteList[0] = (int) songId;
 				final AlertDialog.Builder builder = new AlertDialog.Builder(mnact);
+				builder.setOnKeyListener(new DialogInterface.OnKeyListener() {
+			        @Override
+			        public boolean onKey (DialogInterface dialog, int keyCode, KeyEvent event) {
+			            if (keyCode == KeyEvent.KEYCODE_BACK) {
+			        		mPlaycuradapter.moveHighlight(mPreviousView);
+			                return true;
+			            }
+			            return false;
+			        }
+			    });
 				builder.setTitle(mnact.getCurrentTrackName());
 				String items[] = { "Delete" };
 				builder.setItems(items, new DialogInterface.OnClickListener() {
@@ -1634,6 +1695,7 @@ public class MainActivity extends Activity implements Runnable,
 			}
 			}
 	     }, 1000); //1 second delay
+        
 		return true;
 	}
 

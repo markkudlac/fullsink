@@ -53,7 +53,7 @@ class FS_GestureDetector extends SimpleOnGestureListener {
             	case ARTISTS:
             		mTabsManager.setActiveMenu(R.id.btnArtists);
                 	if(mnact.artistAdapter == null) {
-                		mnact.artistAdapter = new ArtistAdapter(mnact, MediaMeta.getArtistCursor(mnact, mnact.getSongsSortOrder()));
+                		mnact.artistAdapter = new ArtistAdapter(mnact, MediaMeta.getArtistCursor(mnact, mnact.getSortOrderString()));
     				}
     				mnact.playlist.setAdapter(mnact.artistAdapter);
     				mnact.playlist.setOnItemClickListener(mnact.artistAdapter);
@@ -61,7 +61,7 @@ class FS_GestureDetector extends SimpleOnGestureListener {
             	case ALBUMS:
             		mTabsManager.setActiveMenu(R.id.btnArtists);
                 	if(mnact.artistAdapter == null) {
-                		mnact.artistAdapter = new ArtistAdapter(mnact, MediaMeta.getArtistCursor(mnact, mnact.getSongsSortOrder()));
+                		mnact.artistAdapter = new ArtistAdapter(mnact, MediaMeta.getArtistCursor(mnact, mnact.getSortOrderString()));
     				}
     				mnact.playlist.setAdapter(mnact.artistAdapter);
     				mnact.playlist.setOnItemClickListener(mnact.artistAdapter);
@@ -69,7 +69,7 @@ class FS_GestureDetector extends SimpleOnGestureListener {
             	case SONGS:
             		mTabsManager.setActiveMenu(R.id.btnAlbums);
                 	if(mnact.albumAdapter == null) {
-                		mnact.albumAdapter = new AlbumAdapter(mnact, MediaMeta.getAlbumCursor(mnact, mnact.getSongsSortOrder()));
+                		mnact.albumAdapter = new AlbumAdapter(mnact, MediaMeta.getAlbumCursor(mnact, mnact.getSortOrderString()));
     				}
     				mnact.playlist.setAdapter(mnact.albumAdapter);
     				mnact.playlist.setOnItemClickListener(mnact.albumAdapter);
@@ -93,14 +93,14 @@ class FS_GestureDetector extends SimpleOnGestureListener {
                 		mnact.setPlayCurAdapter(new PlayCurAdapter(mnact, MediaMeta.getMusicCursor(mnact, MediaStore.Audio.Media.DEFAULT_SORT_ORDER)));
     				}
                 	PlayCurAdapter playcuradaptor = mnact.getPlayCurAdapter();
-                	playcuradaptor.changeCursor(MediaMeta.getMusicCursor(mnact, mnact.getSongsSortOrder()));
+                	playcuradaptor.changeCursor(MediaMeta.getMusicCursor(mnact, mnact.getSortOrderString()));
     				mnact.playlist.setAdapter(playcuradaptor);
     				mnact.playlist.setOnItemClickListener(playcuradaptor);
     				return false;
             	case SONGS:
             		mTabsManager.setActiveMenu(R.id.btnArtists);
                 	if(mnact.artistAdapter == null) {
-                		mnact.artistAdapter = new ArtistAdapter(mnact, MediaMeta.getArtistCursor(mnact, mnact.getSongsSortOrder()));
+                		mnact.artistAdapter = new ArtistAdapter(mnact, MediaMeta.getArtistCursor(mnact, mnact.getSortOrderString()));
     				}
     				mnact.playlist.setAdapter(mnact.artistAdapter);
     				mnact.playlist.setOnItemClickListener(mnact.artistAdapter);
