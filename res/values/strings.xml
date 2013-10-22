@@ -36,6 +36,7 @@
     <string name="order_oldest">Order by date (oldest)</string>
     <string name="order">Order</string>
     <string name="warning">Warning:</string>
+    <string name="playlist">Playlist</string>
     <string name="warning_connection_msg">It appears that you are not connected to the internet. If you want to share or surf music around you, please connect to a network</string>
     <string name="help_html">
 <![CDATA[
