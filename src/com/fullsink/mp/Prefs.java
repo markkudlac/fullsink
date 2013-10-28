@@ -79,6 +79,23 @@ public class Prefs extends PreferenceActivity {
 
 		return (Integer.parseInt(xstr));
 	}
+	
+	public static Integer getSortOrder(Context context) {
+
+		String xstr = PreferenceManager
+				.getDefaultSharedPreferences(context).getString("sort_order",
+						"" + R.id.alphabetical);
+
+		return (Integer.parseInt(xstr));
+	}
+	
+	public static void setSortOrder(Context context, String order) {
+
+		SharedPreferences prefs = PreferenceManager
+				.getDefaultSharedPreferences(context);
+
+		prefs.edit().putString("sort_order", order).commit();
+	}
 
 	public static boolean getDownload(Context context) {
 

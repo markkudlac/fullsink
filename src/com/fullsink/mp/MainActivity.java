@@ -110,6 +110,8 @@ public class MainActivity extends Activity implements Runnable,
 	private boolean albumSelected;
 	private boolean artistSelected;
 	public final static int DELETE_ITEM = 0;
+	public final static int ADD_TO_PLAYLIST = 1;
+	private boolean PLAYLIST_TAB;
 	private long[] deleteList;
 	static MainActivity mnact;
 	private GestureDetector gestureDetector;
@@ -133,6 +135,8 @@ public class MainActivity extends Activity implements Runnable,
 	private OnTouchListener gestureListener2;
 	private int mSortOrderInt;
 	private CheckableRelativeLayout mPreviousView;
+	private MusicDbAdapter mDbadapter;
+	private PlaylistAdapter mPlaylistAdapter;
 
 	@SuppressLint("NewApi")
 	@Override
@@ -234,6 +238,8 @@ public class MainActivity extends Activity implements Runnable,
 		stopSockClient();
 		unregisterReceiver(mIntentReceiver);
 		System.out.println("Destroy OUT");
+		mDbadapter.close();
+		Prefs.setSortOrder(mnact, "" + getSortOrderInt());
 	}
 
 	@Override
@@ -361,6 +367,7 @@ public class MainActivity extends Activity implements Runnable,
 
 	@SuppressLint("NewApi")
 	private void initialize() {
+		this.setSortOrderInt(Prefs.getSortOrder(this));
 		mnact = this;
 		WebSocketImpl.DEBUG = false;
 		mIntentReceiver = new NotificationReceiver(mnact);
@@ -373,6 +380,10 @@ public class MainActivity extends Activity implements Runnable,
 				return gestureDetector.onTouchEvent(event);
 			}
 		};
+		
+		mDbadapter = new MusicDbAdapter(mnact);
+
+
 		IntentFilter commandFilter = new IntentFilter();
 
 		commandFilter.addAction(PLAY);
@@ -475,9 +486,26 @@ public class MainActivity extends Activity implements Runnable,
 	}
 
 	public void loadPlayAdapter() {
-
+		//MediaStore.Audio.Media.DEFAULT_SORT_ORDER
+		int sortOrder = Prefs.getSortOrder(mnact);
+		String cursorOrder = null;
+		switch(sortOrder){
+		case R.id.alphabetical:
+			cursorOrder = MediaStore.Audio.Media.DEFAULT_SORT_ORDER;
+			break;
+		case R.id.oldest:
+			cursorOrder = MediaStore.Audio.Media.DATE_MODIFIED + " DESC";
+			break;
+		case R.id.newest:
+			cursorOrder = MediaStore.Audio.Media.DATE_MODIFIED;
+			break;
+		case R.id.playlist:
+			cursorOrder = MediaStore.Audio.Media.DEFAULT_SORT_ORDER;
+			break;
+		
+		}
 		mPlaycuradapter = new PlayCurAdapter(this, MediaMeta.getMusicCursor(
-				this, MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
+				this, cursorOrder));
 		playlist.setOnItemClickListener(mPlaycuradapter);
 		playlist.setAdapter(mPlaycuradapter);
 
@@ -729,6 +757,7 @@ public class MainActivity extends Activity implements Runnable,
 		case R.id.btnSongs:
 		case R.id.btnAlbums:
 		case R.id.btnArtists: {
+			PLAYLIST_TAB = false;
 			RelativeLayout viewMute;
 			LinearLayout parentbuts;
 
@@ -1016,6 +1045,8 @@ public class MainActivity extends Activity implements Runnable,
 	private void orderItems(String order) {
 		int selectedTab = mTabsManager.getActiveTab();
 		if (order.equals(getString(R.string.order_alphabetical))) {
+			playlist.setAdapter(mPlaycuradapter);
+			PLAYLIST_TAB = false;
 			switch (mTabsManager.ACTIVE_TAB) {
 			case R.id.btnSongs: {
 				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact,
@@ -1029,9 +1060,14 @@ public class MainActivity extends Activity implements Runnable,
 				return;
 			}
 			case R.id.btnArtists: {
+				artistAdapter.changeCursor(MediaMeta.getArtistCursor(this,
+						MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
+				return;
 			}
 			}
 		} else if (order.equals(getString(R.string.order_newest))) {
+			playlist.setAdapter(mPlaycuradapter);
+			PLAYLIST_TAB = false;
 			switch (mTabsManager.ACTIVE_TAB) {
 			case R.id.btnSongs: {
 				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact,
@@ -1051,6 +1087,8 @@ public class MainActivity extends Activity implements Runnable,
 			}
 			}
 		} else if (order.equals(getString(R.string.order_oldest))) {
+			playlist.setAdapter(mPlaycuradapter);
+			PLAYLIST_TAB = false;
 			switch (mTabsManager.ACTIVE_TAB) {
 			case R.id.btnSongs: {
 				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact,
@@ -1071,6 +1109,12 @@ public class MainActivity extends Activity implements Runnable,
 			}
 			}
 
+		} else if (order.equals(getString(R.string.playlist))) {
+			PLAYLIST_TAB = true;
+			mDbadapter.open();
+			mPlaylistAdapter = new PlaylistAdapter(this, mDbadapter.fetchSongs());
+				playlist.setOnItemClickListener(mPlaylistAdapter);
+				playlist.setAdapter(mPlaylistAdapter);
 		}
 	}
 
@@ -1501,6 +1545,7 @@ public class MainActivity extends Activity implements Runnable,
 			ContextMenuInfo menuInfoIn) {
 		if (mTabsManager.getActiveTab() == (R.id.btnSongs) || mSongsSubmenu) {
 			menu.add(0, DELETE_ITEM, 0, R.string.delete);
+			//menu.add(0, ADD_TO_PLAYLIST, 1, R.string.add_playlist);
 		}
 	}
 
@@ -1511,7 +1556,7 @@ public class MainActivity extends Activity implements Runnable,
 				.setMessage(
 						getResources().getString(
 								R.string.delete_confirm_button_text)
-								+ " " + this.getCurrentTrackName() + "?")
+								+ " " + this.mDeletetitle + "?")
 				// .setIcon(R.drawable.delete)
 
 				.setPositiveButton("Delete",
@@ -1519,10 +1564,8 @@ public class MainActivity extends Activity implements Runnable,
 
 							public void onClick(DialogInterface dialog,
 									int whichButton) {
-								Music music = mMusicManager.getTrack();
 								String curTrack = mPlaycuradapter
 										.getCurrentTrack();
-								String deleteSong = mnact.mDeletetitle;
 								if (curTrack.equals(mDeletetitle)) {
 									playPause();
 									progressbar.setProgress(0);
@@ -1530,28 +1573,9 @@ public class MainActivity extends Activity implements Runnable,
 								}
 								MusicUtils.deleteTracks(MainActivity.this,
 										deleteList);
-								int tab = mTabsManager.getActiveTab();
-								if (tab == (R.id.btnSongs)) {
 									mPlaycuradapter.changeCursor(MediaMeta
-											.getMusicCursor(
-													mnact,
+											.getMusicCursor(mnact,
 													MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
-								} else if (tab == (R.id.btnAlbums)) {
-									String albumId = albumAdapter
-											.getCurrAlbumId();
-									mPlaycuradapter.changeCursor(MediaMeta
-											.getAlbumSongsCursor(mnact,
-													albumId,
-													mnact.getSortOrderString()));
-								} else if (tab == (R.id.btnArtists)) {
-									String artistId = artistAdapter
-											.getCurrAlbumId();
-
-									mPlaycuradapter.changeCursor(MediaMeta
-											.getArtistSongsCursor(mnact,
-													artistId,
-													mnact.getSortOrderString()));
-								}
 								dialog.dismiss();	
 							}
 
@@ -1634,24 +1658,18 @@ public class MainActivity extends Activity implements Runnable,
 
 	@Override
 	public boolean onItemLongClick(AdapterView<?> adapter, View view,
-			int position, long id) {
-		final View deleteview = view;
+			int position, final long id) {
+		final View thisview = view;
 		
-		int previousSelected = playlist.getCheckedItemPosition();
-		mPreviousView = (CheckableRelativeLayout) playlist.getChildAt(previousSelected);
-		
-		//debug
-		TextView fieldTest = (TextView) mPreviousView.findViewById(R.id.title);
-		final String title = (String)fieldTest.getText();
-		
-		//debug
-		
-		getMusicManager().setCurrentSongPosition(position);
-		playlist.setItemChecked(position, true);
+//		int previousSelected = playlist.getCheckedItemPosition();
+//		mPreviousView = (CheckableRelativeLayout) playlist.getChildAt(previousSelected);
+//		
+//		getMusicManager().setCurrentSongPosition(position);
+//		playlist.setItemChecked(position, true);
 		TextView field = (TextView) view.findViewById(R.id.title);
-		final String deleteTitle = (String)field.getText();
-		mPlaycuradapter.setCurrentTrack(deleteTitle);
-		mPlaycuradapter.moveHighlight(view);
+		final String selectedTitle = (String)field.getText();
+//		mPlaycuradapter.setCurrentTrack(deleteTitle);
+//		mPlaycuradapter.moveHighlight(view);
 
 		
 		Timer longpressTimer = new Timer();
@@ -1661,28 +1679,53 @@ public class MainActivity extends Activity implements Runnable,
 			@Override
 			public void run() {
 			if (((mTabsManager.getActiveTab() == (R.id.btnSongs)) || mSongsSubmenu) && !FS_GestureDetector.moving) {
-				mDeletetitle = deleteTitle;
-				ImageView imageView = (ImageView) deleteview.findViewById(R.id.image);
-				int songId = Integer.valueOf(imageView.getTag().toString());
+				mDeletetitle = selectedTitle;
+				ImageView imageView = (ImageView) thisview.findViewById(R.id.image);
+				final int songId = Integer.valueOf(imageView.getTag().toString());
 				deleteList = new long[1];
 				deleteList[0] = (int) songId;
 				final AlertDialog.Builder builder = new AlertDialog.Builder(mnact);
-				builder.setOnKeyListener(new DialogInterface.OnKeyListener() {
-			        @Override
-			        public boolean onKey (DialogInterface dialog, int keyCode, KeyEvent event) {
-			            if (keyCode == KeyEvent.KEYCODE_BACK) {
-			        		mPlaycuradapter.moveHighlight(mPreviousView);
-			                return true;
-			            }
-			            return false;
-			        }
-			    });
-				builder.setTitle(mnact.getCurrentTrackName());
-				String items[] = { "Delete" };
+//				builder.setOnKeyListener(new DialogInterface.OnKeyListener() {
+//			        @Override
+//			        public boolean onKey (DialogInterface dialog, int keyCode, KeyEvent event) {
+//			            if (keyCode == KeyEvent.KEYCODE_BACK) {
+//			        		mPlaycuradapter.moveHighlight(mPreviousView);
+//			                return true;
+//			            }
+//			            return false;
+//			        }
+//			    });
+				builder.setTitle(selectedTitle);
+				String items[];
+				if(PLAYLIST_TAB){
+					items = new String[1];
+					items[0] = getString(R.string.remove_from_playlist); 
+				} else {
+					items = new String[2]; 
+					items[0] = getString(R.string.delete);
+					items[1] = getString(R.string.add_playlist);
+				}
 				builder.setItems(items, new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int item) {
-						AlertDialog deleteDialog = Delete();
-						deleteDialog.show();
+						if(PLAYLIST_TAB){
+							mDbadapter.removeSong(songId);
+							mPlaylistAdapter.changeCursor(mDbadapter.fetchSongs());
+						} else {
+						switch(item){
+						case DELETE_ITEM:
+							AlertDialog deleteDialog = Delete();
+							deleteDialog.show();
+						case ADD_TO_PLAYLIST:
+							TextView fieldTitle = (TextView) thisview.findViewById(R.id.title);
+							String title = (String)fieldTitle.getText();
+							String artist = (String)((TextView) thisview.findViewById(R.id.album)).getText();
+							String albumId = (String)(thisview.findViewById(R.id.image)).getTag();
+							//PlaylistManager.addToPlaylist(title, artist, albumId, mnact);
+							mDbadapter.open();
+							mDbadapter.addTrackInfo(Long.toString(songId), albumId, artist, title);
+							mDbadapter.close();
+						}
+					}
 					}
 				});
 				mnact.runOnUiThread(new Runnable() {
@@ -1692,7 +1735,9 @@ public class MainActivity extends Activity implements Runnable,
 					  }
 					});
 				
-			}
+			} else if(mnact.PLAYLIST_TAB){
+				
+			} 
 			}
 	     }, 1000); //1 second delay
         

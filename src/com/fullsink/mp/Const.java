@@ -58,6 +58,10 @@ public interface Const extends BaseColumns {
 	public static final int MODE_SHUFFLE = 1;
 	public static final int MODE_LOOP = 2;
 	public static final String ALBUM_PATH = "content://media/external/audio/albumart/";
+	public static final String DB_TRACK_ID = "_id";
+	public static final String DB_TRACK_NAME = "name";
+	public static final String DB_ALBUM_ARTIST = "albumArtist";
+	public static final String DB_ALBUM_ID = "album_id";
 }
 
 
