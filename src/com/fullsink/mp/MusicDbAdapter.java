@@ -16,7 +16,7 @@ public class MusicDbAdapter {
 	public static final String tracks_table = "tracks";
 	public static final String tracks_table_create_string = "create table "
 			+ tracks_table
-			+ " (" + Const.DB_TRACK_ID + "integer primary key autoincrement," + Const.DB_TRACK_NAME + "text not null," +  Const.DB_ALBUM_ARTIST + "text," + Const.DB_ALBUM_ID + "text not null);";
+			+ " (" + Const.DB_TRACK_ID + " integer primary key autoincrement," + Const.DB_TRACK_NAME + " text not null," +  Const.DB_ALBUM_ARTIST + " text," + Const.DB_ALBUM_ID + " text not null);";
 	public static final String app_table = "appdata";
 	public static final String app_table_create_string = "create table " + app_table + " (numtracks integer);";
 	public static final String app_table_init_string = "insert into " + app_table + " values (0);";
@@ -62,6 +62,7 @@ public class MusicDbAdapter {
 	public void open() {
 		musicDbHelper = new MusicDbHelper(mContext);
 		musicDatabase = musicDbHelper.getWritableDatabase();
+		musicDatabase.close(); 
 	}
 	
 	public void openReadOnly() {

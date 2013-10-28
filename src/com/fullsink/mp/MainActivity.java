@@ -239,6 +239,7 @@ public class MainActivity extends Activity implements Runnable,
 		unregisterReceiver(mIntentReceiver);
 		System.out.println("Destroy OUT");
 		mDbadapter.close();
+		mgr.cancel(NOTIFY_ID);
 		Prefs.setSortOrder(mnact, "" + getSortOrderInt());
 	}
 
