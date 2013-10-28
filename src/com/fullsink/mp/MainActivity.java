@@ -26,7 +26,6 @@ import android.annotation.SuppressLint;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.Dialog;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -49,6 +48,7 @@ import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.provider.MediaStore;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationCompat.Builder;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
@@ -56,7 +56,6 @@ import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
@@ -72,15 +71,14 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.PopupMenu;
-import android.widget.RadioButton;
-import android.widget.TextView;
-import android.widget.PopupMenu.OnMenuItemClickListener;
 import android.widget.ProgressBar;
+import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.RadioGroup.OnCheckedChangeListener;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
+import android.widget.TextView;
 import android.widget.Toast;
 import fi.iki.elonen.SimpleWebServer;
 
@@ -137,6 +135,8 @@ public class MainActivity extends Activity implements Runnable,
 	private CheckableRelativeLayout mPreviousView;
 	private MusicDbAdapter mDbadapter;
 	private PlaylistAdapter mPlaylistAdapter;
+	private Builder mNotifyBuilder;
+	private Notification mNotify;
 
 	@SuppressLint("NewApi")
 	@Override
@@ -381,9 +381,8 @@ public class MainActivity extends Activity implements Runnable,
 				return gestureDetector.onTouchEvent(event);
 			}
 		};
-		
-		mDbadapter = new MusicDbAdapter(mnact);
 
+		mDbadapter = new MusicDbAdapter(mnact);
 
 		IntentFilter commandFilter = new IntentFilter();
 
@@ -487,10 +486,10 @@ public class MainActivity extends Activity implements Runnable,
 	}
 
 	public void loadPlayAdapter() {
-		//MediaStore.Audio.Media.DEFAULT_SORT_ORDER
+		// MediaStore.Audio.Media.DEFAULT_SORT_ORDER
 		int sortOrder = Prefs.getSortOrder(mnact);
 		String cursorOrder = null;
-		switch(sortOrder){
+		switch (sortOrder) {
 		case R.id.alphabetical:
 			cursorOrder = MediaStore.Audio.Media.DEFAULT_SORT_ORDER;
 			break;
@@ -503,7 +502,7 @@ public class MainActivity extends Activity implements Runnable,
 		case R.id.playlist:
 			cursorOrder = MediaStore.Audio.Media.DEFAULT_SORT_ORDER;
 			break;
-		
+
 		}
 		mPlaycuradapter = new PlayCurAdapter(this, MediaMeta.getMusicCursor(
 				this, cursorOrder));
@@ -618,7 +617,7 @@ public class MainActivity extends Activity implements Runnable,
 	}
 
 	public void onPlayClick(String prevFile) {
-
+		this.initNotification();
 		mMusicManager.loadTrack(prevFile);
 		if (!mMusicManager.isTuning()) {
 			mMusicManager.setIsTuning(true);
@@ -831,9 +830,9 @@ public class MainActivity extends Activity implements Runnable,
 
 					}
 				});
-				mPlaycuradapter = new PlayCurAdapter(
-						this,
-						MediaMeta.getMusicCursor(this, this.getSortOrderString()));
+				mPlaycuradapter = new PlayCurAdapter(this,
+						MediaMeta.getMusicCursor(this,
+								this.getSortOrderString()));
 				playlist.setAdapter(mPlaycuradapter);
 				playlist.setOnItemClickListener(mPlaycuradapter);
 				playlist.setItemChecked(0, true);
@@ -991,56 +990,56 @@ public class MainActivity extends Activity implements Runnable,
 		final CharSequence[] items = { getString(R.string.order_alphabetical),
 				getString(R.string.order_newest),
 				getString(R.string.order_oldest) };
-		/*if (android.os.Build.VERSION.SDK_INT >= 13) {
-			popup = new PopupMenu(mnact, view);
-			popuplistener = new OnMenuItemClickListener() {
-				@Override
-				public boolean onMenuItemClick(MenuItem item) {
-					Toast.makeText(getApplicationContext(), item.toString(),
-							Toast.LENGTH_SHORT).show();
-					orderItems(item.toString());
-					View view = item.getActionView();
-					return true;
-				}
+		/*
+		 * if (android.os.Build.VERSION.SDK_INT >= 13) { popup = new
+		 * PopupMenu(mnact, view); popuplistener = new OnMenuItemClickListener()
+		 * {
+		 * 
+		 * @Override public boolean onMenuItemClick(MenuItem item) {
+		 * Toast.makeText(getApplicationContext(), item.toString(),
+		 * Toast.LENGTH_SHORT).show(); orderItems(item.toString()); View view =
+		 * item.getActionView(); return true; }
+		 * 
+		 * };
+		 * 
+		 * popup.setOnMenuItemClickListener(popuplistener); MenuInflater
+		 * inflater = popup.getMenuInflater(); Menu popupMenu = popup.getMenu();
+		 * inflater.inflate(R.menu.ontouch_menu, popup.getMenu()); popup.show();
+		 * } else {
+		 */
+		final AlertDialog builder = new AlertDialog.Builder(this).create();
+		builder.setTitle("Order:");
+		LayoutInflater adbInflater = this.getLayoutInflater();
+		final View checkboxLayout = adbInflater.inflate(R.layout.order_menu,
+				null);
+		builder.setView(checkboxLayout);
 
-			};
+		RadioGroup rg = (RadioGroup) checkboxLayout
+				.findViewById(R.id.order_group);
 
-			popup.setOnMenuItemClickListener(popuplistener);
-			MenuInflater inflater = popup.getMenuInflater();
-			Menu popupMenu = popup.getMenu();
-			inflater.inflate(R.menu.ontouch_menu, popup.getMenu());
-			popup.show();
-		} else {*/
-			final AlertDialog builder = new AlertDialog.Builder(this).create();
-			builder.setTitle("Order:");
-			LayoutInflater adbInflater = this.getLayoutInflater();
-            final View checkboxLayout = adbInflater.inflate(R.layout.order_menu, null);
-            builder.setView(checkboxLayout);
+		rg.check(this.getSortOrderInt());
 
-            RadioGroup rg = (RadioGroup) checkboxLayout.findViewById(R.id.order_group);
-            
-            rg.check(this.getSortOrderInt());
-           
-            rg.setOnCheckedChangeListener(new OnCheckedChangeListener()
-            {
-                @Override
-                public void onCheckedChanged(RadioGroup group, int checkedId)
-                {
-                	group.check(checkedId);
-                	mnact.setSortOrderInt(checkedId);
-                	RadioButton checkedOption = (RadioButton)checkboxLayout.findViewById(checkedId);
-                	String selectedRadioValue = (String)checkedOption.getText();
-                	mnact.orderItems(selectedRadioValue);
-                	builder.dismiss();                    
-                }
-            });
-            builder.show(); 
-		//}
+		rg.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+			@Override
+			public void onCheckedChanged(RadioGroup group, int checkedId) {
+				group.check(checkedId);
+				mnact.setSortOrderInt(checkedId);
+				RadioButton checkedOption = (RadioButton) checkboxLayout
+						.findViewById(checkedId);
+				String selectedRadioValue = (String) checkedOption.getText();
+				mnact.orderItems(selectedRadioValue);
+				builder.dismiss();
+			}
+		});
+		builder.show();
+		// }
 	}
 
 	public void nextTrack() {
 		mMusicManager.loadTrack(setTrack(1));
 		mMusicManager.playTrack(false);
+		mNotifyBuilder.setContentText(getCurrentTrackName());
+		mgr.notify(NOTIFY_ID, mNotifyBuilder.build());
 	}
 
 	private void orderItems(String order) {
@@ -1113,22 +1112,26 @@ public class MainActivity extends Activity implements Runnable,
 		} else if (order.equals(getString(R.string.playlist))) {
 			PLAYLIST_TAB = true;
 			mDbadapter.open();
-			mPlaylistAdapter = new PlaylistAdapter(this, mDbadapter.fetchSongs());
-				playlist.setOnItemClickListener(mPlaylistAdapter);
-				playlist.setAdapter(mPlaylistAdapter);
+			mPlaylistAdapter = new PlaylistAdapter(this,
+					mDbadapter.fetchSongs());
+			playlist.setOnItemClickListener(mPlaylistAdapter);
+			playlist.setAdapter(mPlaylistAdapter);
 		}
 	}
 
-	public static MainActivity getMainObject(){
+	public static MainActivity getMainObject() {
 		return mnact;
 	}
-	
+
 	public void previousTrack() {
 		mMusicManager.loadTrack(setTrack(-1));
 		mMusicManager.playTrack(false);
+		mNotifyBuilder.setContentText(getCurrentTrackName());
+		mgr.notify(NOTIFY_ID, mNotifyBuilder.build());
 	}
 
-	public void playPause() {
+	public void initNotification() {
+
 		Intent notifIntent = new Intent(this, MainActivity.class);
 		notifIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
 				| Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -1144,56 +1147,46 @@ public class MainActivity extends Activity implements Runnable,
 		PendingIntent pIntentPrevious = PendingIntent.getBroadcast(this, 0,
 				new Intent(PREVIOUS), 0);
 
+		mgr = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+		mNotifyBuilder = new NotificationCompat.Builder(this);
+		mNotifyBuilder
+				.setPriority(Notification.PRIORITY_HIGH)
+				.setContentTitle("Fullsink")
+				.setContentText(getCurrentTrackName())
+				.setSmallIcon(R.drawable.ic_launcher)
+				.setContentIntent(pIntent)
+				.addAction(R.drawable.ic_media_previous,
+						this.getString(R.string.previous), pIntentPrevious);
+		if (mMusicManager.isTuning()) {
+			mNotifyBuilder.addAction(R.drawable.ic_media_play,
+					this.getString(R.string.play), pIntentPlay);
+		} else {
+			mNotifyBuilder.addAction(R.drawable.ic_media_pause,
+					this.getString(R.string.play), pIntentPlay);
+		}
+		mNotifyBuilder.addAction(R.drawable.ic_media_next,
+				this.getString(R.string.next), pIntentNext);
+
+		mNotify = mNotifyBuilder.build();
+		mNotify.flags |= Notification.FLAG_ONGOING_EVENT
+				| Intent.FLAG_ACTIVITY_CLEAR_TOP
+				| Intent.FLAG_ACTIVITY_SINGLE_TOP;
+		mgr.notify(NOTIFY_ID, mNotify);
+	}
+
+	public void playPause() {
+		initNotification();
 		if (mMusicManager.isTuning()) {
 			toClients(CMD_PAUSE);
 			mMusicManager.setIsTuning(false);
 			((ImageView) findViewById(R.id.imgPlayPause))
 					.setImageResource(R.drawable.ic_media_play);
 			mMusicManager.getTrack().pause();
-			mgr = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-			NotificationCompat.Builder notific = new NotificationCompat.Builder(
-					this);
-			Notification notify = notific
-					.setPriority(Notification.PRIORITY_HIGH)
-					.setContentTitle("Fullsink")
-					.setContentText(getCurrentTrackName())
-					.setSmallIcon(R.drawable.ic_launcher)
-					.setContentIntent(pIntent)
-					.addAction(R.drawable.ic_media_previous,
-							this.getString(R.string.previous), pIntentPrevious)
-					.addAction(R.drawable.ic_media_play,
-							this.getString(R.string.play), pIntentPlay)
-					.addAction(R.drawable.ic_media_next,
-							this.getString(R.string.next), pIntentNext).build();
-			notify.flags |= Notification.FLAG_ONGOING_EVENT
-					| Intent.FLAG_ACTIVITY_CLEAR_TOP
-					| Intent.FLAG_ACTIVITY_SINGLE_TOP;
-			mgr.notify(NOTIFY_ID, notify);
-
 		} else {
 			mMusicManager.setIsTuning(true);
 			((ImageView) findViewById(R.id.imgPlayPause))
 					.setImageResource(R.drawable.ic_media_pause);
 			mMusicManager.playTrack(true);
-			mgr = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-			NotificationCompat.Builder notific = new NotificationCompat.Builder(
-					this);
-			Notification notify = notific
-					.setPriority(Notification.PRIORITY_HIGH)
-					.setContentTitle("Fullsink")
-					.setContentText(getCurrentTrackName())
-					.setSmallIcon(R.drawable.ic_launcher)
-					.setContentIntent(pIntent)
-					.addAction(R.drawable.ic_media_previous,
-							this.getString(R.string.previous), pIntentPrevious)
-					.addAction(R.drawable.ic_media_pause,
-							this.getString(R.string.play), pIntentPlay)
-					.addAction(R.drawable.ic_media_next,
-							this.getString(R.string.next), pIntentNext).build();
-			notify.flags |= Notification.FLAG_ONGOING_EVENT
-					| Intent.FLAG_ACTIVITY_CLEAR_TOP
-					| Intent.FLAG_ACTIVITY_SINGLE_TOP;
-			mgr.notify(NOTIFY_ID, notify);
 
 		}
 
@@ -1254,13 +1247,13 @@ public class MainActivity extends Activity implements Runnable,
 			}
 		}
 		playlist.setItemChecked(pos, true);
-		if(!mMusicManager.isTuning()){
+		if (!mMusicManager.isTuning()) {
 			mMusicManager.setIsTuning(true);
 			((ImageView) findViewById(R.id.imgPlayPause))
-			.setImageResource(R.drawable.ic_media_pause);
+					.setImageResource(R.drawable.ic_media_pause);
 		}
-		mMusicManager.setCurrentSongPosition(pos);//used to be 0 instead of pos
-		//might need to move highlight here as well
+		mMusicManager.setCurrentSongPosition(pos);// used to be 0 instead of pos
+		// might need to move highlight here as well
 		playlist.smoothScrollToPosition(pos);
 		return (prevtrack);
 	}
@@ -1546,7 +1539,7 @@ public class MainActivity extends Activity implements Runnable,
 			ContextMenuInfo menuInfoIn) {
 		if (mTabsManager.getActiveTab() == (R.id.btnSongs) || mSongsSubmenu) {
 			menu.add(0, DELETE_ITEM, 0, R.string.delete);
-			//menu.add(0, ADD_TO_PLAYLIST, 1, R.string.add_playlist);
+			// menu.add(0, ADD_TO_PLAYLIST, 1, R.string.add_playlist);
 		}
 	}
 
@@ -1574,10 +1567,11 @@ public class MainActivity extends Activity implements Runnable,
 								}
 								MusicUtils.deleteTracks(MainActivity.this,
 										deleteList);
-									mPlaycuradapter.changeCursor(MediaMeta
-											.getMusicCursor(mnact,
-													MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
-								dialog.dismiss();	
+								mPlaycuradapter.changeCursor(MediaMeta
+										.getMusicCursor(
+												mnact,
+												MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
+								dialog.dismiss();
 							}
 
 						})
@@ -1586,7 +1580,7 @@ public class MainActivity extends Activity implements Runnable,
 						new DialogInterface.OnClickListener() {
 							public void onClick(DialogInterface dialog,
 									int which) {
-								dialog.dismiss();	
+								dialog.dismiss();
 
 							}
 						}).create();
@@ -1631,7 +1625,7 @@ public class MainActivity extends Activity implements Runnable,
 	public String getSortOrderString() {
 		return mSortOrderString;
 	}
-	
+
 	public int getSortOrderInt() {
 		return mSortOrderInt;
 	}
@@ -1640,7 +1634,7 @@ public class MainActivity extends Activity implements Runnable,
 	public void setSortOrderString(String sortOrder) {
 		mSortOrderString = sortOrder;
 	}
-	
+
 	public void setSortOrderInt(int sortOrder) {
 		mSortOrderInt = sortOrder;
 	}
@@ -1661,87 +1655,106 @@ public class MainActivity extends Activity implements Runnable,
 	public boolean onItemLongClick(AdapterView<?> adapter, View view,
 			int position, final long id) {
 		final View thisview = view;
-		
-//		int previousSelected = playlist.getCheckedItemPosition();
-//		mPreviousView = (CheckableRelativeLayout) playlist.getChildAt(previousSelected);
-//		
-//		getMusicManager().setCurrentSongPosition(position);
-//		playlist.setItemChecked(position, true);
-		TextView field = (TextView) view.findViewById(R.id.title);
-		final String selectedTitle = (String)field.getText();
-//		mPlaycuradapter.setCurrentTrack(deleteTitle);
-//		mPlaycuradapter.moveHighlight(view);
 
-		
+		// int previousSelected = playlist.getCheckedItemPosition();
+		// mPreviousView = (CheckableRelativeLayout)
+		// playlist.getChildAt(previousSelected);
+		//
+		// getMusicManager().setCurrentSongPosition(position);
+		// playlist.setItemChecked(position, true);
+		TextView field = (TextView) view.findViewById(R.id.title);
+		final String selectedTitle = (String) field.getText();
+		// mPlaycuradapter.setCurrentTrack(deleteTitle);
+		// mPlaycuradapter.moveHighlight(view);
+
 		Timer longpressTimer = new Timer();
 		FS_GestureDetector.moving = false;
-        longpressTimer.schedule(new TimerTask(){
+		longpressTimer.schedule(new TimerTask() {
 
 			@Override
 			public void run() {
-			if (((mTabsManager.getActiveTab() == (R.id.btnSongs)) || mSongsSubmenu) && !FS_GestureDetector.moving) {
-				mDeletetitle = selectedTitle;
-				ImageView imageView = (ImageView) thisview.findViewById(R.id.image);
-				final int songId = Integer.valueOf(imageView.getTag().toString());
-				deleteList = new long[1];
-				deleteList[0] = (int) songId;
-				final AlertDialog.Builder builder = new AlertDialog.Builder(mnact);
-//				builder.setOnKeyListener(new DialogInterface.OnKeyListener() {
-//			        @Override
-//			        public boolean onKey (DialogInterface dialog, int keyCode, KeyEvent event) {
-//			            if (keyCode == KeyEvent.KEYCODE_BACK) {
-//			        		mPlaycuradapter.moveHighlight(mPreviousView);
-//			                return true;
-//			            }
-//			            return false;
-//			        }
-//			    });
-				builder.setTitle(selectedTitle);
-				String items[];
-				if(PLAYLIST_TAB){
-					items = new String[1];
-					items[0] = getString(R.string.remove_from_playlist); 
-				} else {
-					items = new String[2]; 
-					items[0] = getString(R.string.delete);
-					items[1] = getString(R.string.add_playlist);
-				}
-				builder.setItems(items, new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface dialog, int item) {
-						if(PLAYLIST_TAB){
-							mDbadapter.removeSong(songId);
-							mPlaylistAdapter.changeCursor(mDbadapter.fetchSongs());
-						} else {
-						switch(item){
-						case DELETE_ITEM:
-							AlertDialog deleteDialog = Delete();
-							deleteDialog.show();
-						case ADD_TO_PLAYLIST:
-							TextView fieldTitle = (TextView) thisview.findViewById(R.id.title);
-							String title = (String)fieldTitle.getText();
-							String artist = (String)((TextView) thisview.findViewById(R.id.album)).getText();
-							String albumId = (String)(thisview.findViewById(R.id.image)).getTag();
-							//PlaylistManager.addToPlaylist(title, artist, albumId, mnact);
-							mDbadapter.open();
-							mDbadapter.addTrackInfo(Long.toString(songId), albumId, artist, title);
-							mDbadapter.close();
-						}
+				if (((mTabsManager.getActiveTab() == (R.id.btnSongs)) || mSongsSubmenu)
+						&& !FS_GestureDetector.moving) {
+					mDeletetitle = selectedTitle;
+					ImageView imageView = (ImageView) thisview
+							.findViewById(R.id.image);
+					final int songId = Integer.valueOf(imageView.getTag()
+							.toString());
+					deleteList = new long[1];
+					deleteList[0] = (int) songId;
+					final AlertDialog.Builder builder = new AlertDialog.Builder(
+							mnact);
+					// builder.setOnKeyListener(new
+					// DialogInterface.OnKeyListener() {
+					// @Override
+					// public boolean onKey (DialogInterface dialog, int
+					// keyCode, KeyEvent event) {
+					// if (keyCode == KeyEvent.KEYCODE_BACK) {
+					// mPlaycuradapter.moveHighlight(mPreviousView);
+					// return true;
+					// }
+					// return false;
+					// }
+					// });
+					builder.setTitle(selectedTitle);
+					String items[];
+					if (PLAYLIST_TAB) {
+						items = new String[1];
+						items[0] = getString(R.string.remove_from_playlist);
+					} else {
+						items = new String[2];
+						items[0] = getString(R.string.delete);
+						items[1] = getString(R.string.add_playlist);
 					}
-					}
-				});
-				mnact.runOnUiThread(new Runnable() {
-					  public void run() {
-						  AlertDialog alert = builder.create();
+					builder.setItems(items,
+							new DialogInterface.OnClickListener() {
+
+								public void onClick(DialogInterface dialog,
+										int item) {
+									if (PLAYLIST_TAB) {
+										mDbadapter.removeSong(songId);
+										mPlaylistAdapter
+												.changeCursor(mDbadapter
+														.fetchSongs());
+									} else {
+										switch (item) {
+										case DELETE_ITEM:
+											AlertDialog deleteDialog = Delete();
+											deleteDialog.show();
+										case ADD_TO_PLAYLIST:
+											TextView fieldTitle = (TextView) thisview
+													.findViewById(R.id.title);
+											String title = (String) fieldTitle
+													.getText();
+											String artist = (String) ((TextView) thisview
+													.findViewById(R.id.album))
+													.getText();
+											String albumId = (String) (thisview
+													.findViewById(R.id.image))
+													.getTag();
+											// PlaylistManager.addToPlaylist(title,
+											// artist, albumId, mnact);
+											mDbadapter.open();
+											mDbadapter.addTrackInfo(
+													Long.toString(songId),
+													albumId, artist, title);
+										}
+									}
+								}
+							});
+					mnact.runOnUiThread(new Runnable() {
+						public void run() {
+							AlertDialog alert = builder.create();
 							alert.show();
-					  }
+						}
 					});
-				
-			} else if(mnact.PLAYLIST_TAB){
-				
-			} 
+
+				} else if (mnact.PLAYLIST_TAB) {
+
+				}
 			}
-	     }, 1000); //1 second delay
-        
+		}, 1000); // 1 second delay
+
 		return true;
 	}
 

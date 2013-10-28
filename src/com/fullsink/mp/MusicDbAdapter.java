@@ -62,7 +62,6 @@ public class MusicDbAdapter {
 	public void open() {
 		musicDbHelper = new MusicDbHelper(mContext);
 		musicDatabase = musicDbHelper.getWritableDatabase();
-		musicDatabase.close(); 
 	}
 	
 	public void openReadOnly() {
