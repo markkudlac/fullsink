@@ -91,16 +91,19 @@ public class MainActivity extends Activity implements Runnable,
 	public static DiscoverHttpd mDiscoverHttpd = null;
 
 	private static int ShuffleLoop = MODE_NORMAL;
+	public static MainActivity getMainObject() {
+		return mnact;
+	}
+
 	WakeLock wakeLock;
-
 	ListView playlist;
-	ListView serverlist;
 
+	ListView serverlist;
 	ServerAdapter serveradapter;
 	PlayCurAdapter mPlaycuradapter;
 	AlbumAdapter albumAdapter;
-	ArtistAdapter artistAdapter;
 
+	ArtistAdapter artistAdapter;
 	SeekBar seekbar;
 	ProgressBar progressbar;
 	ProgressDialog progressdialog = null;
@@ -113,571 +116,65 @@ public class MainActivity extends Activity implements Runnable,
 	private long[] deleteList;
 	static MainActivity mnact;
 	private GestureDetector gestureDetector;
-	private GestureDetector gestureDetector2;
-	private View.OnTouchListener gestureListener;
 
+	private View.OnTouchListener gestureListener;
 	private NotificationReceiver mIntentReceiver;
-	private Intent musicIntent;
 	private NotificationManager mgr;
 	private static final int NOTIFY_ID = 1337;
 	public static final String PLAY = "com.fullsink.mp.play";
 	public static final String NEXT = "com.fullsink.mp.next";
 	public static final String PREVIOUS = "com.fullsink.mp.previous";
-	private PopupMenu popup;
-	private PopupMenu.OnMenuItemClickListener popuplistener;
 	private String mSortOrderString;
 	private TabsManager mTabsManager;
 	private MusicManager mMusicManager;
 	private boolean mSongsSubmenu;
 	public String mDeletetitle;
-	private OnTouchListener gestureListener2;
 	private int mSortOrderInt;
-	private CheckableRelativeLayout mPreviousView;
 	private MusicDbAdapter mDbadapter;
 	private PlaylistAdapter mPlaylistAdapter;
 	private Builder mNotifyBuilder;
 	private Notification mNotify;
 
-	@SuppressLint("NewApi")
-	@Override
-	public void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		NetStrat.setSsid(this);
-		// load action bar for OS 2.3 or greater
-		if (android.os.Build.VERSION.SDK_INT >= 11) {
-			ActionBar ab = getActionBar();
-			ab.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
-			ab.setCustomView(R.layout.actionbar);
-			// ImageView photoActionBarView = (ImageView)
-			// findViewById(R.id.photoActionBar);
+	public void adapterOut(final boolean remove, final int item) {
 
-			Bitmap bm = PhotoActivity.getPhotoBitmap(this);
-			if (bm != null) {
-				((ImageView) findViewById(R.id.photoActionBar))
-						.setImageBitmap(bm);
-			}
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
 
-			ImageButton logoButton = (ImageButton) findViewById(R.id.logo_record);
-			final String ssid = NetStrat.getSsid();
-			logoButton.setOnClickListener(new View.OnClickListener() {
-				public void onClick(View v) {
-					Toast.makeText(getApplicationContext(), ssid,
-							Toast.LENGTH_LONG).show();
-				}
-			});
-		}
-
-		setVolumeControlStream(AudioManager.STREAM_MUSIC);
-
-		// Not sure if this is needed.
-		PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
-		wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-				"Fullsink");
-		setContentView(R.layout.activity_main);
-
-		initialize();
-	}
-
-	@Override
-	public void onResume() {
-		super.onResume();
-		wakeLock.acquire();
-		System.out.println("In RESUME");
-		IntentFilter commandFilter = new IntentFilter();
-		commandFilter.addAction(PLAY);
-		commandFilter.addAction(NEXT);
-		commandFilter.addAction(PREVIOUS);
-		registerReceiver(mIntentReceiver, commandFilter);
-		if (isSockServerOn())
-			WServ.sendTrackData(null); // Will update changes in settings
-		// mNsdHelper.discoverServices(); Keep out was problems
-		if (android.os.Build.VERSION.SDK_INT >= 11) {
-			ImageView photoActionBarView = (ImageView) findViewById(R.id.photoActionBar);
-			Bitmap bitmap = PhotoActivity.getPhotoBitmap(this);
-			if (bitmap != null)
-				photoActionBarView.setImageBitmap(bitmap);
-		}
-	}
-
-	@Override
-	public void onPause() {
-		super.onPause();
-
-		System.out.println("In PAUSE");
-
-		wakeLock.release();
-		// mNsdHelper.stopDiscovery(); Keep out was problems
-
-		if (isFinishing()) {
-			mMusicManager.clearCurrentTrack();
-			finish();
-		}
-	}
-
-	@Override
-	public void onNewIntent(Intent intent) {
-		Bundle extras = getIntent().getExtras();
-		if (extras != null) {
-			String value = extras.getString(Const.CMD_PLAY);
-		}
-	}
-
-	@Override
-	public void onDestroy() {
-		super.onDestroy();
-
-		if (mDiscoverHttpd != null) {
-			mDiscoverHttpd.constantPoll(-1);
-		}
-
-		System.out.println("In DESTROY");
-		NetStrat.logServer(this, SERVER_OFFLINE);
-
-		stopSockServer(true);
-		stopHttpdServer();
-		stopSockClient();
-		unregisterReceiver(mIntentReceiver);
-		System.out.println("Destroy OUT");
-		mDbadapter.close();
-		mgr.cancel(NOTIFY_ID);
-		Prefs.setSortOrder(mnact, "" + getSortOrderInt());
-	}
-
-	@Override
-	public void onConfigurationChanged(Configuration newConfig) {
-		super.onConfigurationChanged(newConfig);
-
-		// Checks the orientation of the screen
-		if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-			LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-					LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
-			params.weight = 1.0f;
-			Button tbtn = (Button) findViewById(R.id.btnSongs);
-			tbtn.setLayoutParams(params);
-			tbtn = (Button) findViewById(R.id.btnAlbums);
-			tbtn.setLayoutParams(params);
-			tbtn = (Button) findViewById(R.id.btnArtists);
-			tbtn.setLayoutParams(params);
-			System.out.println("Got configuration change : Landscape");
-		} else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
-			LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-					LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
-			params.weight = 0.3f;
-			Button tbtn = (Button) findViewById(R.id.btnSongs);
-			tbtn.setLayoutParams(params);
-			tbtn = (Button) findViewById(R.id.btnAlbums);
-			tbtn.setLayoutParams(params);
-			tbtn = (Button) findViewById(R.id.btnArtists);
-			tbtn.setLayoutParams(params);
-			System.out.println("Got configuration change : Portrait");
-		}
-	}
-
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.main, menu);
-		return true;
-	}
-
-	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
-		switch (item.getItemId()) {
-		case R.id.action_settings:
-			toSettings(item);
-			return true;
-		case R.id.action_photo:
-			toPhoto(item);
-			return true;
-		case R.id.action_help:
-			toHelp(item);
-			return true;
-		case R.id.action_ipaddress:
-			toIPAddress(item);
-			return true;
-		default:
-			return super.onOptionsItemSelected(item);
-		}
-	}
-
-	public void toSettings(MenuItem item) {
-		Intent intent = new Intent(this, SettingsActivity.class);
-		startActivity(intent);
-	}
-
-	public void toPhoto(MenuItem item) {
-		Intent intent = new Intent(this, PhotoActivity.class);
-		startActivity(intent);
-	}
-
-	public void toHelp(MenuItem item) {
-		Intent intent = new Intent(this, HelpActivity.class);
-		startActivity(intent);
-	}
-
-	public void toIPAddress(MenuItem item) {
-
-		if (!isSockServerOn())
-			turnServerOn(this);
-
-		Intent intent = new Intent(this, IPAddressActivity.class);
-		startActivity(intent);
-	}
-
-	@Override
-	public void run() {
-		int currentPosition = 0;
-
-		while (mMusicManager.isTrack()) {
-
-			try {
-				currentPosition = getTrack().getCurrentPosition();
-			} catch (Exception ex) {
-				System.out.println("Exception in thread run for seek : " + ex);
-			}
-
-			try {
-				boolean playing = mMusicManager.getTrack().isPlaying();
-				if (playing) {
-					if (inClient()) {
-						progressbar.setMax(getTrack().getDuration());
-						progressbar.setProgress(currentPosition);
+				if (remove) {
+					serveradapter.setNotifyOnChange(true); // turn auto upadte
+															// back on
+					if (item >= 0) { // it is in the list else just leave
+						serverlist.setItemChecked(item, false); // This is dumb
+																// and should
+																// not be
+																// required
+						serveradapter.updateSelectedPosition(item);
 					} else {
-						seekbar.setProgress(currentPosition);
+						return;
 					}
 				}
-			} catch (Exception ex) {
-				Log.e("Fullsink", "Error in track.isPlaying()", ex);
-				StringBuffer result = new StringBuffer();
-				StackTraceElement[] trace = ex.getStackTrace();
-				ex.printStackTrace();
-				for (int i = 0; i < trace.length; i++) {
-					result.append(trace[i].toString()).append('\n');
-				}
-				Log.e("Stack Trace", result.toString());
 
-			}
+				serveradapter.notifyDataSetChanged();
 
-			try {
-				Thread.sleep(1000);
-			} catch (Exception ex) { // InterruptedException
-				return;
-			}
-		}
-	}
-
-	@SuppressLint("NewApi")
-	private void initialize() {
-		this.setSortOrderInt(Prefs.getSortOrder(this));
-		mnact = this;
-		WebSocketImpl.DEBUG = false;
-		mIntentReceiver = new NotificationReceiver(mnact);
-		mTabsManager = new TabsManager(this);
-		gestureDetector = new GestureDetector(this,
-				new FS_GestureDetector(this));
-		gestureListener = new View.OnTouchListener() {
-			@Override
-			public boolean onTouch(View v, MotionEvent event) {
-				return gestureDetector.onTouchEvent(event);
-			}
-		};
-
-		mDbadapter = new MusicDbAdapter(mnact);
-
-		IntentFilter commandFilter = new IntentFilter();
-
-		commandFilter.addAction(PLAY);
-		commandFilter.addAction(NEXT);
-		commandFilter.addAction(PREVIOUS);
-		registerReceiver(mIntentReceiver, commandFilter);
-
-
-		playlist = (ListView) findViewById(R.id.playlist);
-		// playlist.setOnCreateContextMenuListener(this);
-		playlist.setOnItemLongClickListener(this);
-		playlist.setOnTouchListener(gestureListener);
-		serverlist = (ListView) View.inflate(this, R.layout.server_adapter,
-				null);
-		((ViewGroup) findViewById(R.id.midfield)).addView(serverlist);
-
-		serveradapter = new ServerAdapter(this);
-		serverlist.setOnItemClickListener(serveradapter);
-		serverlist.setAdapter(serveradapter);
-		serverlist.setOnTouchListener(gestureListener);
-		mMusicManager = new MusicManager(this);
-		loadPlayAdapter();
-
-		seekbar = (SeekBar) findViewById(R.id.seekbar);
-		progressbar = (ProgressBar) findViewById(R.id.progressbar);
-
-		seekbar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
-			public void onProgressChanged(SeekBar seekBar, int progress,
-					boolean fromUser) {
-				// textOut("SeekBar value is "+progress);
-			}
-
-			public void onStartTrackingTouch(SeekBar seekBar) {
-				toClients(CMD_PAUSE);
-				mMusicManager.getTrack().pause();
-			}
-
-			public void onStopTrackingTouch(SeekBar seekBar) {
-				int xseek;
-
-				xseek = seekBar.getProgress();
-				mMusicManager.getTrack().seekTo(xseek);
-				toClients(CMD_RESUME + xseek);
-				mMusicManager.getTrack().play();
-			}
-		});
-
-		mTabsManager.setActiveMenu(R.id.btnSongs);
-		Button songsButton = ((Button) findViewById(R.id.btnSongs));
-		songsButton.setOnClickListener(new OnClickListener() {
-			@SuppressLint("NewApi")
-			@Override
-			public void onClick(View view) {
-				customSelectedMenuOnclick(view);
-
-			}
-		});
-		WebServer.versionChangeHTML(this); // This must be set before call to
-											// turnServerON
-
-		if (Prefs.getOnAir(this))
-			turnServerOn(this);
-
-		// mNsdHelper.discoverServices();
-
-		incrementLoadCount();
-		int cnt = Prefs.getLoadCount(this);
-		if (cnt <= INSTALL_AUTO) {
-			// System.out.println("Before setName for first installs");
-			PhotoActivity.setNamePhoto(this);
-			// WebClient.autoSelect(this, INSTALL_AUTO - cnt); Leave this in
-			// used with nsd
-		}
-
-		Music.setMuted(false);
-		// System.out.println("Out Initialize");
-		if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-			LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-					LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
-			params.weight = 1.0f;
-			Button tbtn = (Button) findViewById(R.id.btnSongs);
-			tbtn.setLayoutParams(params);
-			tbtn = (Button) findViewById(R.id.btnAlbums);
-			tbtn.setLayoutParams(params);
-			tbtn = (Button) findViewById(R.id.btnArtists);
-			tbtn.setLayoutParams(params);
-			System.out.println("Got configuration change : Landscape");
-		} else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-			LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-					LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
-			params.weight = 0.3f;
-			Button tbtn = (Button) findViewById(R.id.btnSongs);
-			tbtn.setLayoutParams(params);
-			tbtn = (Button) findViewById(R.id.btnAlbums);
-			tbtn.setLayoutParams(params);
-			tbtn = (Button) findViewById(R.id.btnArtists);
-			tbtn.setLayoutParams(params);
-			System.out.println("Got configuration change : Portrait");
-		}
-	}
-
-	public void loadPlayAdapter() {
-		// MediaStore.Audio.Media.DEFAULT_SORT_ORDER
-		int sortOrder = Prefs.getSortOrder(mnact);
-		String cursorOrder = null;
-		switch (sortOrder) {
-		case R.id.alphabetical:
-			cursorOrder = MediaStore.Audio.Media.DEFAULT_SORT_ORDER;
-			break;
-		case R.id.oldest:
-			cursorOrder = MediaStore.Audio.Media.DATE_MODIFIED + " DESC";
-			break;
-		case R.id.newest:
-			cursorOrder = MediaStore.Audio.Media.DATE_MODIFIED;
-			break;
-		case R.id.playlist:
-			cursorOrder = MediaStore.Audio.Media.DEFAULT_SORT_ORDER;
-			break;
-
-		}
-		mPlaycuradapter = new PlayCurAdapter(this, MediaMeta.getMusicCursor(
-				this, cursorOrder));
-		playlist.setOnItemClickListener(mPlaycuradapter);
-		playlist.setAdapter(mPlaycuradapter);
-
-		mMusicManager.setIsTuning(false);
-
-		if (!mPlaycuradapter.isEmpty()) {
-			playlist.setItemChecked(0, true);
-			mMusicManager.setCurrentSongPosition(0);
-			mMusicManager.loadTrack(null);
-		}
-
-	}
-
-
-	public void setAlbumSelected(boolean selected) {
-		albumSelected = selected;
-	}
-
-	public void setArtistSelected(boolean selected) {
-		artistSelected = selected;
-	}
-
-	@Override
-	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		if ((keyCode == KeyEvent.KEYCODE_BACK)) { // Back key pressed
-			if (albumSelected) {
-				setAlbumSelected(false);
-				playlist.setAdapter(albumAdapter);
-				playlist.setOnItemClickListener(albumAdapter);
-				setSongsSubmenu(false);
-				return true;
-			} else if (artistSelected) {
-				setArtistSelected(false);
-				playlist.setAdapter(artistAdapter);
-				playlist.setOnItemClickListener(artistAdapter);
-				setSongsSubmenu(false);
-				return true;
-			}
-		}
-		return super.onKeyDown(keyCode, event);
-	}
-
-	public void setDownload(final boolean enable) {
-
-		runOnUiThread(new Runnable() {
-			public void run() {
-				Button copybut = (Button) findViewById(R.id.btnclientCopy);
-
-				if (enable) {
-					copybut.setBackgroundResource(R.drawable.buttonblack);
-					copybut.setClickable(true);
-				} else {
-					copybut.setBackgroundResource(R.drawable.buttongrey);
-					copybut.setClickable(false);
+				// There may be a hole here as not sure if notify is completed
+				// here. Seems to work
+				int serverCount = serverlist.getCheckedItemPosition();
+				System.out.println("Checked count : " + serverCount);
+				// Stop stream if the check (current connection) is lost count
+				// zero
+				if (remove && serverCount == ListView.INVALID_POSITION) {
+					mMusicManager.clearStream();
 				}
 			}
 		});
 	}
 
-	public void setServerIndicator(final int mode) {
+	private void butNext(int offset) {
 
-		runOnUiThread(new Runnable() {
-			public void run() {
-				ImageView imgbut = (ImageView) findViewById(R.id.imgServerIndicator);
-
-				if (mode == MODE_PAUSE) {
-					imgbut.setImageResource(R.drawable.ic_media_pause);
-				} else if (mode == MODE_PLAY) {
-					imgbut.setImageResource(R.drawable.ic_media_play);
-				} else {
-					imgbut.setImageResource(R.drawable.ic_media_stop);
-				}
-			}
-		});
-	}
-
-
-	public Music getTrack() {
-		synchronized (this) { // May not be needed not sure on Sync
-			return (mMusicManager.getTrack());
-		}
-	}
-
-	public File getMusicDirectory() {
-
-		File dirpath = null;
-		String dir = null;
-
-		int pos = playlist.getCheckedItemPosition();
-		if (pos != ListView.INVALID_POSITION) {
-			dir = mPlaycuradapter.getTrackDir(pos); // Path to song in music
-													// dir
-		}
-
-		return new File(dir);
-	}
-
-	public String getCurrentTrackName() {
-		int pos;
-		String track = null;
-
-		pos = playlist.getCheckedItemPosition();
-		if (pos != ListView.INVALID_POSITION) {
-			track = mPlaycuradapter.getTrackPath(pos); // Path to song in music
-														// dir
-		}
-
-		return (track);
-	}
-
-	public void onPlayClick(String prevFile) {
-		this.initNotification();
-		mMusicManager.loadTrack(prevFile);
-		if (!mMusicManager.isTuning()) {
-			mMusicManager.setIsTuning(true);
-			((ImageView) findViewById(R.id.imgPlayPause))
-					.setImageResource(R.drawable.ic_media_pause);
-		}
+		mMusicManager.loadTrack(setTrack(offset));
 		mMusicManager.playTrack(false);
-
-	}
-
-	public void prepClientScreen() {
-		progressbar.setProgress(0);
-		setDownload(false);
-		setServerIndicator(MODE_STOP);
-	}
-
-	public void turnServerOn(final MainActivity mnact) {
-
-		final String ipadd = NetStrat.getWifiApIpAddress();
-		if (ipadd != null) {
-			final int httpdPort = NetStrat.getHttpdPort(mnact);
-			final int webSockPort = NetStrat.getSocketPort(mnact);
-
-			NetStrat.logServer(mnact, ipadd, Prefs.getName(mnact), webSockPort,
-					httpdPort);
-
-			new Thread(new Runnable() {
-				public void run() {
-					try {
-
-						startHttpdServer(httpdPort, ipadd);
-
-						System.out.println("WebSock Port : " + webSockPort
-								+ "  IPADD : " + ipadd);
-						startSockServer(webSockPort, ipadd);
-
-					} catch (Exception ex) {
-						System.out.println("Select thread exception : " + ex);
-					}
-
-					runOnUiThread(new Runnable() {
-						public void run() {
-							((ImageView) findViewById(R.id.imgServer))
-									.setImageResource(R.drawable.ic_media_route_on_holo_blue);
-						}
-					});
-				}
-			}).start();
-		} else {
-			FS_Util.showConnectionWarning(mnact);
-		}
-	}
-
-	public void turnServerOff(final MainActivity mnact) {
-
-		stopHttpdServer();
-		stopSockServer(false);
-
-		NetStrat.logServer(mnact, SERVER_OFFLINE); // Server is turned off
-
+		// notify change
 	}
 
 	public void callLocal() {
@@ -1035,99 +532,264 @@ public class MainActivity extends Activity implements Runnable,
 		// }
 	}
 
-	public void nextTrack() {
-		mMusicManager.loadTrack(setTrack(1));
-		mMusicManager.playTrack(false);
-		mNotifyBuilder.setContentText(getCurrentTrackName());
-		mgr.notify(NOTIFY_ID, mNotifyBuilder.build());
+	private AlertDialog Delete() {
+		AlertDialog myQuittingDialogBox = new AlertDialog.Builder(this)
+				// set message, title, and icon
+				.setTitle("Delete")
+				.setMessage(
+						getResources().getString(
+								R.string.delete_confirm_button_text)
+								+ " " + this.mDeletetitle + "?")
+				// .setIcon(R.drawable.delete)
+
+				.setPositiveButton("Delete",
+						new DialogInterface.OnClickListener() {
+
+							public void onClick(DialogInterface dialog,
+									int whichButton) {
+								String curTrack = mPlaycuradapter
+										.getCurrentTrack();
+								if (curTrack.equals(mDeletetitle)) {
+									playPause();
+									progressbar.setProgress(0);
+									nextTrack();
+								}
+								MusicUtils.deleteTracks(MainActivity.this,
+										deleteList);
+								mPlaycuradapter.changeCursor(MediaMeta
+										.getMusicCursor(
+												mnact,
+												MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
+								dialog.dismiss();
+							}
+
+						})
+
+				.setNegativeButton("Cancel",
+						new DialogInterface.OnClickListener() {
+							public void onClick(DialogInterface dialog,
+									int which) {
+								dialog.dismiss();
+
+							}
+						}).create();
+		return myQuittingDialogBox;
+
 	}
 
-	private void orderItems(String order) {
-		int selectedTab = mTabsManager.getActiveTab();
-		if (order.equals(getString(R.string.order_alphabetical))) {
-			playlist.setAdapter(mPlaycuradapter);
-			PLAYLIST_TAB = false;
-			switch (mTabsManager.ACTIVE_TAB) {
-			case R.id.btnSongs: {
-				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact,
-						MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
-				setSortOrderString(MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
-				return;
-			}
-			case R.id.btnAlbums: {
-				albumAdapter.changeCursor(MediaMeta.getAlbumCursor(this,
-						MediaStore.Audio.Albums.DEFAULT_SORT_ORDER));
-				return;
-			}
-			case R.id.btnArtists: {
-				artistAdapter.changeCursor(MediaMeta.getArtistCursor(this,
-						MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
-				return;
-			}
-			}
-		} else if (order.equals(getString(R.string.order_newest))) {
-			playlist.setAdapter(mPlaycuradapter);
-			PLAYLIST_TAB = false;
-			switch (mTabsManager.ACTIVE_TAB) {
-			case R.id.btnSongs: {
-				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact,
-						MediaStore.Audio.Media.DATE_MODIFIED));
-				setSortOrderString(MediaStore.Audio.Media.DATE_MODIFIED);
-				return;
-			}
-			case R.id.btnAlbums: {
-				albumAdapter.changeCursor(MediaMeta.getAlbumCursor(this,
-						MediaStore.Audio.Albums.FIRST_YEAR + " ASC"));
-				return;
-			}
-			case R.id.btnArtists: {
-				artistAdapter.changeCursor(MediaMeta.getArtistCursor(this,
-						MediaStore.Audio.Media.DATE_MODIFIED));
-				return;
-			}
-			}
-		} else if (order.equals(getString(R.string.order_oldest))) {
-			playlist.setAdapter(mPlaycuradapter);
-			PLAYLIST_TAB = false;
-			switch (mTabsManager.ACTIVE_TAB) {
-			case R.id.btnSongs: {
-				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact,
-						MediaStore.Audio.Media.DATE_MODIFIED + " DESC"));
-				setSortOrderString(MediaStore.Audio.Media.DATE_MODIFIED
-						+ " DESC");
-				return;
-			}
-			case R.id.btnAlbums: {
-				albumAdapter.changeCursor(MediaMeta.getAlbumCursor(this,
-						MediaStore.Audio.Albums.FIRST_YEAR + " DESC"));
-				return;
-			}
-			case R.id.btnArtists: {
-				artistAdapter.changeCursor(MediaMeta.getArtistCursor(this,
-						MediaStore.Audio.Media.DATE_MODIFIED + " DESC"));
-				return;
-			}
-			}
+	public void downloadClickable() {
+		((Button) findViewById(R.id.btnclientCopy)).setClickable(true);
+	}
 
-		} else if (order.equals(getString(R.string.playlist))) {
-			PLAYLIST_TAB = true;
-			mDbadapter.open();
-			mPlaylistAdapter = new PlaylistAdapter(this,
-					mDbadapter.fetchSongs());
-			playlist.setOnItemClickListener(mPlaylistAdapter);
-			playlist.setAdapter(mPlaylistAdapter);
+	public void fileProgressControl(final int xprog) {
+
+		runOnUiThread(new Runnable() {
+			public void run() {
+				if (xprog == DOWNLOADERR) {
+					downloadClickable(); // Can download again
+					progressdialog.dismiss();
+					Toast.makeText(getBaseContext(), "Copy error. Re-try",
+							Toast.LENGTH_LONG).show();
+
+				} else if (xprog == 0) {
+					downloadClickable();
+					progressdialog.dismiss();
+					Toast.makeText(getBaseContext(), "Copy Complete",
+							Toast.LENGTH_SHORT).show();
+				} else if (xprog < 0) {
+					progressdialog.setMax(-xprog);
+				} else {
+					progressdialog.setProgress(xprog);
+				}
+			}
+		});
+	}
+
+	public String getCurrentTrackName() {
+		int pos;
+		String track = null;
+
+		pos = playlist.getCheckedItemPosition();
+		if (pos != ListView.INVALID_POSITION) {
+			track = mPlaycuradapter.getTrackPath(pos); // Path to song in music
+														// dir
+		}
+
+		return (track);
+	}
+
+	public File getMusicDirectory() {
+
+		File dirpath = null;
+		String dir = null;
+
+		int pos = playlist.getCheckedItemPosition();
+		if (pos != ListView.INVALID_POSITION) {
+			dir = mPlaycuradapter.getTrackDir(pos); // Path to song in music
+													// dir
+		}
+
+		return new File(dir);
+	}
+
+	public MusicManager getMusicManager() {
+		return mMusicManager;
+	}
+
+	public PlayCurAdapter getPlayCurAdapter() {
+		// TODO Auto-generated method stub
+		return mPlaycuradapter;
+	}
+
+	public ListView getPlaylist() {
+		return playlist;
+	}
+
+	public int getSortOrderInt() {
+		return mSortOrderInt;
+	}
+
+	public String getSortOrderString() {
+		return mSortOrderString;
+	}
+
+	public TabsManager getTabsManager() {
+		return mTabsManager;
+	}
+
+	public Music getTrack() {
+		synchronized (this) { // May not be needed not sure on Sync
+			return (mMusicManager.getTrack());
 		}
 	}
 
-	public static MainActivity getMainObject() {
-		return mnact;
+	public boolean inClient() {
+		return (WClient != null);
 	}
 
-	public void previousTrack() {
-		mMusicManager.loadTrack(setTrack(-1));
-		mMusicManager.playTrack(false);
-		mNotifyBuilder.setContentText(getCurrentTrackName());
-		mgr.notify(NOTIFY_ID, mNotifyBuilder.build());
+	private void incrementLoadCount() {
+
+		int cnt = Prefs.getLoadCount(this) + 1;
+		System.out.println("Increment loadcount : " + cnt);
+		Prefs.setLoadCount(this, cnt);
+	}
+
+	@SuppressLint("NewApi")
+	private void initialize() {
+		this.setSortOrderInt(Prefs.getSortOrder(this));
+		mnact = this;
+		WebSocketImpl.DEBUG = false;
+		mIntentReceiver = new NotificationReceiver(mnact);
+		mTabsManager = new TabsManager(this);
+		gestureDetector = new GestureDetector(this,
+				new FS_GestureDetector(this));
+		gestureListener = new View.OnTouchListener() {
+			@Override
+			public boolean onTouch(View v, MotionEvent event) {
+				return gestureDetector.onTouchEvent(event);
+			}
+		};
+
+		mDbadapter = new MusicDbAdapter(mnact);
+
+		IntentFilter commandFilter = new IntentFilter();
+
+		commandFilter.addAction(PLAY);
+		commandFilter.addAction(NEXT);
+		commandFilter.addAction(PREVIOUS);
+		registerReceiver(mIntentReceiver, commandFilter);
+
+		playlist = (ListView) findViewById(R.id.playlist);
+		// playlist.setOnCreateContextMenuListener(this);
+		playlist.setOnItemLongClickListener(this);
+		playlist.setOnTouchListener(gestureListener);
+		serverlist = (ListView) View.inflate(this, R.layout.server_adapter,
+				null);
+		((ViewGroup) findViewById(R.id.midfield)).addView(serverlist);
+
+		serveradapter = new ServerAdapter(this);
+		serverlist.setOnItemClickListener(serveradapter);
+		serverlist.setAdapter(serveradapter);
+		serverlist.setOnTouchListener(gestureListener);
+		mMusicManager = new MusicManager(this);
+		loadPlayAdapter();
+
+		seekbar = (SeekBar) findViewById(R.id.seekbar);
+		progressbar = (ProgressBar) findViewById(R.id.progressbar);
+
+		seekbar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+			public void onProgressChanged(SeekBar seekBar, int progress,
+					boolean fromUser) {
+				// textOut("SeekBar value is "+progress);
+			}
+
+			public void onStartTrackingTouch(SeekBar seekBar) {
+				toClients(CMD_PAUSE);
+				mMusicManager.getTrack().pause();
+			}
+
+			public void onStopTrackingTouch(SeekBar seekBar) {
+				int xseek;
+
+				xseek = seekBar.getProgress();
+				mMusicManager.getTrack().seekTo(xseek);
+				toClients(CMD_RESUME + xseek);
+				mMusicManager.getTrack().play();
+			}
+		});
+
+		mTabsManager.setActiveMenu(R.id.btnSongs);
+		Button songsButton = ((Button) findViewById(R.id.btnSongs));
+		songsButton.setOnClickListener(new OnClickListener() {
+			@SuppressLint("NewApi")
+			@Override
+			public void onClick(View view) {
+				customSelectedMenuOnclick(view);
+
+			}
+		});
+		WebServer.versionChangeHTML(this); // This must be set before call to
+											// turnServerON
+
+		if (Prefs.getOnAir(this))
+			turnServerOn(this);
+
+		// mNsdHelper.discoverServices();
+
+		incrementLoadCount();
+		int cnt = Prefs.getLoadCount(this);
+		if (cnt <= INSTALL_AUTO) {
+			// System.out.println("Before setName for first installs");
+			PhotoActivity.setNamePhoto(this);
+			// WebClient.autoSelect(this, INSTALL_AUTO - cnt); Leave this in
+			// used with nsd
+		}
+
+		Music.setMuted(false);
+		// System.out.println("Out Initialize");
+		if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+			LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+					LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
+			params.weight = 1.0f;
+			Button tbtn = (Button) findViewById(R.id.btnSongs);
+			tbtn.setLayoutParams(params);
+			tbtn = (Button) findViewById(R.id.btnAlbums);
+			tbtn.setLayoutParams(params);
+			tbtn = (Button) findViewById(R.id.btnArtists);
+			tbtn.setLayoutParams(params);
+			System.out.println("Got configuration change : Landscape");
+		} else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+			LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+					LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
+			params.weight = 0.3f;
+			Button tbtn = (Button) findViewById(R.id.btnSongs);
+			tbtn.setLayoutParams(params);
+			tbtn = (Button) findViewById(R.id.btnAlbums);
+			tbtn.setLayoutParams(params);
+			tbtn = (Button) findViewById(R.id.btnArtists);
+			tbtn.setLayoutParams(params);
+			System.out.println("Got configuration change : Portrait");
+		}
 	}
 
 	public void initNotification() {
@@ -1174,341 +836,42 @@ public class MainActivity extends Activity implements Runnable,
 		mgr.notify(NOTIFY_ID, mNotify);
 	}
 
-	public void playPause() {
-		initNotification();
-		if (mMusicManager.isTuning()) {
-			toClients(CMD_PAUSE);
-			mMusicManager.setIsTuning(false);
-			((ImageView) findViewById(R.id.imgPlayPause))
-					.setImageResource(R.drawable.ic_media_play);
-			mMusicManager.getTrack().pause();
-		} else {
-			mMusicManager.setIsTuning(true);
-			((ImageView) findViewById(R.id.imgPlayPause))
-					.setImageResource(R.drawable.ic_media_pause);
-			mMusicManager.playTrack(true);
-
-		}
-
-	}
-
-	public void downloadClickable() {
-		((Button) findViewById(R.id.btnclientCopy)).setClickable(true);
-	}
-
-	private void butNext(int offset) {
-
-		mMusicManager.loadTrack(setTrack(offset));
-		mMusicManager.playTrack(false);
-		// notify change
-	}
-
-	private String setTrack(int direction) {
-
-		int pos = 0;
-		String prevtrack = null;
-
-		// Get current position and if none check, should not happen, got to top
-		pos = playlist.getCheckedItemPosition();
-		if (pos == ListView.INVALID_POSITION) {
-			if (mPlaycuradapter.isEmpty()) {
-				pos = -1;
-			} else {
-				pos = 0;
-			}
-			return (prevtrack);
-		}
-
-		prevtrack = getCurrentTrackName();
-
-		if (ShuffleLoop == MODE_SHUFFLE && mPlaycuradapter.getCount() > 3) {
-			int temp = new Random().nextInt(mPlaycuradapter.getCount());
-			int safety = 0;
-			while (safety < 20) {
-				if (temp != pos) {
-					pos = temp;
-					break;
-				}
-				temp++;
-				if (temp > mPlaycuradapter.getCount() - 1) {
-					temp = 0;
-				}
-				++safety;
-			}
-		} else if (direction == -1) {
-			pos--;
-			if (pos < 0) {
-				pos = mPlaycuradapter.getCount() - 1;
-			}
-		} else if (direction == 1) {
-			pos++;
-			if (pos > mPlaycuradapter.getCount() - 1) {
-				pos = 0;
-			}
-		}
-		playlist.setItemChecked(pos, true);
-		if (!mMusicManager.isTuning()) {
-			mMusicManager.setIsTuning(true);
-			((ImageView) findViewById(R.id.imgPlayPause))
-					.setImageResource(R.drawable.ic_media_pause);
-		}
-		mMusicManager.setCurrentSongPosition(pos);// used to be 0 instead of pos
-		// might need to move highlight here as well
-		playlist.smoothScrollToPosition(pos);
-		return (prevtrack);
-	}
-
-
-	// private void notifyChange(String what) {
-	//
-	// Intent i = new Intent(what);
-	// i.putExtra("id", Long.valueOf(getAudioId()));
-	// i.putExtra("artist", getArtistName());
-	// i.putExtra("album",getAlbumName());
-	// i.putExtra("track", getTrackName());
-	// sendBroadcast(i);
-	//
-	// if (what.equals(QUEUE_CHANGED)) {
-	// saveQueue(true);
-	// } else {
-	// saveQueue(false);
-	// }
-	//
-	// // Share this notification directly with our widgets
-	// mAppWidgetProvider.notifyChange(this, what);
-	// }
-
-	public void setSongsSubmenu(boolean active) {
-		Button tbtn = (Button) findViewById(R.id.btnSongs);
-		mSongsSubmenu = active;
-		if (active) {
-			tbtn.setTypeface(Typeface.DEFAULT_BOLD);
-			tbtn.setClickable(false);
-		} else {
-			tbtn.setTypeface(Typeface.DEFAULT);
-			tbtn.setClickable(true);
-		}
-	}
-
-	public void playNextTrack() {
-
-		if (!inClient()) {
-			if (ShuffleLoop == MODE_LOOP) {
-				butNext(0);
-			} else {
-				butNext(1);
-			}
-		}
-	}
-
-	public void startSockServer(int port, String ipadd) {
-		WebSocketImpl.DEBUG = false; // This was true originally
-		boolean serverinit = false;
-
-		// System.out.println( "In WebSockServer : "+ipadd);
-		try {
-			// stopSockServer();
-			// This was changed to allow websocket server to remain running for
-			// 2.3 bug
-
-			if (!isSockServerOn()) {
-				System.out.println("In startSockServer");
-				WServ = new WebServer(port, ipadd, MainActivity.this);
-				serverinit = true;
-
-			}
-
-			WServ.deleteCues();
-			WServ.cueTrack(getMusicDirectory(), getCurrentTrackName()); // Copy
-																		// for
-																		// stream
-
-			if (serverinit) {
-				WServ.start();
-			}
-
-			System.out.println("WebSockServ started on port: "
-					+ WServ.getPort());
-			System.out.println("WebSockServ start Add : " + WServ.getAddress());
-			WServ.generateServerId(WServ.getPort());
-
-		} catch (Exception ex) {
-			System.out.println("WebSockServer host not found error" + ex);
-		}
-	}
-
-	public void stopSockServer(boolean closeflg) {
-
-		try {
-			if (isSockServerOn()) {
-				// System.out.println( "WebSockServer there are clients : " +
-				// WServ.isClient());
-				// There seems to be a bug when there are no connections the
-				// stop hangs in 2.3
-				// To get around this just let the socketserver run if no
-				// connections as no one will be able
-				// to connect as the Httpd server is the contact point for a
-				// live server
-
-				if (android.os.Build.VERSION.SDK_INT > 10 || closeflg
-						|| WServ.isClient()) {
-					// System.out.println("WebSockServ stopping");
-					WServ.stop();
-					WServ = null;
-				}
-
-			}
-		} catch (Exception ex) {
-			System.out.println("WebSockServer stop error" + ex);
-		}
-	}
-
 	public boolean isSockServerOn() {
 		return (WServ != null);
 	}
 
-	public void startSockClient(int webSockPort, String ipadd, int httpdPort) {
+	public void loadPlayAdapter() {
+		// MediaStore.Audio.Media.DEFAULT_SORT_ORDER
+		int sortOrder = Prefs.getSortOrder(mnact);
+		String cursorOrder = null;
+		switch (sortOrder) {
+		case R.id.alphabetical:
+			cursorOrder = MediaStore.Audio.Media.DEFAULT_SORT_ORDER;
+			break;
+		case R.id.oldest:
+			cursorOrder = MediaStore.Audio.Media.DATE_MODIFIED + " DESC";
+			break;
+		case R.id.newest:
+			cursorOrder = MediaStore.Audio.Media.DATE_MODIFIED;
+			break;
+		case R.id.playlist:
+			cursorOrder = MediaStore.Audio.Media.DEFAULT_SORT_ORDER;
+			break;
 
-		try {
-			System.out.println("In startSockClient");
-			stopSockClient();
-			WClient = new WebClient(webSockPort, ipadd, httpdPort,
-					MainActivity.this);
-			WClient.connect();
+		}
+		mPlaycuradapter = new PlayCurAdapter(this, MediaMeta.getMusicCursor(
+				this, cursorOrder));
+		playlist.setOnItemClickListener(mPlaycuradapter);
+		playlist.setAdapter(mPlaycuradapter);
 
-		} catch (Exception ex) {
-			System.out.println("WebClient error : " + ex);
+		mMusicManager.setIsTuning(false);
+
+		if (!mPlaycuradapter.isEmpty()) {
+			playlist.setItemChecked(0, true);
+			mMusicManager.setCurrentSongPosition(0);
+			mMusicManager.loadTrack(null);
 		}
 
-	}
-
-	public void toClients(String mess) {
-
-		if (isSockServerOn()) {
-			WServ.sendToAll(mess);
-		}
-	}
-
-	public void stopSockClient() {
-
-		try {
-			if (WClient != null) {
-				WClient.close();
-				WClient = null;
-			}
-		} catch (Exception ex) {
-			System.out.println("WebSockClient stop error" + ex);
-		}
-	}
-
-	public boolean inClient() {
-		return (WClient != null);
-	}
-
-	public void startHttpdServer(int httpdPort, String ipadd) {
-
-		try {
-			stopHttpdServer();
-			HttpdServ = new SimpleWebServer(ipadd, httpdPort, getFilesDir());
-			HttpdServ.start();
-			// mNsdHelper.registerService(httpdPort);
-			System.out.println("HttpdServ started Add : " + ipadd + "  Port : "
-					+ httpdPort);
-			NetStrat.storeHttpdPort(httpdPort);
-		} catch (Exception ex) {
-			System.out.println("HttpdServer error  : " + ex);
-		}
-	}
-
-	public void stopHttpdServer() {
-
-		try {
-			if (HttpdServ != null) {
-				// mNsdHelper.unregisterService();
-				HttpdServ.stop();
-				HttpdServ = null;
-				NetStrat.storeHttpdPort(0);
-			}
-
-		} catch (Exception ex) {
-			System.out.println("HttpdServer stop : " + ex);
-		}
-	}
-
-	// This is not good and should be reviewed
-	public void toastOut(final String xmess, final int length) {
-
-		runOnUiThread(new Runnable() {
-			public void run() {
-				Toast.makeText(getBaseContext(), xmess, length).show();
-			}
-		});
-	}
-
-	public void adapterOut(final boolean remove, final int item) {
-
-		runOnUiThread(new Runnable() {
-			@Override
-			public void run() {
-
-				if (remove) {
-					serveradapter.setNotifyOnChange(true); // turn auto upadte
-															// back on
-					if (item >= 0) { // it is in the list else just leave
-						serverlist.setItemChecked(item, false); // This is dumb
-																// and should
-																// not be
-																// required
-						serveradapter.updateSelectedPosition(item);
-					} else {
-						return;
-					}
-				}
-
-				serveradapter.notifyDataSetChanged();
-
-				// There may be a hole here as not sure if notify is completed
-				// here. Seems to work
-				int serverCount = serverlist.getCheckedItemPosition();
-				System.out.println("Checked count : " + serverCount);
-				// Stop stream if the check (current connection) is lost count
-				// zero
-				if (remove && serverCount == ListView.INVALID_POSITION) {
-					mMusicManager.clearStream();
-				}
-			}
-		});
-	}
-
-	public void fileProgressControl(final int xprog) {
-
-		runOnUiThread(new Runnable() {
-			public void run() {
-				if (xprog == DOWNLOADERR) {
-					downloadClickable(); // Can download again
-					progressdialog.dismiss();
-					Toast.makeText(getBaseContext(), "Copy error. Re-try",
-							Toast.LENGTH_LONG).show();
-
-				} else if (xprog == 0) {
-					downloadClickable();
-					progressdialog.dismiss();
-					Toast.makeText(getBaseContext(), "Copy Complete",
-							Toast.LENGTH_SHORT).show();
-				} else if (xprog < 0) {
-					progressdialog.setMax(-xprog);
-				} else {
-					progressdialog.setProgress(xprog);
-				}
-			}
-		});
-	}
-
-	private void incrementLoadCount() {
-
-		int cnt = Prefs.getLoadCount(this) + 1;
-		System.out.println("Increment loadcount : " + cnt);
-		Prefs.setLoadCount(this, cnt);
 	}
 
 	public void manageRemote(final String arg) {
@@ -1534,6 +897,83 @@ public class MainActivity extends Activity implements Runnable,
 		});
 	}
 
+	public void nextTrack() {
+		mMusicManager.loadTrack(setTrack(1));
+		mMusicManager.playTrack(false);
+		mNotifyBuilder.setContentText(getCurrentTrackName());
+		mgr.notify(NOTIFY_ID, mNotifyBuilder.build());
+	}
+
+	@Override
+	public void onConfigurationChanged(Configuration newConfig) {
+		super.onConfigurationChanged(newConfig);
+
+		// Checks the orientation of the screen
+		if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+			LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+					LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
+			params.weight = 1.0f;
+			Button tbtn = (Button) findViewById(R.id.btnSongs);
+			tbtn.setLayoutParams(params);
+			tbtn = (Button) findViewById(R.id.btnAlbums);
+			tbtn.setLayoutParams(params);
+			tbtn = (Button) findViewById(R.id.btnArtists);
+			tbtn.setLayoutParams(params);
+			System.out.println("Got configuration change : Landscape");
+		} else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+			LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+					LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
+			params.weight = 0.3f;
+			Button tbtn = (Button) findViewById(R.id.btnSongs);
+			tbtn.setLayoutParams(params);
+			tbtn = (Button) findViewById(R.id.btnAlbums);
+			tbtn.setLayoutParams(params);
+			tbtn = (Button) findViewById(R.id.btnArtists);
+			tbtn.setLayoutParams(params);
+			System.out.println("Got configuration change : Portrait");
+		}
+	}
+
+	@SuppressLint("NewApi")
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		NetStrat.setSsid(this);
+		// load action bar for OS 2.3 or greater
+		if (android.os.Build.VERSION.SDK_INT >= 11) {
+			ActionBar ab = getActionBar();
+			ab.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
+			ab.setCustomView(R.layout.actionbar);
+			// ImageView photoActionBarView = (ImageView)
+			// findViewById(R.id.photoActionBar);
+
+			Bitmap bm = PhotoActivity.getPhotoBitmap(this);
+			if (bm != null) {
+				((ImageView) findViewById(R.id.photoActionBar))
+						.setImageBitmap(bm);
+			}
+
+			ImageButton logoButton = (ImageButton) findViewById(R.id.logo_record);
+			final String ssid = NetStrat.getSsid();
+			logoButton.setOnClickListener(new View.OnClickListener() {
+				public void onClick(View v) {
+					Toast.makeText(getApplicationContext(), ssid,
+							Toast.LENGTH_LONG).show();
+				}
+			});
+		}
+
+		setVolumeControlStream(AudioManager.STREAM_MUSIC);
+
+		// Not sure if this is needed.
+		PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+		wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+				"Fullsink");
+		setContentView(R.layout.activity_main);
+
+		initialize();
+	}
+
 	@Override
 	public void onCreateContextMenu(ContextMenu menu, View view,
 			ContextMenuInfo menuInfoIn) {
@@ -1543,49 +983,32 @@ public class MainActivity extends Activity implements Runnable,
 		}
 	}
 
-	private AlertDialog Delete() {
-		AlertDialog myQuittingDialogBox = new AlertDialog.Builder(this)
-				// set message, title, and icon
-				.setTitle("Delete")
-				.setMessage(
-						getResources().getString(
-								R.string.delete_confirm_button_text)
-								+ " " + this.mDeletetitle + "?")
-				// .setIcon(R.drawable.delete)
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.main, menu);
+		return true;
+	}
 
-				.setPositiveButton("Delete",
-						new DialogInterface.OnClickListener() {
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
 
-							public void onClick(DialogInterface dialog,
-									int whichButton) {
-								String curTrack = mPlaycuradapter
-										.getCurrentTrack();
-								if (curTrack.equals(mDeletetitle)) {
-									playPause();
-									progressbar.setProgress(0);
-									nextTrack();
-								}
-								MusicUtils.deleteTracks(MainActivity.this,
-										deleteList);
-								mPlaycuradapter.changeCursor(MediaMeta
-										.getMusicCursor(
-												mnact,
-												MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
-								dialog.dismiss();
-							}
+		if (mDiscoverHttpd != null) {
+			mDiscoverHttpd.constantPoll(-1);
+		}
 
-						})
+		System.out.println("In DESTROY");
+		NetStrat.logServer(this, SERVER_OFFLINE);
 
-				.setNegativeButton("Cancel",
-						new DialogInterface.OnClickListener() {
-							public void onClick(DialogInterface dialog,
-									int which) {
-								dialog.dismiss();
-
-							}
-						}).create();
-		return myQuittingDialogBox;
-
+		stopSockServer(true);
+		stopHttpdServer();
+		stopSockClient();
+		unregisterReceiver(mIntentReceiver);
+		System.out.println("Destroy OUT");
+		mDbadapter.close();
+		mgr.cancel(NOTIFY_ID);
+		Prefs.setSortOrder(mnact, "" + getSortOrderInt());
 	}
 
 	@Override
@@ -1610,45 +1033,6 @@ public class MainActivity extends Activity implements Runnable,
 	public void onGestureStarted(GestureOverlayView overlay, MotionEvent event) {
 		// TODO Auto-generated method stub
 
-	}
-
-	public void setPlayCurAdapter(PlayCurAdapter playCurAdapter) {
-		mPlaycuradapter = playCurAdapter;
-
-	}
-
-	public PlayCurAdapter getPlayCurAdapter() {
-		// TODO Auto-generated method stub
-		return mPlaycuradapter;
-	}
-
-	public String getSortOrderString() {
-		return mSortOrderString;
-	}
-
-	public int getSortOrderInt() {
-		return mSortOrderInt;
-	}
-
-
-	public void setSortOrderString(String sortOrder) {
-		mSortOrderString = sortOrder;
-	}
-
-	public void setSortOrderInt(int sortOrder) {
-		mSortOrderInt = sortOrder;
-	}
-
-	public TabsManager getTabsManager() {
-		return mTabsManager;
-	}
-
-	public MusicManager getMusicManager() {
-		return mMusicManager;
-	}
-
-	public ListView getPlaylist() {
-		return playlist;
 	}
 
 	@Override
@@ -1756,6 +1140,609 @@ public class MainActivity extends Activity implements Runnable,
 		}, 1000); // 1 second delay
 
 		return true;
+	}
+
+	@Override
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		if ((keyCode == KeyEvent.KEYCODE_BACK)) { // Back key pressed
+			if (albumSelected) {
+				setAlbumSelected(false);
+				playlist.setAdapter(albumAdapter);
+				playlist.setOnItemClickListener(albumAdapter);
+				setSongsSubmenu(false);
+				return true;
+			} else if (artistSelected) {
+				setArtistSelected(false);
+				playlist.setAdapter(artistAdapter);
+				playlist.setOnItemClickListener(artistAdapter);
+				setSongsSubmenu(false);
+				return true;
+			}
+		}
+		return super.onKeyDown(keyCode, event);
+	}
+
+	@Override
+	public void onNewIntent(Intent intent) {
+		Bundle extras = getIntent().getExtras();
+		if (extras != null) {
+			String value = extras.getString(Const.CMD_PLAY);
+		}
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		switch (item.getItemId()) {
+		case R.id.action_settings:
+			toSettings(item);
+			return true;
+		case R.id.action_photo:
+			toPhoto(item);
+			return true;
+		case R.id.action_help:
+			toHelp(item);
+			return true;
+		case R.id.action_ipaddress:
+			toIPAddress(item);
+			return true;
+		default:
+			return super.onOptionsItemSelected(item);
+		}
+	}
+
+	// private void notifyChange(String what) {
+	//
+	// Intent i = new Intent(what);
+	// i.putExtra("id", Long.valueOf(getAudioId()));
+	// i.putExtra("artist", getArtistName());
+	// i.putExtra("album",getAlbumName());
+	// i.putExtra("track", getTrackName());
+	// sendBroadcast(i);
+	//
+	// if (what.equals(QUEUE_CHANGED)) {
+	// saveQueue(true);
+	// } else {
+	// saveQueue(false);
+	// }
+	//
+	// // Share this notification directly with our widgets
+	// mAppWidgetProvider.notifyChange(this, what);
+	// }
+
+	@Override
+	public void onPause() {
+		super.onPause();
+
+		System.out.println("In PAUSE");
+
+		wakeLock.release();
+		// mNsdHelper.stopDiscovery(); Keep out was problems
+
+		if (isFinishing()) {
+			mMusicManager.clearCurrentTrack();
+			finish();
+		}
+	}
+
+	public void onPlayClick(String prevFile) {
+		this.initNotification();
+		mMusicManager.loadTrack(prevFile);
+		if (!mMusicManager.isTuning()) {
+			mMusicManager.setIsTuning(true);
+			((ImageView) findViewById(R.id.imgPlayPause))
+					.setImageResource(R.drawable.ic_media_pause);
+		}
+		mMusicManager.playTrack(false);
+
+	}
+
+	@Override
+	public void onResume() {
+		super.onResume();
+		wakeLock.acquire();
+		System.out.println("In RESUME");
+		IntentFilter commandFilter = new IntentFilter();
+		commandFilter.addAction(PLAY);
+		commandFilter.addAction(NEXT);
+		commandFilter.addAction(PREVIOUS);
+		registerReceiver(mIntentReceiver, commandFilter);
+		if (isSockServerOn())
+			WServ.sendTrackData(null); // Will update changes in settings
+		// mNsdHelper.discoverServices(); Keep out was problems
+		if (android.os.Build.VERSION.SDK_INT >= 11) {
+			ImageView photoActionBarView = (ImageView) findViewById(R.id.photoActionBar);
+			Bitmap bitmap = PhotoActivity.getPhotoBitmap(this);
+			if (bitmap != null)
+				photoActionBarView.setImageBitmap(bitmap);
+		}
+	}
+
+	private void orderItems(String order) {
+		int selectedTab = mTabsManager.getActiveTab();
+		if (order.equals(getString(R.string.order_alphabetical))) {
+			playlist.setAdapter(mPlaycuradapter);
+			PLAYLIST_TAB = false;
+			switch (mTabsManager.ACTIVE_TAB) {
+			case R.id.btnSongs: {
+				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact,
+						MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
+				setSortOrderString(MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
+				return;
+			}
+			case R.id.btnAlbums: {
+				albumAdapter.changeCursor(MediaMeta.getAlbumCursor(this,
+						MediaStore.Audio.Albums.DEFAULT_SORT_ORDER));
+				return;
+			}
+			case R.id.btnArtists: {
+				artistAdapter.changeCursor(MediaMeta.getArtistCursor(this,
+						MediaStore.Audio.Media.DEFAULT_SORT_ORDER));
+				return;
+			}
+			}
+		} else if (order.equals(getString(R.string.order_newest))) {
+			playlist.setAdapter(mPlaycuradapter);
+			PLAYLIST_TAB = false;
+			switch (mTabsManager.ACTIVE_TAB) {
+			case R.id.btnSongs: {
+				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact,
+						MediaStore.Audio.Media.DATE_MODIFIED));
+				setSortOrderString(MediaStore.Audio.Media.DATE_MODIFIED);
+				return;
+			}
+			case R.id.btnAlbums: {
+				albumAdapter.changeCursor(MediaMeta.getAlbumCursor(this,
+						MediaStore.Audio.Albums.FIRST_YEAR + " ASC"));
+				return;
+			}
+			case R.id.btnArtists: {
+				artistAdapter.changeCursor(MediaMeta.getArtistCursor(this,
+						MediaStore.Audio.Media.DATE_MODIFIED));
+				return;
+			}
+			}
+		} else if (order.equals(getString(R.string.order_oldest))) {
+			playlist.setAdapter(mPlaycuradapter);
+			PLAYLIST_TAB = false;
+			switch (mTabsManager.ACTIVE_TAB) {
+			case R.id.btnSongs: {
+				mPlaycuradapter.changeCursor(MediaMeta.getMusicCursor(mnact,
+						MediaStore.Audio.Media.DATE_MODIFIED + " DESC"));
+				setSortOrderString(MediaStore.Audio.Media.DATE_MODIFIED
+						+ " DESC");
+				return;
+			}
+			case R.id.btnAlbums: {
+				albumAdapter.changeCursor(MediaMeta.getAlbumCursor(this,
+						MediaStore.Audio.Albums.FIRST_YEAR + " DESC"));
+				return;
+			}
+			case R.id.btnArtists: {
+				artistAdapter.changeCursor(MediaMeta.getArtistCursor(this,
+						MediaStore.Audio.Media.DATE_MODIFIED + " DESC"));
+				return;
+			}
+			}
+
+		} else if (order.equals(getString(R.string.playlist))) {
+			PLAYLIST_TAB = true;
+			mDbadapter.open();
+			mPlaylistAdapter = new PlaylistAdapter(this,
+					mDbadapter.fetchSongs());
+			playlist.setOnItemClickListener(mPlaylistAdapter);
+			playlist.setAdapter(mPlaylistAdapter);
+		}
+	}
+
+	public void playNextTrack() {
+
+		if (!inClient()) {
+			if (ShuffleLoop == MODE_LOOP) {
+				butNext(0);
+			} else {
+				butNext(1);
+			}
+		}
+	}
+
+	public void playPause() {
+		initNotification();
+		if (mMusicManager.isTuning()) {
+			toClients(CMD_PAUSE);
+			mMusicManager.setIsTuning(false);
+			((ImageView) findViewById(R.id.imgPlayPause))
+					.setImageResource(R.drawable.ic_media_play);
+			mMusicManager.getTrack().pause();
+		} else {
+			mMusicManager.setIsTuning(true);
+			((ImageView) findViewById(R.id.imgPlayPause))
+					.setImageResource(R.drawable.ic_media_pause);
+			mMusicManager.playTrack(true);
+
+		}
+
+	}
+
+	public void prepClientScreen() {
+		progressbar.setProgress(0);
+		setDownload(false);
+		setServerIndicator(MODE_STOP);
+	}
+
+	public void previousTrack() {
+		mMusicManager.loadTrack(setTrack(-1));
+		mMusicManager.playTrack(false);
+		mNotifyBuilder.setContentText(getCurrentTrackName());
+		mgr.notify(NOTIFY_ID, mNotifyBuilder.build());
+	}
+
+	@Override
+	public void run() {
+		int currentPosition = 0;
+
+		while (mMusicManager.isTrack()) {
+
+			try {
+				currentPosition = getTrack().getCurrentPosition();
+			} catch (Exception ex) {
+				System.out.println("Exception in thread run for seek : " + ex);
+			}
+
+			try {
+				boolean playing = mMusicManager.getTrack().isPlaying();
+				if (playing) {
+					if (inClient()) {
+						progressbar.setMax(getTrack().getDuration());
+						progressbar.setProgress(currentPosition);
+					} else {
+						seekbar.setProgress(currentPosition);
+					}
+				}
+			} catch (Exception ex) {
+				Log.e("Fullsink", "Error in track.isPlaying()", ex);
+				StringBuffer result = new StringBuffer();
+				StackTraceElement[] trace = ex.getStackTrace();
+				ex.printStackTrace();
+				for (int i = 0; i < trace.length; i++) {
+					result.append(trace[i].toString()).append('\n');
+				}
+				Log.e("Stack Trace", result.toString());
+
+			}
+
+			try {
+				Thread.sleep(1000);
+			} catch (Exception ex) { // InterruptedException
+				return;
+			}
+		}
+	}
+
+	public void setAlbumSelected(boolean selected) {
+		albumSelected = selected;
+	}
+
+	public void setArtistSelected(boolean selected) {
+		artistSelected = selected;
+	}
+
+	public void setDownload(final boolean enable) {
+
+		runOnUiThread(new Runnable() {
+			public void run() {
+				Button copybut = (Button) findViewById(R.id.btnclientCopy);
+
+				if (enable) {
+					copybut.setBackgroundResource(R.drawable.buttonblack);
+					copybut.setClickable(true);
+				} else {
+					copybut.setBackgroundResource(R.drawable.buttongrey);
+					copybut.setClickable(false);
+				}
+			}
+		});
+	}
+
+	public void setPlayCurAdapter(PlayCurAdapter playCurAdapter) {
+		mPlaycuradapter = playCurAdapter;
+
+	}
+
+	public void setServerIndicator(final int mode) {
+
+		runOnUiThread(new Runnable() {
+			public void run() {
+				ImageView imgbut = (ImageView) findViewById(R.id.imgServerIndicator);
+
+				if (mode == MODE_PAUSE) {
+					imgbut.setImageResource(R.drawable.ic_media_pause);
+				} else if (mode == MODE_PLAY) {
+					imgbut.setImageResource(R.drawable.ic_media_play);
+				} else {
+					imgbut.setImageResource(R.drawable.ic_media_stop);
+				}
+			}
+		});
+	}
+
+	public void setSongsSubmenu(boolean active) {
+		Button tbtn = (Button) findViewById(R.id.btnSongs);
+		mSongsSubmenu = active;
+		if (active) {
+			tbtn.setTypeface(Typeface.DEFAULT_BOLD);
+			tbtn.setClickable(false);
+		} else {
+			tbtn.setTypeface(Typeface.DEFAULT);
+			tbtn.setClickable(true);
+		}
+	}
+
+	public void setSortOrderInt(int sortOrder) {
+		mSortOrderInt = sortOrder;
+	}
+
+	public void setSortOrderString(String sortOrder) {
+		mSortOrderString = sortOrder;
+	}
+
+	private String setTrack(int direction) {
+
+		int pos = 0;
+		String prevtrack = null;
+
+		// Get current position and if none check, should not happen, got to top
+		pos = playlist.getCheckedItemPosition();
+		if (pos == ListView.INVALID_POSITION) {
+			if (mPlaycuradapter.isEmpty()) {
+				pos = -1;
+			} else {
+				pos = 0;
+			}
+			return (prevtrack);
+		}
+
+		prevtrack = getCurrentTrackName();
+
+		if (ShuffleLoop == MODE_SHUFFLE && mPlaycuradapter.getCount() > 3) {
+			int temp = new Random().nextInt(mPlaycuradapter.getCount());
+			int safety = 0;
+			while (safety < 20) {
+				if (temp != pos) {
+					pos = temp;
+					break;
+				}
+				temp++;
+				if (temp > mPlaycuradapter.getCount() - 1) {
+					temp = 0;
+				}
+				++safety;
+			}
+		} else if (direction == -1) {
+			pos--;
+			if (pos < 0) {
+				pos = mPlaycuradapter.getCount() - 1;
+			}
+		} else if (direction == 1) {
+			pos++;
+			if (pos > mPlaycuradapter.getCount() - 1) {
+				pos = 0;
+			}
+		}
+		playlist.setItemChecked(pos, true);
+		if (!mMusicManager.isTuning()) {
+			mMusicManager.setIsTuning(true);
+			((ImageView) findViewById(R.id.imgPlayPause))
+					.setImageResource(R.drawable.ic_media_pause);
+		}
+		mMusicManager.setCurrentSongPosition(pos);// used to be 0 instead of pos
+		// might need to move highlight here as well
+		playlist.smoothScrollToPosition(pos);
+		return (prevtrack);
+	}
+
+	public void startHttpdServer(int httpdPort, String ipadd) {
+
+		try {
+			stopHttpdServer();
+			HttpdServ = new SimpleWebServer(ipadd, httpdPort, getFilesDir());
+			HttpdServ.start();
+			// mNsdHelper.registerService(httpdPort);
+			System.out.println("HttpdServ started Add : " + ipadd + "  Port : "
+					+ httpdPort);
+			NetStrat.storeHttpdPort(httpdPort);
+		} catch (Exception ex) {
+			System.out.println("HttpdServer error  : " + ex);
+		}
+	}
+
+	public void startSockClient(int webSockPort, String ipadd, int httpdPort) {
+
+		try {
+			System.out.println("In startSockClient");
+			stopSockClient();
+			WClient = new WebClient(webSockPort, ipadd, httpdPort,
+					MainActivity.this);
+			WClient.connect();
+
+		} catch (Exception ex) {
+			System.out.println("WebClient error : " + ex);
+		}
+	}
+
+	public void startSockServer(int port, String ipadd) {
+		WebSocketImpl.DEBUG = false; // This was true originally
+		boolean serverinit = false;
+
+		// System.out.println( "In WebSockServer : "+ipadd);
+		try {
+			// stopSockServer();
+			// This was changed to allow websocket server to remain running for
+			// 2.3 bug
+
+			if (!isSockServerOn()) {
+				System.out.println("In startSockServer");
+				WServ = new WebServer(port, ipadd, MainActivity.this);
+				serverinit = true;
+
+			}
+
+			WServ.deleteCues();
+			WServ.cueTrack(getMusicDirectory(), getCurrentTrackName()); // Copy
+																		// for
+																		// stream
+
+			if (serverinit) {
+				WServ.start();
+			}
+
+			System.out.println("WebSockServ started on port: "
+					+ WServ.getPort());
+			System.out.println("WebSockServ start Add : " + WServ.getAddress());
+			WServ.generateServerId(WServ.getPort());
+
+		} catch (Exception ex) {
+			System.out.println("WebSockServer host not found error" + ex);
+		}
+	}
+
+	public void stopHttpdServer() {
+
+		try {
+			if (HttpdServ != null) {
+				// mNsdHelper.unregisterService();
+				HttpdServ.stop();
+				HttpdServ = null;
+				NetStrat.storeHttpdPort(0);
+			}
+
+		} catch (Exception ex) {
+			System.out.println("HttpdServer stop : " + ex);
+		}
+	}
+
+	public void stopSockClient() {
+
+		try {
+			if (WClient != null) {
+				WClient.close();
+				WClient = null;
+			}
+		} catch (Exception ex) {
+			System.out.println("WebSockClient stop error" + ex);
+		}
+	}
+
+	public void stopSockServer(boolean closeflg) {
+
+		try {
+			if (isSockServerOn()) {
+				// System.out.println( "WebSockServer there are clients : " +
+				// WServ.isClient());
+				// There seems to be a bug when there are no connections the
+				// stop hangs in 2.3
+				// To get around this just let the socketserver run if no
+				// connections as no one will be able
+				// to connect as the Httpd server is the contact point for a
+				// live server
+
+				if (android.os.Build.VERSION.SDK_INT > 10 || closeflg
+						|| WServ.isClient()) {
+					// System.out.println("WebSockServ stopping");
+					WServ.stop();
+					WServ = null;
+				}
+
+			}
+		} catch (Exception ex) {
+			System.out.println("WebSockServer stop error" + ex);
+		}
+	}
+
+	// This is not good and should be reviewed
+	public void toastOut(final String xmess, final int length) {
+
+		runOnUiThread(new Runnable() {
+			public void run() {
+				Toast.makeText(getBaseContext(), xmess, length).show();
+			}
+		});
+	}
+
+	public void toClients(String mess) {
+
+		if (isSockServerOn()) {
+			WServ.sendToAll(mess);
+		}
+	}
+
+	public void toHelp(MenuItem item) {
+		Intent intent = new Intent(this, HelpActivity.class);
+		startActivity(intent);
+	}
+
+	public void toIPAddress(MenuItem item) {
+
+		if (!isSockServerOn())
+			turnServerOn(this);
+
+		Intent intent = new Intent(this, IPAddressActivity.class);
+		startActivity(intent);
+	}
+
+	public void toPhoto(MenuItem item) {
+		Intent intent = new Intent(this, PhotoActivity.class);
+		startActivity(intent);
+	}
+
+	public void toSettings(MenuItem item) {
+		Intent intent = new Intent(this, SettingsActivity.class);
+		startActivity(intent);
+	}
+
+	public void turnServerOff(final MainActivity mnact) {
+
+		stopHttpdServer();
+		stopSockServer(false);
+
+		NetStrat.logServer(mnact, SERVER_OFFLINE); // Server is turned off
+
+	}
+
+	public void turnServerOn(final MainActivity mnact) {
+
+		final String ipadd = NetStrat.getWifiApIpAddress();
+		if (ipadd != null) {
+			final int httpdPort = NetStrat.getHttpdPort(mnact);
+			final int webSockPort = NetStrat.getSocketPort(mnact);
+
+			NetStrat.logServer(mnact, ipadd, Prefs.getName(mnact), webSockPort,
+					httpdPort);
+
+			new Thread(new Runnable() {
+				public void run() {
+					try {
+
+						startHttpdServer(httpdPort, ipadd);
+
+						System.out.println("WebSock Port : " + webSockPort
+								+ "  IPADD : " + ipadd);
+						startSockServer(webSockPort, ipadd);
+
+					} catch (Exception ex) {
+						System.out.println("Select thread exception : " + ex);
+					}
+
+					runOnUiThread(new Runnable() {
+						public void run() {
+							((ImageView) findViewById(R.id.imgServer))
+									.setImageResource(R.drawable.ic_media_route_on_holo_blue);
+						}
+					});
+				}
+			}).start();
+		} else {
+			FS_Util.showConnectionWarning(mnact);
+		}
 	}
 
 }
