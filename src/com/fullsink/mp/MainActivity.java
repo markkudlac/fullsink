@@ -608,11 +608,14 @@ public class MainActivity extends Activity implements Runnable,
 	public String getCurrentTrackName() {
 		int pos;
 		String track = null;
-
+		
 		pos = playlist.getCheckedItemPosition();
 		if (pos != ListView.INVALID_POSITION) {
-			track = mPlaycuradapter.getTrackPath(pos); // Path to song in music
-														// dir
+			if(!PLAYLIST_TAB){
+				track = mPlaycuradapter.getTrackPath(pos); 
+			} else if(PLAYLIST_TAB){
+				track = this.mPlaylistAdapter.getTrackName(pos);
+			}
 		}
 
 		return (track);
@@ -625,8 +628,12 @@ public class MainActivity extends Activity implements Runnable,
 
 		int pos = playlist.getCheckedItemPosition();
 		if (pos != ListView.INVALID_POSITION) {
-			dir = mPlaycuradapter.getTrackDir(pos); // Path to song in music
+			if(!PLAYLIST_TAB){
+				dir = mPlaycuradapter.getTrackDir(pos); // Path to song in music
 													// dir
+			} else if(PLAYLIST_TAB){
+				dir = this.mPlaylistAdapter.getTrackDir(pos);
+			}
 		}
 
 		return new File(dir);
@@ -1039,6 +1046,7 @@ public class MainActivity extends Activity implements Runnable,
 	public boolean onItemLongClick(AdapterView<?> adapter, View view,
 			int position, final long id) {
 		final View thisview = view;
+		final int pos = position;
 
 		// int previousSelected = playlist.getCheckedItemPosition();
 		// mPreviousView = (CheckableRelativeLayout)
@@ -1118,10 +1126,12 @@ public class MainActivity extends Activity implements Runnable,
 													.getTag();
 											// PlaylistManager.addToPlaylist(title,
 											// artist, albumId, mnact);
+											String dir = mPlaycuradapter.getTrackDir(pos);
+											String titleRaw = mPlaycuradapter.getTrackPath(pos); 
 											mDbadapter.open();
 											mDbadapter.addTrackInfo(
 													Long.toString(songId),
-													albumId, artist, title);
+													albumId, artist, title, dir, titleRaw);
 										}
 									}
 								}
@@ -1329,8 +1339,8 @@ public class MainActivity extends Activity implements Runnable,
 			mDbadapter.open();
 			mPlaylistAdapter = new PlaylistAdapter(this,
 					mDbadapter.fetchSongs());
-			playlist.setOnItemClickListener(mPlaylistAdapter);
 			playlist.setAdapter(mPlaylistAdapter);
+			playlist.setOnItemClickListener(mPlaylistAdapter);
 		}
 	}
 
@@ -1524,8 +1534,14 @@ public class MainActivity extends Activity implements Runnable,
 			}
 		} else if (direction == 1) {
 			pos++;
-			if (pos > mPlaycuradapter.getCount() - 1) {
-				pos = 0;
+			if(!PLAYLIST_TAB){
+				if (pos > mPlaycuradapter.getCount() - 1) {
+					pos = 0;
+				}
+			} else if(PLAYLIST_TAB){
+				if (pos > mPlaylistAdapter.getCount() - 1) {
+					pos = 0;
+				}
 			}
 		}
 		playlist.setItemChecked(pos, true);

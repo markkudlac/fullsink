@@ -16,7 +16,7 @@ public class MusicDbAdapter {
 	public static final String tracks_table = "tracks";
 	public static final String tracks_table_create_string = "create table "
 			+ tracks_table
-			+ " (" + Const.DB_TRACK_ID + " integer primary key autoincrement," + Const.DB_TRACK_NAME + " text not null," +  Const.DB_ALBUM_ARTIST + " text," + Const.DB_ALBUM_ID + " text not null);";
+			+ " (" + Const.DB_TRACK_ID + " integer primary key autoincrement," + Const.DB_TRACK_NAME + " text not null," +  Const.DB_ALBUM_ARTIST + " text," + Const.DB_ALBUM_ID + " text not null," + Const.DB_TRACK_PATH + " text not null," + Const.DB_TRACK_RAW + " text not null);";
 	public static final String app_table = "appdata";
 	public static final String app_table_create_string = "create table " + app_table + " (numtracks integer);";
 	public static final String app_table_init_string = "insert into " + app_table + " values (0);";
@@ -79,7 +79,7 @@ public class MusicDbAdapter {
 	public Cursor fetchSongs()
 	{
 		return musicDatabase.query(tracks_table, new String[] {
-				Const.DB_TRACK_ID, Const.DB_TRACK_NAME, Const.DB_ALBUM_ARTIST, Const.DB_ALBUM_ID }, null, null, null, null,
+				Const.DB_TRACK_ID, Const.DB_TRACK_NAME, Const.DB_ALBUM_ARTIST, Const.DB_ALBUM_ID, Const.DB_TRACK_PATH, Const.DB_TRACK_RAW }, null, null, null, null,
 				null);
 	}
 	
@@ -117,7 +117,7 @@ public class MusicDbAdapter {
 		{ musicDatabase.endTransaction(); }		
 	}
 	
-	public void addTrackInfo(String id, String albumId, String albumArtist, String name)
+	public void addTrackInfo(String id, String albumId, String albumArtist, String name, String directory, String rawFileName)
 	{
 		/*if(song == null) //TODO: change so that boolean is returned or exception is raised
 		{ return; }*/
@@ -126,6 +126,8 @@ public class MusicDbAdapter {
 		cv.put(Const.DB_ALBUM_ID, albumId);
 		cv.put(Const.DB_ALBUM_ARTIST, albumArtist);
 		cv.put(Const.DB_TRACK_NAME, name);
+		cv.put(Const.DB_TRACK_PATH , directory);
+		cv.put(Const.DB_TRACK_RAW , rawFileName);
 		try
 		{
 		musicDatabase.beginTransaction();		
@@ -143,6 +145,13 @@ public class MusicDbAdapter {
 		Cursor trackCursor = musicDatabase.query(tracks_table, new String[] {Const.DB_TRACK_NAME}, Const.DB_TRACK_ID + "=" + trackId, null, null, null, null);
 		trackCursor.moveToFirst();
 		return trackCursor.getString(trackCursor.getColumnIndex(Const.DB_TRACK_NAME));
+	}
+	
+	public String getTrackDir(int id)
+	{
+		Cursor trackCursor = musicDatabase.query(tracks_table, new String[] {Const.DB_TRACK_PATH}, Const.DB_TRACK_ID + "=" + id, null, null, null, null);
+		trackCursor.moveToFirst();
+		return trackCursor.getString(trackCursor.getColumnIndex(Const.DB_TRACK_PATH));
 	}
 
 	public void removeSong(int songId) {

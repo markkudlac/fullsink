@@ -40,9 +40,10 @@ public class PlaylistAdapter extends CursorAdapter implements
 	private String [] mxTTA;
 	private String SONG_PATH = "content://media/external/audio/media/";
 	private String mTrackName;
-	private int mAlbum;
 	private int mArtist;
 	private String mCurrTrackName;
+	private int mDbPath;
+	private int mTitleRaw;
 
 	public PlaylistAdapter(MainActivity mnact, Cursor cursor) {
 		super((Context) mnact, cursor, false);
@@ -53,7 +54,8 @@ public class PlaylistAdapter extends CursorAdapter implements
 		artLoader = new AlbumArtLoader();
         mTitle = cursor.getColumnIndex(Const.DB_TRACK_NAME);
         mArtist = cursor.getColumnIndex(Const.DB_ALBUM_ARTIST);
-        
+        mDbPath = cursor.getColumnIndex(Const.DB_TRACK_PATH);
+        mTitleRaw = cursor.getColumnIndex(Const.DB_TRACK_RAW);
 	}
 
 
@@ -77,12 +79,10 @@ public class PlaylistAdapter extends CursorAdapter implements
 			}
 
 			field = (TextView) view.findViewById(R.id.album);
-			album = cursor.getString(mAlbum);
-
 			artist = cursor.getString(mArtist);
 
 			
-			field.setText(albart);
+			field.setText(artist);
 		} catch (Exception ex) {
 			System.out.println("Column cursor : " + ex);
 		}
@@ -116,10 +116,6 @@ public class PlaylistAdapter extends CursorAdapter implements
 		if (android.os.Build.VERSION.SDK_INT > 15) {
 			moveHighlight(view);
 		}
-		//mnact.registerForContextMenu(view);
-		//view.setOnItemLongClickListener();
-		
-		//mnact.openContextMenu(view);
 	}
 	
 	public void moveHighlight(View view) {
@@ -152,23 +148,18 @@ public class PlaylistAdapter extends CursorAdapter implements
 		mCurrTrackName = curtrk;
 	}
 	
-
-	public String getTrackPath(int pos) {
+	public String getTrackName(int pos) {
 
 		Cursor tcur;
-		String cutpath;
-
+		String title = null;
 		tcur = (Cursor) getItem(pos);
-		cutpath = tcur.getString(tcur
-				.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
-
-		int offset = cutpath.lastIndexOf("/");
-		if (offset >= 0) {
-			cutpath = cutpath.substring(offset + 1);
+		if(!tcur.isNull(mTitleRaw)){
+			title = tcur.getString(mTitleRaw);
 		}
 
-		return (cutpath);
+		return (title);
 	}
+	
 	private void setTAA(String [] xTTA){
 		mxTTA = xTTA;
 	}
@@ -182,7 +173,6 @@ public class PlaylistAdapter extends CursorAdapter implements
 		tcur = (Cursor) getItem(pos);
 		if (tcur != null) {
 			xTTA[0] = tcur.getString(mTitle);
-			xTTA[1] = tcur.getString(mAlbum);
 			xTTA[2] = tcur.getString(mArtist);
 		}
 		return xTTA;
@@ -193,8 +183,7 @@ public class PlaylistAdapter extends CursorAdapter implements
 		String cutpath;
 
 		tcur = (Cursor) getItem(pos);
-		cutpath = tcur.getString(tcur
-				.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
+		cutpath = tcur.getString(mDbPath);
 
 		int offset = cutpath.lastIndexOf("/");
 		if (offset >= 0) {

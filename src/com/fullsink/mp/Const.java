@@ -62,6 +62,8 @@ public interface Const extends BaseColumns {
 	public static final String DB_TRACK_NAME = "name";
 	public static final String DB_ALBUM_ARTIST = "albumArtist";
 	public static final String DB_ALBUM_ID = "album_id";
+	public static final String DB_TRACK_PATH = "track_path";
+	public static final String DB_TRACK_RAW = "track_raw";
 }
 
 

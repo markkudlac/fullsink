@@ -36,6 +36,7 @@ public class PlayCurAdapter extends CursorAdapter implements
 	private int mAlbumIdx;
 	private int mArtistIdx;
 	private int mTitle;
+	private int mId;
 	private final int mHighlight;
 	private String [] mxTTA;
 	private String SONG_PATH = "content://media/external/audio/media/";
@@ -51,6 +52,7 @@ public class PlayCurAdapter extends CursorAdapter implements
 	    mHighlight = mnact.getResources().getColor(R.color.highlight);
 		mInflater = LayoutInflater.from(mnact);
 		artLoader = new AlbumArtLoader();
+		mId = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
         mTitle = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
         mAlbum = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM);
         mArtist = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
@@ -66,6 +68,7 @@ public class PlayCurAdapter extends CursorAdapter implements
 			int currPosition = cursor.getPosition();
 			TextView field = (TextView) view.findViewById(R.id.title);
 			field.setText(cursor.getString(mTitle));
+			field.setTag(mId);
 			CheckableRelativeLayout cl = (CheckableRelativeLayout) view
 					.findViewById(R.id.checkableLayout);
 			ListView playlist = mnact.getPlaylist();
@@ -108,8 +111,7 @@ public class PlayCurAdapter extends CursorAdapter implements
 		imageView.setImageResource(R.drawable.albumart_icon);
 		artLoader.loadBitmap(albumId, SONG_PATH + albumId + "/albumart", imageView, context);
 		
-
-	}
+		}
 
 	@Override
 	public View newView(Context context, Cursor cursor, ViewGroup parent) {
